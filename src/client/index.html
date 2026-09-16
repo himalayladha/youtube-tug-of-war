@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Live Chat Runner - Stream Overlay</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app-container">
+    <div id="game-viewport">
+      <!-- 60 FPS 2D Runner Canvas -->
+      <canvas id="game-canvas"></canvas>
+
+      <!-- 1080p Stream Overlay HUD -->
+      <div id="hud-overlay">
+        <!-- Top HUD Header -->
+        <div class="hud-header">
+          <div class="hud-group">
+            <div class="hud-card">
+              <span class="hud-label">DISTANCE</span>
+              <span id="hud-distance" class="hud-value">0m</span>
+            </div>
+            <div class="hud-card">
+              <span class="hud-label">SCORE</span>
+              <span id="hud-score" class="hud-value">0</span>
+            </div>
+            <div class="hud-card">
+              <span class="hud-label">GEMS</span>
+              <span id="hud-gems" class="hud-value">0</span>
+            </div>
+          </div>
+
+          <div class="hud-group">
+            <div id="hud-mode-badge" class="mode-badge anarchy">⚡ Anarchy Mode (Instant)</div>
+            <div class="hud-card">
+              <span class="hud-label">CHAT RATE</span>
+              <span id="hud-velocity" class="hud-value" style="color: var(--yellow); font-size: 18px;">0 msgs/s</span>
+            </div>
+            <div class="hud-card">
+              <span class="hud-label">HEALTH</span>
+              <div id="hud-hearts" class="hearts-container">
+                <span class="heart active">❤️</span>
+                <span class="heart active">❤️</span>
+                <span class="heart active">❤️</span>
+              </div>
+            </div>
+            <div class="hud-card">
+              <span class="hud-label">SHIELD CHARGE</span>
+              <div class="shield-bar-wrapper">
+                <div id="hud-shield-fill" class="shield-bar-fill"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Middle Split Feeds -->
+        <div class="hud-middle">
+          <!-- Live Chat Ticker (Left) -->
+          <div id="chat-ticker-container"></div>
+
+          <!-- Top MVP Viewers (Right) -->
+          <div id="leaderboard-card">
+            <div class="leaderboard-title">🏆 Top Contributors</div>
+            <div id="leaderboard-list" class="leaderboard-list">
+              <div style="font-size: 11px; color: #666; font-style: italic;">Waiting for chat votes...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Democracy Voting Gauges -->
+        <div class="hud-footer">
+          <div id="voting-gauges-container">
+            <div class="gauges-header">
+              <span>LIVE COMMUNITY VOTES (Type: <b>JUMP</b> • <b>SLIDE</b> • <b>LEFT</b> • <b>RIGHT</b> • <b>SHIELD</b>)</span>
+              <span style="font-size: 11px;">Next Action Window</span>
+            </div>
+            <div class="window-timer-track">
+              <div id="window-timer-fill" class="window-timer-fill"></div>
+            </div>
+            <div class="gauges-row">
+              <div class="gauge-item">
+                <div class="gauge-label-row">
+                  <span class="gauge-name">▲ JUMP (1/J/W)</span>
+                  <span id="gauge-pct-jump" class="gauge-pct">0%</span>
+                </div>
+                <div class="gauge-bar-track">
+                  <div id="gauge-bar-jump" class="gauge-bar-fill jump"></div>
+                </div>
+              </div>
+
+              <div class="gauge-item">
+                <div class="gauge-label-row">
+                  <span class="gauge-name">▼ SLIDE (2/S/D)</span>
+                  <span id="gauge-pct-slide" class="gauge-pct">0%</span>
+                </div>
+                <div class="gauge-bar-track">
+                  <div id="gauge-bar-slide" class="gauge-bar-fill slide"></div>
+                </div>
+              </div>
+
+              <div class="gauge-item">
+                <div class="gauge-label-row">
+                  <span class="gauge-name">◄ LEFT (3/L/A)</span>
+                  <span id="gauge-pct-left" class="gauge-pct">0%</span>
+                </div>
+                <div class="gauge-bar-track">
+                  <div id="gauge-bar-left" class="gauge-bar-fill left"></div>
+                </div>
+              </div>
+
+              <div class="gauge-item">
+                <div class="gauge-label-row">
+                  <span class="gauge-name">► RIGHT (4/R/D)</span>
+                  <span id="gauge-pct-right" class="gauge-pct">0%</span>
+                </div>
+                <div class="gauge-bar-track">
+                  <div id="gauge-bar-right" class="gauge-bar-fill right"></div>
+                </div>
+              </div>
+
+              <div class="gauge-item">
+                <div class="gauge-label-row">
+                  <span class="gauge-name">🛡️ SHIELD (5/Space)</span>
+                  <span id="gauge-pct-shield" class="gauge-pct">0%</span>
+                </div>
+                <div class="gauge-bar-track">
+                  <div id="gauge-bar-shield" class="gauge-bar-fill shield"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Developer & Streamer Control Dock -->
+    <div id="dev-dock">
+      <button id="dev-dock-toggle">🛠️ Controls [H]</button>
+
+      <!-- 1-Click Action Simulator -->
+      <div class="dev-section">
+        <span class="dev-title">Test Action:</span>
+        <button id="btn-cmd-jump" class="dev-btn">▲ Jump (W)</button>
+        <button id="btn-cmd-slide" class="dev-btn">▼ Slide (S)</button>
+        <button id="btn-cmd-left" class="dev-btn">◄ Left (A)</button>
+        <button id="btn-cmd-right" class="dev-btn">► Right (D)</button>
+        <button id="btn-cmd-shield" class="dev-btn">🛡️ Shield</button>
+      </div>
+
+      <!-- Custom Chat Tester -->
+      <div class="dev-section">
+        <input type="text" id="custom-chat-input" class="dev-input" placeholder="Type test comment..." style="width: 140px;" />
+        <button id="btn-send-custom" class="dev-btn">Send</button>
+      </div>
+
+      <!-- Aggregation Mode -->
+      <div class="dev-section">
+        <span class="dev-title">Mode:</span>
+        <button id="btn-mode-auto" class="dev-btn active">Auto</button>
+        <button id="btn-mode-anarchy" class="dev-btn">Anarchy</button>
+        <button id="btn-mode-democracy" class="dev-btn">Democracy</button>
+      </div>
+
+      <!-- Chat Simulator Frequency -->
+      <div class="dev-section">
+        <span class="dev-title">Bot Crowd:</span>
+        <button id="btn-sim-off" class="dev-btn active">Off</button>
+        <button id="btn-sim-slow" class="dev-btn">1/s</button>
+        <button id="btn-sim-med" class="dev-btn">5/s</button>
+        <button id="btn-sim-fast" class="dev-btn">15/s</button>
+        <button id="btn-sim-flood" class="dev-btn">50/s 🔥</button>
+        <button id="btn-sim-burst" class="dev-btn" style="background: var(--purple); color: #fff;">Burst 25</button>
+      </div>
+
+      <!-- YouTube Live Credentials -->
+      <div class="dev-section">
+        <span class="dev-title">YouTube API:</span>
+        <input type="password" id="yt-api-key" class="dev-input" placeholder="API Key" style="width: 110px;" />
+        <input type="text" id="yt-video-id" class="dev-input" placeholder="Video ID" style="width: 100px;" />
+        <button id="btn-yt-connect" class="dev-btn" style="background: #cc0000; color: #fff;">Connect Live</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
