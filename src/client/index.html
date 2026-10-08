@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>YouTube Live Chat Runner - Stream Overlay</title>
+  <title>Stickman Subway Runner - YouTube Live Chat Controller</title>
   <link rel="stylesheet" href="./styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,7 +12,7 @@
 <body>
   <div id="app-container">
     <div id="game-viewport">
-      <!-- 60 FPS 2D Runner Canvas -->
+      <!-- 60 FPS 3D Subway Surfers Stickman Canvas -->
       <canvas id="game-canvas"></canvas>
 
       <!-- 1080p Stream Overlay HUD -->
@@ -29,8 +29,8 @@
               <span id="hud-score" class="hud-value">0</span>
             </div>
             <div class="hud-card">
-              <span class="hud-label">GEMS</span>
-              <span id="hud-gems" class="hud-value">0</span>
+              <span class="hud-label">COINS</span>
+              <span id="hud-coins" class="hud-value" style="color: #ffd700;">0</span>
             </div>
           </div>
 
@@ -46,12 +46,6 @@
                 <span class="heart active">❤️</span>
                 <span class="heart active">❤️</span>
                 <span class="heart active">❤️</span>
-              </div>
-            </div>
-            <div class="hud-card">
-              <span class="hud-label">SHIELD CHARGE</span>
-              <div class="shield-bar-wrapper">
-                <div id="hud-shield-fill" class="shield-bar-fill"></div>
               </div>
             </div>
           </div>
@@ -71,20 +65,30 @@
           </div>
         </div>
 
-        <!-- Bottom Democracy Voting Gauges -->
+        <!-- Bottom 3-Action Democracy Voting Gauges -->
         <div class="hud-footer">
           <div id="voting-gauges-container">
             <div class="gauges-header">
-              <span>LIVE COMMUNITY VOTES (Type: <b>JUMP</b> • <b>SLIDE</b> • <b>LEFT</b> • <b>RIGHT</b> • <b>SHIELD</b>)</span>
+              <span>LIVE COMMUNITY VOTES (Type: <b>LEFT</b> • <b>JUMP</b> • <b>RIGHT</b> or <b>1</b> • <b>2</b> • <b>3</b>)</span>
               <span style="font-size: 11px;">Next Action Window</span>
             </div>
             <div class="window-timer-track">
               <div id="window-timer-fill" class="window-timer-fill"></div>
             </div>
-            <div class="gauges-row">
+            <div class="gauges-row three-cols">
               <div class="gauge-item">
                 <div class="gauge-label-row">
-                  <span class="gauge-name">▲ JUMP (1/J/W)</span>
+                  <span class="gauge-name">◄ LEFT (1 / L / A)</span>
+                  <span id="gauge-pct-left" class="gauge-pct">0%</span>
+                </div>
+                <div class="gauge-bar-track">
+                  <div id="gauge-bar-left" class="gauge-bar-fill left"></div>
+                </div>
+              </div>
+
+              <div class="gauge-item highlight-jump">
+                <div class="gauge-label-row">
+                  <span class="gauge-name">▲ JUMP (2 / J / W)</span>
                   <span id="gauge-pct-jump" class="gauge-pct">0%</span>
                 </div>
                 <div class="gauge-bar-track">
@@ -94,41 +98,11 @@
 
               <div class="gauge-item">
                 <div class="gauge-label-row">
-                  <span class="gauge-name">▼ SLIDE (2/S/D)</span>
-                  <span id="gauge-pct-slide" class="gauge-pct">0%</span>
-                </div>
-                <div class="gauge-bar-track">
-                  <div id="gauge-bar-slide" class="gauge-bar-fill slide"></div>
-                </div>
-              </div>
-
-              <div class="gauge-item">
-                <div class="gauge-label-row">
-                  <span class="gauge-name">◄ LEFT (3/L/A)</span>
-                  <span id="gauge-pct-left" class="gauge-pct">0%</span>
-                </div>
-                <div class="gauge-bar-track">
-                  <div id="gauge-bar-left" class="gauge-bar-fill left"></div>
-                </div>
-              </div>
-
-              <div class="gauge-item">
-                <div class="gauge-label-row">
-                  <span class="gauge-name">► RIGHT (4/R/D)</span>
+                  <span class="gauge-name">► RIGHT (3 / R / D)</span>
                   <span id="gauge-pct-right" class="gauge-pct">0%</span>
                 </div>
                 <div class="gauge-bar-track">
                   <div id="gauge-bar-right" class="gauge-bar-fill right"></div>
-                </div>
-              </div>
-
-              <div class="gauge-item">
-                <div class="gauge-label-row">
-                  <span class="gauge-name">🛡️ SHIELD (5/Space)</span>
-                  <span id="gauge-pct-shield" class="gauge-pct">0%</span>
-                </div>
-                <div class="gauge-bar-track">
-                  <div id="gauge-bar-shield" class="gauge-bar-fill shield"></div>
                 </div>
               </div>
             </div>
@@ -141,14 +115,12 @@
     <div id="dev-dock">
       <button id="dev-dock-toggle">🛠️ Controls [H]</button>
 
-      <!-- 1-Click Action Simulator -->
+      <!-- 1-Click 3 Action Simulator -->
       <div class="dev-section">
         <span class="dev-title">Test Action:</span>
-        <button id="btn-cmd-jump" class="dev-btn">▲ Jump (W)</button>
-        <button id="btn-cmd-slide" class="dev-btn">▼ Slide (S)</button>
-        <button id="btn-cmd-left" class="dev-btn">◄ Left (A)</button>
-        <button id="btn-cmd-right" class="dev-btn">► Right (D)</button>
-        <button id="btn-cmd-shield" class="dev-btn">🛡️ Shield</button>
+        <button id="btn-cmd-left" class="dev-btn" style="border-color: #ff007f;">◄ Left (A)</button>
+        <button id="btn-cmd-jump" class="dev-btn" style="border-color: #00f0ff; font-weight: 900;">▲ Jump (W)</button>
+        <button id="btn-cmd-right" class="dev-btn" style="border-color: #7928ca;">► Right (D)</button>
       </div>
 
       <!-- Custom Chat Tester -->

@@ -338,8 +338,21 @@ body, html {
 
 .gauges-row {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.gauges-row.three-cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.gauge-item.highlight-jump {
+  background: rgba(0, 240, 255, 0.08);
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 240, 255, 0.3);
 }
 
 .gauge-item {

@@ -1,114 +1,74 @@
 import { GameAction } from '../../shared/types.js';
 
-export interface LaneInfo {
-  laneIndex: number; // 0 = Left, 1 = Center, 2 = Right
-  targetX: number;
-  currentX: number;
-}
-
-export class Player {
-  public laneIndex: number = 1; // Start in center lane
-  public currentX: number = 0;
-  public targetX: number = 0;
-  public y: number = 0;
-  public groundY: number = 0;
-
-  // Dimensions
-  public width: number = 44;
-  public normalHeight: number = 70;
-  public slideHeight: number = 34;
-  public currentHeight: number = 70;
+export class StickmanPlayer {
+  // Lane: 0 = Left, 1 = Center, 2 = Right
+  public laneIndex: number = 1;
+  public laneProgress: number = 0; // -1 = Left, 0 = Center, 1 = Right
+  public targetLaneProgress: number = 0;
 
   // Jump physics
   public isJumping: boolean = false;
+  public jumpAltitude: number = 0;
   private vy: number = 0;
-  private gravity: number = 2200; // px/s^2
-  private jumpVelocity: number = -850; // px/s
+  private gravity: number = 2400; // px/s^2
+  private jumpPower: number = 950; // px/s
 
-  // Slide state
-  public isSliding: boolean = false;
-  private slideTimer: number = 0;
-  private slideDuration: number = 0.65; // seconds
-
-  // Invulnerability / Shield
-  public isShielded: boolean = false;
-  public shieldTimer: number = 0;
+  // Hit & Invulnerability
   public isInvulnerable: boolean = false;
   private invulnerableTimer: number = 0;
 
   // Animation cycle
   private runAnimTimer: number = 0;
-  public trailPositions: Array<{ x: number; y: number; alpha: number }> = [];
+  public tiltAngle: number = 0; // Lean angle when shifting lanes
 
-  constructor(groundY: number) {
-    this.groundY = groundY;
-    this.y = groundY;
+  constructor() {
+    this.reset();
   }
 
-  public setLaneX(lanes: number[]): void {
-    if (lanes[this.laneIndex] !== undefined) {
-      this.targetX = lanes[this.laneIndex];
-      if (this.currentX === 0) this.currentX = this.targetX;
-    }
+  public reset(): void {
+    this.laneIndex = 1;
+    this.laneProgress = 0;
+    this.targetLaneProgress = 0;
+    this.isJumping = false;
+    this.jumpAltitude = 0;
+    this.vy = 0;
+    this.isInvulnerable = false;
+    this.invulnerableTimer = 0;
+    this.runAnimTimer = 0;
+    this.tiltAngle = 0;
   }
 
   public handleAction(action: GameAction): void {
     switch (action) {
-      case 'JUMP':
-        if (!this.isJumping) {
-          this.isJumping = true;
-          this.vy = this.jumpVelocity;
-          this.isSliding = false;
-          this.currentHeight = this.normalHeight;
-        }
-        break;
-
-      case 'SLIDE':
-        if (!this.isJumping) {
-          this.isSliding = true;
-          this.slideTimer = this.slideDuration;
-          this.currentHeight = this.slideHeight;
-        } else {
-          // Fast dive down if sliding mid-air
-          this.vy = Math.max(this.vy, 1200);
-        }
-        break;
-
       case 'LEFT':
         if (this.laneIndex > 0) {
           this.laneIndex--;
+          this.targetLaneProgress = this.laneIndex - 1; // 0 -> -1, 1 -> 0
         }
         break;
 
       case 'RIGHT':
         if (this.laneIndex < 2) {
           this.laneIndex++;
+          this.targetLaneProgress = this.laneIndex - 1; // 1 -> 0, 2 -> 1
         }
         break;
 
-      case 'SHIELD':
-        this.activateShield(5.0);
+      case 'JUMP':
+        if (!this.isJumping) {
+          this.isJumping = true;
+          this.vy = this.jumpPower;
+        }
         break;
     }
   }
 
-  public activateShield(durationSec: number = 5.0): void {
-    this.isShielded = true;
-    this.shieldTimer = durationSec;
-  }
-
   public triggerHit(): boolean {
-    if (this.isShielded) {
-      this.isShielded = false;
-      this.triggerInvulnerability(1.5);
-      return false; // Hit absorbed by shield
-    }
     if (this.isInvulnerable) {
       return false; // Immune during i-frames
     }
-
     this.triggerInvulnerability(2.0);
-    return true; // Took actual damage
+    return true;
   }
 
   public triggerInvulnerability(durationSec: number = 2.0): void {
@@ -116,42 +76,23 @@ export class Player {
     this.invulnerableTimer = durationSec;
   }
 
-  public update(dt: number, laneCoordinates: number[]): void {
+  public update(dt: number): void {
     // Smooth lane shift interpolation
-    if (laneCoordinates[this.laneIndex] !== undefined) {
-      this.targetX = laneCoordinates[this.laneIndex];
-    }
-    this.currentX += (this.targetX - this.currentX) * Math.min(1, dt * 18);
+    const laneDiff = this.targetLaneProgress - this.laneProgress;
+    this.laneProgress += laneDiff * Math.min(1, dt * 18);
+
+    // Dynamic body tilt when dodging
+    this.tiltAngle = laneDiff * 0.35;
 
     // Jump physics
     if (this.isJumping) {
-      this.vy += this.gravity * dt;
-      this.y += this.vy * dt;
+      this.jumpAltitude += this.vy * dt;
+      this.vy -= this.gravity * dt;
 
-      if (this.y >= this.groundY) {
-        this.y = this.groundY;
+      if (this.jumpAltitude <= 0) {
+        this.jumpAltitude = 0;
         this.vy = 0;
         this.isJumping = false;
-      }
-    }
-
-    // Slide timer
-    if (this.isSliding) {
-      this.slideTimer -= dt;
-      this.currentHeight = this.slideHeight;
-      if (this.slideTimer <= 0) {
-        this.isSliding = false;
-        this.currentHeight = this.normalHeight;
-      }
-    } else {
-      this.currentHeight = this.normalHeight;
-    }
-
-    // Shield timer
-    if (this.isShielded) {
-      this.shieldTimer -= dt;
-      if (this.shieldTimer <= 0) {
-        this.isShielded = false;
       }
     }
 
@@ -163,144 +104,167 @@ export class Player {
       }
     }
 
-    // Animation timer
-    this.runAnimTimer += dt * 12;
-
-    // Trail positions for motion blur
-    this.trailPositions.unshift({ x: this.currentX, y: this.y, alpha: 0.6 });
-    if (this.trailPositions.length > 5) this.trailPositions.pop();
-    for (const trail of this.trailPositions) {
-      trail.alpha -= dt * 3;
-    }
+    // Running stride cycle
+    this.runAnimTimer += dt * 16;
   }
 
-  public render(ctx: CanvasRenderingContext2D): void {
-    // If invulnerable, flicker
-    if (this.isInvulnerable && Math.floor(Date.now() / 80) % 2 === 0) {
+  /**
+   * Renders the Stickman from behind/above at a screen position
+   */
+  public render(
+    ctx: CanvasRenderingContext2D,
+    trackCenterX: number,
+    trackLaneWidth: number,
+    baseY: number
+  ): void {
+    // Flicker if invulnerable
+    if (this.isInvulnerable && Math.floor(Date.now() / 90) % 2 === 0) {
       return;
     }
 
+    // Foot position on track (Lane offset)
+    const footX = trackCenterX + this.laneProgress * trackLaneWidth;
+    const footY = baseY;
+    const bodyY = footY - this.jumpAltitude;
+
     ctx.save();
+    ctx.translate(footX, bodyY);
+    ctx.rotate(this.tiltAngle);
 
-    const drawX = this.currentX;
-    const drawY = this.y - this.currentHeight;
+    // 1. Drop Shadow on the track floor
+    ctx.save();
+    ctx.rotate(-this.tiltAngle); // Shadow stays flat on track
+    const shadowScale = Math.max(0.4, 1 - this.jumpAltitude / 400);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.beginPath();
+    ctx.ellipse(0, this.jumpAltitude + 4, 30 * shadowScale, 10 * shadowScale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
 
-    // Render motion trail
-    for (let i = 0; i < this.trailPositions.length; i++) {
-      const trail = this.trailPositions[i];
-      if (trail.alpha > 0.05) {
-        ctx.fillStyle = `rgba(0, 240, 255, ${trail.alpha * 0.25})`;
-        ctx.fillRect(
-          trail.x - this.width / 2,
-          trail.y - this.currentHeight,
-          this.width,
-          this.currentHeight
-        );
-      }
+    // Stickman visual parameters
+    const stickColor = '#FFFFFF';
+    const accentColor = '#00F0FF';
+    ctx.strokeStyle = stickColor;
+    ctx.fillStyle = stickColor;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // 2. Legs & Running Stride (Seen from behind)
+    const stride = Math.sin(this.runAnimTimer);
+    const leftStrideY = stride * 22;
+    const rightStrideY = -stride * 22;
+    const hipY = -45;
+
+    if (this.isJumping) {
+      // Jump pose: knees bent outward
+      // Left leg
+      ctx.beginPath();
+      ctx.moveTo(0, hipY);
+      ctx.lineTo(-24, hipY + 20);
+      ctx.lineTo(-14, hipY + 36);
+      ctx.stroke();
+
+      // Right leg
+      ctx.beginPath();
+      ctx.moveTo(0, hipY);
+      ctx.lineTo(24, hipY + 20);
+      ctx.lineTo(14, hipY + 36);
+      ctx.stroke();
+
+      // Cyan sneaker boots
+      ctx.fillStyle = accentColor;
+      ctx.fillRect(-22, hipY + 34, 14, 8);
+      ctx.fillRect(10, hipY + 34, 14, 8);
+    } else {
+      // Running legs stride
+      // Left Leg
+      ctx.beginPath();
+      ctx.moveTo(0, hipY);
+      ctx.lineTo(-16, hipY + 24 + leftStrideY * 0.4);
+      ctx.lineTo(-14, 0 + leftStrideY);
+      ctx.stroke();
+
+      // Right Leg
+      ctx.beginPath();
+      ctx.moveTo(0, hipY);
+      ctx.lineTo(16, hipY + 24 + rightStrideY * 0.4);
+      ctx.lineTo(14, 0 + rightStrideY);
+      ctx.stroke();
+
+      // Sneakers
+      ctx.fillStyle = accentColor;
+      ctx.fillRect(-20, 0 + leftStrideY - 2, 12, 6);
+      ctx.fillRect(10, 0 + rightStrideY - 2, 12, 6);
     }
 
-    // Draw Cyberpunk Runner Avatar
-    const primaryColor = '#00F0FF';
-    const secondaryColor = '#FF0055';
-    const accentColor = '#FFE600';
-
-    // Shadow on ground
-    const shadowScale = Math.max(0.3, 1 - (this.groundY - this.y) / 300);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    // 3. Spine / Torso
+    const shoulderY = -95;
     ctx.beginPath();
-    ctx.ellipse(this.currentX, this.groundY + 4, (this.width / 2) * shadowScale, 6 * shadowScale, 0, 0, Math.PI * 2);
+    ctx.moveTo(0, hipY);
+    ctx.lineTo(0, shoulderY);
+    ctx.stroke();
+
+    // Hoodie / Jetpack stripe on back
+    ctx.strokeStyle = '#FF0055';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-6, shoulderY + 10);
+    ctx.lineTo(6, shoulderY + 10);
+    ctx.lineTo(0, hipY - 6);
+    ctx.closePath();
+    ctx.stroke();
+
+    // 4. Arms (Pumping in running motion)
+    ctx.strokeStyle = stickColor;
+    ctx.lineWidth = 5;
+    if (this.isJumping) {
+      // Arms raised up in excitement
+      ctx.beginPath();
+      ctx.moveTo(0, shoulderY);
+      ctx.lineTo(-32, shoulderY - 24);
+      ctx.lineTo(-24, shoulderY - 48);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, shoulderY);
+      ctx.lineTo(32, shoulderY - 24);
+      ctx.lineTo(24, shoulderY - 48);
+      ctx.stroke();
+    } else {
+      // Running arms counter-stride
+      // Left Arm
+      ctx.beginPath();
+      ctx.moveTo(0, shoulderY);
+      ctx.lineTo(-24, shoulderY + 20 - rightStrideY * 0.5);
+      ctx.lineTo(-18, shoulderY + 38 - rightStrideY * 0.7);
+      ctx.stroke();
+
+      // Right Arm
+      ctx.beginPath();
+      ctx.moveTo(0, shoulderY);
+      ctx.lineTo(24, shoulderY + 20 - leftStrideY * 0.5);
+      ctx.lineTo(18, shoulderY + 38 - leftStrideY * 0.7);
+      ctx.stroke();
+    }
+
+    // 5. Head (Circle with backward cap or headband)
+    const headY = shoulderY - 20;
+    const headRadius = 18;
+
+    // Head circle
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(0, headY, headRadius, 0, Math.PI * 2);
     ctx.fill();
 
-    if (this.isSliding) {
-      // Sliding dash pose
-      ctx.fillStyle = primaryColor;
-      ctx.shadowColor = primaryColor;
-      ctx.shadowBlur = 15;
-      ctx.beginPath();
-      ctx.roundRect(drawX - this.width / 2 - 10, drawY + 8, this.width + 20, this.slideHeight - 8, 8);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // Sliding visor/helmet
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(drawX + 8, drawY + 12, 14, 8);
-
-      // Jet sparks from slide
-      ctx.fillStyle = secondaryColor;
-      ctx.fillRect(drawX - this.width / 2 - 18, drawY + 18, 10, 4);
-    } else {
-      // Torso / Suit
-      ctx.fillStyle = '#1A1D2E';
-      ctx.beginPath();
-      ctx.roundRect(drawX - this.width / 2, drawY + 22, this.width, 30, 6);
-      ctx.fill();
-
-      // Glowing suit lines
-      ctx.strokeStyle = primaryColor;
-      ctx.lineWidth = 3;
-      ctx.shadowColor = primaryColor;
-      ctx.shadowBlur = 10;
-      ctx.strokeRect(drawX - this.width / 2 + 3, drawY + 25, this.width - 6, 24);
-      ctx.shadowBlur = 0;
-
-      // Helmet / Head
-      ctx.fillStyle = '#0F111A';
-      ctx.beginPath();
-      ctx.roundRect(drawX - 16, drawY, 32, 22, 6);
-      ctx.fill();
-
-      // Visor
-      ctx.fillStyle = primaryColor;
-      ctx.shadowColor = primaryColor;
-      ctx.shadowBlur = 12;
-      ctx.fillRect(drawX - 12, drawY + 6, 24, 8);
-      ctx.shadowBlur = 0;
-
-      // Legs animation (running or jumping)
-      if (this.isJumping) {
-        // Tucked jump legs
-        ctx.fillStyle = '#12141F';
-        ctx.fillRect(drawX - 14, drawY + 52, 10, 14);
-        ctx.fillRect(drawX + 4, drawY + 52, 10, 14);
-        // Jetpack burst
-        ctx.fillStyle = accentColor;
-        ctx.shadowColor = accentColor;
-        ctx.shadowBlur = 15;
-        ctx.beginPath();
-        ctx.moveTo(drawX - 6, drawY + 50);
-        ctx.lineTo(drawX + 6, drawY + 50);
-        ctx.lineTo(drawX, drawY + 70 + Math.sin(this.runAnimTimer) * 8);
-        ctx.closePath();
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      } else {
-        // Running legs
-        const legOffset = Math.sin(this.runAnimTimer) * 12;
-        ctx.fillStyle = '#12141F';
-        ctx.fillRect(drawX - 14, drawY + 52, 10, 18 + legOffset);
-        ctx.fillRect(drawX + 4, drawY + 52, 10, 18 - legOffset);
-
-        // Boots
-        ctx.fillStyle = secondaryColor;
-        ctx.fillRect(drawX - 15, drawY + 66 + legOffset, 12, 6);
-        ctx.fillRect(drawX + 3, drawY + 66 - legOffset, 12, 6);
-      }
-    }
-
-    // Render Active Shield Bubble
-    if (this.isShielded) {
-      const pulse = Math.sin(Date.now() / 150) * 4;
-      ctx.strokeStyle = '#00FF88';
-      ctx.lineWidth = 3;
-      ctx.shadowColor = '#00FF88';
-      ctx.shadowBlur = 20;
-      ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
-      ctx.beginPath();
-      ctx.arc(drawX, drawY + this.currentHeight / 2, this.currentHeight / 2 + 16 + pulse, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    }
+    // Cool Subway Cap / Beanie (turned backwards)
+    ctx.fillStyle = '#00F0FF';
+    ctx.beginPath();
+    ctx.arc(0, headY, headRadius + 2, Math.PI * 0.9, Math.PI * 2.1);
+    ctx.fill();
+    // Cap brim pointing backward
+    ctx.fillRect(-12, headY - headRadius - 4, 24, 6);
 
     ctx.restore();
   }

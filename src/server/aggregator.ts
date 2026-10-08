@@ -19,7 +19,7 @@ export interface AggregatorTickResult {
   activeMode: 'anarchy' | 'democracy';
 }
 
-const ALL_ACTIONS: GameAction[] = ['JUMP', 'SLIDE', 'LEFT', 'RIGHT', 'SHIELD'];
+const ALL_ACTIONS: GameAction[] = ['LEFT', 'RIGHT', 'JUMP'];
 
 export class CommandAggregator {
   private configuredMode: GameMode = 'auto';
@@ -47,11 +47,9 @@ export class CommandAggregator {
 
   private createEmptyTallies(): Record<GameAction, number> {
     return {
-      JUMP: 0,
-      SLIDE: 0,
       LEFT: 0,
       RIGHT: 0,
-      SHIELD: 0,
+      JUMP: 0,
     };
   }
 
@@ -83,11 +81,9 @@ export class CommandAggregator {
 
   public getVoteTally(): VoteTally {
     const percentages: Record<GameAction, number> = {
-      JUMP: 0,
-      SLIDE: 0,
       LEFT: 0,
       RIGHT: 0,
-      SHIELD: 0,
+      JUMP: 0,
     };
 
     let maxVotes = 0;

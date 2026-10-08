@@ -28,13 +28,11 @@ export class DevDock {
       }
     });
 
-    // 1-Click Action Buttons
+    // 1-Click Action Buttons (Left, Jump, Right)
     const actionBtns: Array<{ id: string; cmd: string }> = [
-      { id: 'btn-cmd-jump', cmd: 'jump' },
-      { id: 'btn-cmd-slide', cmd: 'slide' },
       { id: 'btn-cmd-left', cmd: 'left' },
+      { id: 'btn-cmd-jump', cmd: 'jump' },
       { id: 'btn-cmd-right', cmd: 'right' },
-      { id: 'btn-cmd-shield', cmd: 'shield' },
     ];
 
     actionBtns.forEach(({ id, cmd }) => {
@@ -47,15 +45,13 @@ export class DevDock {
       });
     });
 
-    // Keyboard controls for streamer test play
+    // Keyboard controls for streamer test play (Left, Jump, Right)
     window.addEventListener('keydown', (e) => {
       if (e.target instanceof HTMLInputElement) return;
       let cmd: string | null = null;
-      if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') cmd = 'jump';
-      else if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') cmd = 'slide';
-      else if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') cmd = 'left';
-      else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') cmd = 'right';
-      else if (e.key === ' ' || e.key.toLowerCase() === 'e') cmd = 'shield';
+      if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a' || e.key === '1') cmd = 'left';
+      else if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w' || e.key === ' ' || e.key === '2') cmd = 'jump';
+      else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd' || e.key === '3') cmd = 'right';
 
       if (cmd) {
         this.sendWs({

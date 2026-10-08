@@ -33,21 +33,18 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Initialize Game Engine
+  // Initialize Subway Surfers Stickman Game Engine
   const game = new GameEngine(canvas, {
-    onScoreUpdate: (score, distance) => {
-      hud.updateScore(score, distance, game.gemsCollected);
+    onScoreUpdate: (score, distance, coins) => {
+      hud.updateScore(score, distance, coins);
     },
     onHealthUpdate: (health, maxHealth) => {
       hud.updateHealth(health, maxHealth);
     },
-    onShieldMeterUpdate: (percent) => {
-      hud.updateShieldMeter(percent);
-    },
     onDodgeEvent: (obs) => {
       sendWs({
         type: 'REPORT_DODGE',
-        playerAction: game.player.isJumping ? 'JUMP' : game.player.isSliding ? 'SLIDE' : 'LEFT',
+        playerAction: game.player.isJumping ? 'JUMP' : (game.player.laneIndex === 0 ? 'LEFT' : 'RIGHT'),
         obstacleType: obs.type,
       });
     },

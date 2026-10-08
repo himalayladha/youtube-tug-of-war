@@ -1,4 +1,4 @@
-export type GameAction = 'JUMP' | 'SLIDE' | 'LEFT' | 'RIGHT' | 'SHIELD';
+export type GameAction = 'LEFT' | 'RIGHT' | 'JUMP';
 
 export type GameMode = 'anarchy' | 'democracy' | 'auto';
 

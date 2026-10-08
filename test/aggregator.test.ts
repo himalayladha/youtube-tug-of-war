@@ -18,7 +18,7 @@ describe('CommandAggregator', () => {
 
     it('should immediately queue and trigger actions on tick', () => {
       aggregator.addVote('user1', 'JUMP');
-      aggregator.addVote('user2', 'SLIDE');
+      aggregator.addVote('user2', 'LEFT');
 
       const result = aggregator.tick(100, 1);
       expect(result.executedActions.length).toBeGreaterThan(0);
@@ -32,20 +32,20 @@ describe('CommandAggregator', () => {
       aggregator.setMode('democracy');
     });
 
-    it('should accumulate votes and calculate correct percentages', () => {
+    it('should accumulate votes and calculate correct percentages for Left, Jump, Right', () => {
       aggregator.addVote('user1', 'JUMP');
       aggregator.addVote('user2', 'JUMP');
-      aggregator.addVote('user3', 'SLIDE');
-      aggregator.addVote('user4', 'LEFT');
+      aggregator.addVote('user3', 'LEFT');
+      aggregator.addVote('user4', 'RIGHT');
 
       const tally = aggregator.getVoteTally();
       expect(tally.totalVotes).toBe(4);
       expect(tally.tallies.JUMP).toBe(2);
-      expect(tally.tallies.SLIDE).toBe(1);
       expect(tally.tallies.LEFT).toBe(1);
+      expect(tally.tallies.RIGHT).toBe(1);
       expect(tally.percentages.JUMP).toBe(50);
-      expect(tally.percentages.SLIDE).toBe(25);
       expect(tally.percentages.LEFT).toBe(25);
+      expect(tally.percentages.RIGHT).toBe(25);
       expect(tally.winningAction).toBe('JUMP');
     });
 

@@ -1,43 +1,28 @@
 import { GameAction } from '../shared/types.js';
 
 const ACTION_MAP: Record<string, GameAction> = {
-  // Jump
+  // Left (1, l, a, left, lane1, arrow/key)
+  'left': 'LEFT',
+  'l': 'LEFT',
+  'a': 'LEFT',
+  'lane1': 'LEFT',
+  '1': 'LEFT',
+
+  // Jump (2, j, w, up, jump, hop)
   'jump': 'JUMP',
   'j': 'JUMP',
   'up': 'JUMP',
   'u': 'JUMP',
   'w': 'JUMP',
   'hop': 'JUMP',
-  '1': 'JUMP',
+  '2': 'JUMP',
 
-  // Slide
-  'slide': 'SLIDE',
-  's': 'SLIDE',
-  'down': 'SLIDE',
-  'd': 'SLIDE',
-  'duck': 'SLIDE',
-  'crouch': 'SLIDE',
-  '2': 'SLIDE',
-
-  // Left
-  'left': 'LEFT',
-  'l': 'LEFT',
-  'a': 'LEFT',
-  'lane1': 'LEFT',
-  '3': 'LEFT',
-
-  // Right
+  // Right (3, r, d, right, lane3)
   'right': 'RIGHT',
   'r': 'RIGHT',
+  'd': 'RIGHT',
   'lane3': 'RIGHT',
-  '4': 'RIGHT',
-
-  // Shield
-  'shield': 'SHIELD',
-  'boost': 'SHIELD',
-  'super': 'SHIELD',
-  'power': 'SHIELD',
-  '5': 'SHIELD',
+  '3': 'RIGHT',
 };
 
 /**

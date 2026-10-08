@@ -9,11 +9,9 @@ const FAKE_USERS = [
 ];
 
 const ACTIONS_POOL = [
-  'jump', 'j', '1', 'up',
-  'slide', 's', '2', 'down',
-  'left', 'l', '3', 'a',
-  'right', 'r', '4', 'd',
-  'shield', 'boost', '5',
+  'jump', 'j', '2', 'up', 'w',
+  'left', 'l', '1', 'a',
+  'right', 'r', '3', 'd',
 ];
 
 export class ChatSimulator {
