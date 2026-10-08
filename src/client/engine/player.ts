@@ -11,7 +11,7 @@ export class StickmanPlayer {
   public jumpAltitude: number = 0;
   private vy: number = 0;
   private gravity: number = 2400; // px/s^2
-  private jumpPower: number = 950; // px/s
+  private jumpPower: number = 960; // px/s
 
   // Hit & Invulnerability
   public isInvulnerable: boolean = false;
@@ -19,7 +19,7 @@ export class StickmanPlayer {
 
   // Animation cycle
   private runAnimTimer: number = 0;
-  public tiltAngle: number = 0; // Lean angle when shifting lanes
+  public tiltAngle: number = 0;
 
   constructor() {
     this.reset();
@@ -43,14 +43,14 @@ export class StickmanPlayer {
       case 'LEFT':
         if (this.laneIndex > 0) {
           this.laneIndex--;
-          this.targetLaneProgress = this.laneIndex - 1; // 0 -> -1, 1 -> 0
+          this.targetLaneProgress = this.laneIndex - 1;
         }
         break;
 
       case 'RIGHT':
         if (this.laneIndex < 2) {
           this.laneIndex++;
-          this.targetLaneProgress = this.laneIndex - 1; // 1 -> 0, 2 -> 1
+          this.targetLaneProgress = this.laneIndex - 1;
         }
         break;
 
@@ -65,7 +65,7 @@ export class StickmanPlayer {
 
   public triggerHit(): boolean {
     if (this.isInvulnerable) {
-      return false; // Immune during i-frames
+      return false;
     }
     this.triggerInvulnerability(2.0);
     return true;
@@ -109,7 +109,7 @@ export class StickmanPlayer {
   }
 
   /**
-   * Renders the Stickman from behind/above at a screen position
+   * Renders the Stickman from behind/above in daylight style
    */
   public render(
     ctx: CanvasRenderingContext2D,
@@ -122,7 +122,6 @@ export class StickmanPlayer {
       return;
     }
 
-    // Foot position on track (Lane offset)
     const footX = trackCenterX + this.laneProgress * trackLaneWidth;
     const footY = baseY;
     const bodyY = footY - this.jumpAltitude;
@@ -133,20 +132,22 @@ export class StickmanPlayer {
 
     // 1. Drop Shadow on the track floor
     ctx.save();
-    ctx.rotate(-this.tiltAngle); // Shadow stays flat on track
-    const shadowScale = Math.max(0.4, 1 - this.jumpAltitude / 400);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.rotate(-this.tiltAngle);
+    const shadowScale = Math.max(0.35, 1 - this.jumpAltitude / 420);
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
     ctx.beginPath();
-    ctx.ellipse(0, this.jumpAltitude + 4, 30 * shadowScale, 10 * shadowScale, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, this.jumpAltitude + 4, 32 * shadowScale, 11 * shadowScale, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    // Stickman visual parameters
-    const stickColor = '#FFFFFF';
-    const accentColor = '#00F0FF';
+    // Stickman ink color & joints
+    const stickColor = '#0F172A'; // High-contrast ink navy
+    const capColor = '#EF4444';   // Vibrant red cap
+    const shoeColor = '#2563EB';  // Vibrant blue sneakers
+
     ctx.strokeStyle = stickColor;
     ctx.fillStyle = stickColor;
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 7;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -154,28 +155,32 @@ export class StickmanPlayer {
     const stride = Math.sin(this.runAnimTimer);
     const leftStrideY = stride * 22;
     const rightStrideY = -stride * 22;
-    const hipY = -45;
+    const hipY = -48;
 
     if (this.isJumping) {
-      // Jump pose: knees bent outward
+      // Jump pose: athletic tuck
       // Left leg
       ctx.beginPath();
       ctx.moveTo(0, hipY);
-      ctx.lineTo(-24, hipY + 20);
+      ctx.lineTo(-24, hipY + 18);
       ctx.lineTo(-14, hipY + 36);
       ctx.stroke();
 
       // Right leg
       ctx.beginPath();
       ctx.moveTo(0, hipY);
-      ctx.lineTo(24, hipY + 20);
+      ctx.lineTo(24, hipY + 18);
       ctx.lineTo(14, hipY + 36);
       ctx.stroke();
 
-      // Cyan sneaker boots
-      ctx.fillStyle = accentColor;
-      ctx.fillRect(-22, hipY + 34, 14, 8);
-      ctx.fillRect(10, hipY + 34, 14, 8);
+      // Sneakers
+      ctx.fillStyle = shoeColor;
+      ctx.fillRect(-22, hipY + 34, 15, 9);
+      ctx.fillRect(10, hipY + 34, 15, 9);
+      // White soles
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(-22, hipY + 41, 15, 3);
+      ctx.fillRect(10, hipY + 41, 15, 3);
     } else {
       // Running legs stride
       // Left Leg
@@ -193,43 +198,48 @@ export class StickmanPlayer {
       ctx.stroke();
 
       // Sneakers
-      ctx.fillStyle = accentColor;
-      ctx.fillRect(-20, 0 + leftStrideY - 2, 12, 6);
-      ctx.fillRect(10, 0 + rightStrideY - 2, 12, 6);
+      ctx.fillStyle = shoeColor;
+      ctx.fillRect(-21, 0 + leftStrideY - 3, 14, 8);
+      ctx.fillRect(9, 0 + rightStrideY - 3, 14, 8);
+      // White soles
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(-21, 0 + leftStrideY + 3, 14, 3);
+      ctx.fillRect(9, 0 + rightStrideY + 3, 14, 3);
     }
 
     // 3. Spine / Torso
-    const shoulderY = -95;
+    const shoulderY = -100;
+    ctx.strokeStyle = stickColor;
+    ctx.lineWidth = 7;
     ctx.beginPath();
     ctx.moveTo(0, hipY);
     ctx.lineTo(0, shoulderY);
     ctx.stroke();
 
-    // Hoodie / Jetpack stripe on back
-    ctx.strokeStyle = '#FF0055';
-    ctx.lineWidth = 4;
+    // Colorful backpack on stickman's back
+    ctx.fillStyle = '#F59E0B'; // Golden yellow backpack
+    ctx.strokeStyle = '#D97706';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(-6, shoulderY + 10);
-    ctx.lineTo(6, shoulderY + 10);
-    ctx.lineTo(0, hipY - 6);
-    ctx.closePath();
+    ctx.roundRect(-10, shoulderY + 12, 20, 26, 4);
+    ctx.fill();
     ctx.stroke();
 
     // 4. Arms (Pumping in running motion)
     ctx.strokeStyle = stickColor;
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 6;
     if (this.isJumping) {
-      // Arms raised up in excitement
+      // Arms raised up
       ctx.beginPath();
       ctx.moveTo(0, shoulderY);
       ctx.lineTo(-32, shoulderY - 24);
-      ctx.lineTo(-24, shoulderY - 48);
+      ctx.lineTo(-24, shoulderY - 50);
       ctx.stroke();
 
       ctx.beginPath();
       ctx.moveTo(0, shoulderY);
       ctx.lineTo(32, shoulderY - 24);
-      ctx.lineTo(24, shoulderY - 48);
+      ctx.lineTo(24, shoulderY - 50);
       ctx.stroke();
     } else {
       // Running arms counter-stride
@@ -248,23 +258,25 @@ export class StickmanPlayer {
       ctx.stroke();
     }
 
-    // 5. Head (Circle with backward cap or headband)
-    const headY = shoulderY - 20;
-    const headRadius = 18;
+    // 5. Head & Cap
+    const headY = shoulderY - 22;
+    const headRadius = 19;
 
     // Head circle
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = stickColor;
     ctx.beginPath();
     ctx.arc(0, headY, headRadius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Cool Subway Cap / Beanie (turned backwards)
-    ctx.fillStyle = '#00F0FF';
+    // Backward Red Cap
+    ctx.fillStyle = capColor;
     ctx.beginPath();
     ctx.arc(0, headY, headRadius + 2, Math.PI * 0.9, Math.PI * 2.1);
     ctx.fill();
-    // Cap brim pointing backward
-    ctx.fillRect(-12, headY - headRadius - 4, 24, 6);
+    // Cap backward brim
+    ctx.fillRect(-14, headY - headRadius - 4, 28, 7);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(-6, headY - headRadius - 2, 12, 3);
 
     ctx.restore();
   }

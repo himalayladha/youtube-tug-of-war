@@ -42,8 +42,9 @@ export class GameEngine {
   // Track animation offset
   private trackOffset: number = 0;
 
-  // City Skyline Silhouettes
-  private buildings: Array<{ x: number; width: number; height: number; color: string }> = [];
+  // Daylight scenery (Clouds, Sunny Buildings)
+  private clouds: Array<{ x: number; y: number; scale: number; speed: number }> = [];
+  private buildings: Array<{ x: number; width: number; height: number; color: string; roofColor: string }> = [];
 
   private lastTime: number = 0;
   private animationFrameId: number | null = null;
@@ -66,22 +67,37 @@ export class GameEngine {
     this.particleSystem = new ParticleSystem();
     this.soundManager = new SoundManager();
 
-    this.initSkyline();
+    this.initDaylightScenery();
   }
 
-  private initSkyline(): void {
-    const colors = ['#0B0E1B', '#12182D', '#1A213D', '#232D52'];
+  private initDaylightScenery(): void {
+    // Drifting fluffy clouds
+    for (let i = 0; i < 6; i++) {
+      this.clouds.push({
+        x: Math.random() * 2000,
+        y: Math.random() * 140 + 30,
+        scale: Math.random() * 0.7 + 0.8,
+        speed: Math.random() * 15 + 12,
+      });
+    }
+
+    // Sunny pastel buildings & city architecture
+    const bodyColors = ['#F87171', '#FB923C', '#FBBF24', '#38BDF8', '#818CF8', '#A78BFA', '#34D399'];
+    const roofColors = ['#DC2626', '#EA580C', '#D97706', '#0284C7', '#4F46E5', '#7C3AED', '#059669'];
+
     let x = -200;
     while (x < 2200) {
-      const width = Math.random() * 90 + 40;
-      const height = Math.random() * 160 + 80;
+      const width = Math.random() * 80 + 50;
+      const height = Math.random() * 150 + 90;
+      const cIdx = Math.floor(Math.random() * bodyColors.length);
       this.buildings.push({
         x,
         width,
         height,
-        color: colors[Math.floor(Math.random() * colors.length)],
+        color: bodyColors[cIdx],
+        roofColor: roofColors[cIdx],
       });
-      x += width + Math.random() * 10;
+      x += width + Math.random() * 14;
     }
   }
 
@@ -117,13 +133,16 @@ export class GameEngine {
 
     if (action === 'JUMP') {
       this.soundManager.playJump();
-      this.particleSystem.addFloatingText(`▲ JUMP! (${actorName})`, 960, 720, '#00F0FF', 20);
+      this.particleSystem.addFloatingText(`▲ JUMP! (${actorName})`, 960, 720, '#0284C7', 22);
+      this.particleSystem.addBurst(960 + this.player.laneProgress * 320, 900, '#E2E8F0', 10);
     } else if (action === 'LEFT') {
       this.soundManager.playSlide();
-      this.particleSystem.addFloatingText(`◄ LEFT (${actorName})`, 820, 740, '#FFE600', 18);
+      this.particleSystem.addFloatingText(`◄ LEFT (${actorName})`, 800, 740, '#F43F5E', 20);
+      this.particleSystem.addBurst(800, 900, '#F43F5E', 8);
     } else if (action === 'RIGHT') {
       this.soundManager.playSlide();
-      this.particleSystem.addFloatingText(`► RIGHT (${actorName})`, 1100, 740, '#FF0055', 18);
+      this.particleSystem.addFloatingText(`► RIGHT (${actorName})`, 1120, 740, '#059669', 20);
+      this.particleSystem.addBurst(1120, 900, '#059669', 8);
     }
   }
 
@@ -135,8 +154,8 @@ export class GameEngine {
       this.health = Math.max(0, this.health - 1);
       this.callbacks.onHealthUpdate?.(this.health, this.maxHealth);
 
-      this.particleSystem.addBurst(960 + this.player.laneProgress * 320, 880, '#FF0055', 25);
-      this.particleSystem.addFloatingText('CRASH! -1 HP', 960 + this.player.laneProgress * 320, 820, '#FF0055', 28);
+      this.particleSystem.addBurst(960 + this.player.laneProgress * 320, 880, '#EF4444', 30);
+      this.particleSystem.addFloatingText('CRASH! -1 HP', 960 + this.player.laneProgress * 320, 820, '#EF4444', 30);
 
       if (this.health <= 0) {
         this.triggerGameOver();
@@ -148,7 +167,7 @@ export class GameEngine {
     const bonus = 50;
     this.score += bonus;
     this.callbacks.onDodgeEvent?.(obstacle);
-    this.particleSystem.addFloatingText(`+${bonus} DODGED!`, 960, 680, '#FFE600', 18);
+    this.particleSystem.addFloatingText(`+${bonus} DODGED!`, 960, 680, '#F59E0B', 20);
   }
 
   private handleCollect(coin: Collectible3D): void {
@@ -159,8 +178,8 @@ export class GameEngine {
     this.callbacks.onScoreUpdate?.(this.score, Math.floor(this.distanceMeters), this.coinsCollected, 1);
 
     const proj = projectTrack3D(coin.laneIndex - 1, 40);
-    this.particleSystem.addBurst(proj.x, proj.y, '#FFD700', 14);
-    this.particleSystem.addFloatingText(`+${coin.value} 🪙`, proj.x, proj.y - 20, '#FFD700', 18);
+    this.particleSystem.addBurst(proj.x, proj.y, '#F59E0B', 16);
+    this.particleSystem.addFloatingText(`+${coin.value} 🪙`, proj.x, proj.y - 20, '#D97706', 20);
   }
 
   private triggerGameOver(): void {
@@ -189,6 +208,12 @@ export class GameEngine {
 
     // Track offset scrolling forward
     this.trackOffset = (this.trackOffset + this.currentSpeed * dt * 2.5) % 120;
+
+    // Cloud drifting
+    for (const cloud of this.clouds) {
+      cloud.x += cloud.speed * dt;
+      if (cloud.x > 2100) cloud.x = -200;
+    }
 
     // Update player
     this.player.update(dt);
@@ -221,6 +246,21 @@ export class GameEngine {
     );
   }
 
+  private drawCloud(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number): void {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(0, 0, 26, 0, Math.PI * 2);
+    ctx.arc(28, -8, 22, 0, Math.PI * 2);
+    ctx.arc(52, 0, 20, 0, Math.PI * 2);
+    ctx.arc(22, 10, 24, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
   public render(): void {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, 1920, 1080);
@@ -229,159 +269,173 @@ export class GameEngine {
     const horizonY = 320;
     const bottomY = 1000;
 
-    // 1. Sky & Backdrop (Night City Horizon)
+    // 1. Sunny Blue Sky Gradient
     const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
-    skyGrad.addColorStop(0, '#03050C');
-    skyGrad.addColorStop(0.7, '#080F25');
-    skyGrad.addColorStop(1, '#1A0C2E');
+    skyGrad.addColorStop(0, '#38BDF8');   // Vivid Sky Blue
+    skyGrad.addColorStop(0.6, '#7DD3FC'); // Light Cyan Sky
+    skyGrad.addColorStop(1, '#E0F2FE');   // Warm Horizon Glow
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, 1920, horizonY);
 
-    // Neon Cyber Sun / Moon at horizon
-    const sunGrad = ctx.createRadialGradient(horizonX, horizonY - 40, 10, horizonX, horizonY - 40, 120);
-    sunGrad.addColorStop(0, '#FF007F');
-    sunGrad.addColorStop(0.5, '#7928CA');
-    sunGrad.addColorStop(1, 'rgba(121, 40, 202, 0)');
+    // Golden Sun
+    const sunGrad = ctx.createRadialGradient(horizonX + 280, 120, 20, horizonX + 280, 120, 160);
+    sunGrad.addColorStop(0, '#FEF08A');
+    sunGrad.addColorStop(0.3, '#FBBF24');
+    sunGrad.addColorStop(1, 'rgba(251, 191, 36, 0)');
     ctx.fillStyle = sunGrad;
     ctx.beginPath();
-    ctx.arc(horizonX, horizonY - 40, 120, 0, Math.PI * 2);
+    ctx.arc(horizonX + 280, 120, 160, 0, Math.PI * 2);
     ctx.fill();
 
-    // Skyline silhouettes
+    // Drifting Fluffy Clouds
+    for (const cloud of this.clouds) {
+      this.drawCloud(ctx, cloud.x, cloud.y, cloud.scale);
+    }
+
+    // Sunny City Skyline Silhouettes
     for (const bldg of this.buildings) {
       ctx.fillStyle = bldg.color;
       ctx.fillRect(bldg.x, horizonY - bldg.height, bldg.width, bldg.height);
+      // Roof trim
+      ctx.fillStyle = bldg.roofColor;
+      ctx.fillRect(bldg.x - 2, horizonY - bldg.height - 4, bldg.width + 4, 6);
+      // Windows
+      ctx.fillStyle = '#FFFFFF';
+      for (let r = 16; r < bldg.height - 20; r += 24) {
+        for (let c = 8; c < bldg.width - 12; c += 16) {
+          ctx.fillRect(bldg.x + c, horizonY - bldg.height + r, 8, 12);
+        }
+      }
     }
 
-    // 2. Ground & Subway Surfers Roadbed
+    // 2. Ground & Track Surroundings (Grass & Ballast)
     const groundGrad = ctx.createLinearGradient(0, horizonY, 0, 1080);
-    groundGrad.addColorStop(0, '#0A0C16');
-    groundGrad.addColorStop(1, '#020308');
+    groundGrad.addColorStop(0, '#86EFAC'); // Light green grass along horizon
+    groundGrad.addColorStop(0.2, '#4ADE80');
+    groundGrad.addColorStop(1, '#22C55E'); // Fresh vibrant green lawn
     ctx.fillStyle = groundGrad;
     ctx.fillRect(0, horizonY, 1920, 1080 - horizonY);
 
-    // 3. Perspective Subway Track Surface
-    // Vanishing track polygon
+    // 3. 3D Railway Track Bed (Warm Gravel Ballast)
     const horizonTrackWidth = 140;
     const bottomTrackWidth = 1050;
 
     ctx.save();
-    ctx.fillStyle = '#111526';
+    // Ballast trackbed polygon
+    const ballastGrad = ctx.createLinearGradient(0, horizonY, 0, bottomY);
+    ballastGrad.addColorStop(0, '#94A3B8'); // Slate ballast
+    ballastGrad.addColorStop(1, '#64748B');
+    ctx.fillStyle = ballastGrad;
     ctx.beginPath();
-    ctx.moveTo(horizonX - horizonTrackWidth / 2, horizonY);
-    ctx.lineTo(horizonX + horizonTrackWidth / 2, horizonY);
-    ctx.lineTo(horizonX + bottomTrackWidth / 2, bottomY);
-    ctx.lineTo(horizonX - bottomTrackWidth / 2, bottomY);
+    ctx.moveTo(horizonX - horizonTrackWidth / 2 - 20, horizonY);
+    ctx.lineTo(horizonX + horizonTrackWidth / 2 + 20, horizonY);
+    ctx.lineTo(horizonX + bottomTrackWidth / 2 + 60, bottomY);
+    ctx.lineTo(horizonX - bottomTrackWidth / 2 - 60, bottomY);
     ctx.closePath();
     ctx.fill();
 
-    // Track outer glowing neon borders
-    ctx.strokeStyle = '#00F0FF';
+    // 4. Wooden Railway Sleepers / Cross-Ties (Rushing forward)
+    for (let i = 0; i < 22; i++) {
+      const baseT = (i * 48 + this.trackOffset) / 1000;
+      if (baseT < 0 || baseT > 1) continue;
+
+      const perspT = Math.pow(baseT, 1.4);
+      const tieY = horizonY + perspT * (bottomY - horizonY);
+      const tieWidth = horizonTrackWidth + perspT * (bottomTrackWidth - horizonTrackWidth);
+      const tieThickness = Math.max(3, 10 * perspT);
+
+      // Oak wood sleepers with specular edge
+      ctx.fillStyle = '#78350F'; // Rich Oak Brown
+      ctx.fillRect(horizonX - tieWidth / 2, tieY, tieWidth, tieThickness);
+      // Highlight on top of sleeper
+      ctx.fillStyle = '#92400E';
+      ctx.fillRect(horizonX - tieWidth / 2, tieY, tieWidth, Math.max(1, 2 * perspT));
+    }
+
+    // 5. Polished Steel Rails for each of the 3 Lanes
+    // 3 lanes -> 6 steel rails (left and right rail for each track)
+    const trackLaneWidth = bottomTrackWidth / 3;
+    const horizonLaneWidth = horizonTrackWidth / 3;
+
+    [-1, 0, 1].forEach((laneIdx) => {
+      // Draw 2 steel rails per lane
+      [-0.32, 0.32].forEach((railOffset) => {
+        const topX = horizonX + (laneIdx + railOffset) * horizonLaneWidth;
+        const botX = horizonX + (laneIdx + railOffset) * trackLaneWidth;
+
+        // Steel rail shadow
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(topX, horizonY);
+        ctx.lineTo(botX, bottomY);
+        ctx.stroke();
+
+        // Gleaming polished rail surface
+        ctx.strokeStyle = '#F1F5F9';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(topX, horizonY);
+        ctx.lineTo(botX, bottomY);
+        ctx.stroke();
+      });
+    });
+
+    // Track Boundary Safety Kerbs
+    ctx.strokeStyle = '#FBBF24'; // Yellow safety curb line
     ctx.lineWidth = 4;
-    ctx.shadowColor = '#00F0FF';
-    ctx.shadowBlur = 12;
     ctx.beginPath();
     ctx.moveTo(horizonX - horizonTrackWidth / 2, horizonY);
     ctx.lineTo(horizonX - bottomTrackWidth / 2, bottomY);
     ctx.moveTo(horizonX + horizonTrackWidth / 2, horizonY);
     ctx.lineTo(horizonX + bottomTrackWidth / 2, bottomY);
     ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // 4. Railway Sleepers / Cross-Ties (Rushing forward)
-    // Draw 18 perspective cross ties
-    for (let i = 0; i < 20; i++) {
-      // Calculate depth t
-      const baseT = (i * 50 + this.trackOffset) / 1000;
-      if (baseT < 0 || baseT > 1) continue;
-
-      const perspT = Math.pow(baseT, 1.4);
-      const tieY = horizonY + perspT * (bottomY - horizonY);
-      const tieWidth = horizonTrackWidth + perspT * (bottomTrackWidth - horizonTrackWidth);
-      const tieThickness = Math.max(2, 8 * perspT);
-
-      ctx.fillStyle = i % 2 === 0 ? 'rgba(255, 0, 127, 0.4)' : 'rgba(0, 240, 255, 0.35)';
-      ctx.fillRect(horizonX - tieWidth / 2, tieY, tieWidth, tieThickness);
-    }
-
-    // 5. 3 Lane Dividing Rails
-    [-0.5, 0.5].forEach((offset) => {
-      const topX = horizonX + offset * (horizonTrackWidth / 3);
-      const botX = horizonX + offset * (bottomTrackWidth / 3);
-      ctx.strokeStyle = '#FFE600';
-      ctx.lineWidth = 3;
-      ctx.shadowColor = '#FFE600';
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.moveTo(topX, horizonY);
-      ctx.lineTo(botX, bottomY);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    });
-
-    // Overhead Subway Tunnel Arches
-    for (let archZ = 800; archZ >= 200; archZ -= 300) {
-      const currentZ = (archZ - this.trackOffset * 2 + 1000) % 1000;
-      const projL = projectTrack3D(-1.5, currentZ);
-      const projR = projectTrack3D(1.5, currentZ);
-      const archH = 260 * projL.scale;
-
-      ctx.strokeStyle = 'rgba(0, 240, 255, 0.25)';
-      ctx.lineWidth = 3 * projL.scale;
-      ctx.beginPath();
-      ctx.moveTo(projL.x, projL.y);
-      ctx.lineTo(projL.x, projL.y - archH);
-      ctx.lineTo(projR.x, projR.y - archH);
-      ctx.lineTo(projR.x, projR.y);
-      ctx.stroke();
-    }
 
     ctx.restore();
 
     // 6. Lane Indicators on Track Floor
-    ctx.font = 'bold 16px "Inter", monospace';
+    ctx.font = '900 18px "Inter", sans-serif';
     ctx.textAlign = 'center';
     const laneLabels = ['◄ LANE 1 (LEFT)', '▲ LANE 2 (CENTER)', '► LANE 3 (RIGHT)'];
-    const trackLaneWidth = bottomTrackWidth / 3;
 
     [-1, 0, 1].forEach((laneOffset, idx) => {
       const x = horizonX + laneOffset * trackLaneWidth;
-      ctx.fillStyle = this.player.laneIndex === idx ? '#00F0FF' : 'rgba(255, 255, 255, 0.25)';
-      ctx.fillText(laneLabels[idx], x, bottomY + 36);
+      ctx.fillStyle = this.player.laneIndex === idx ? '#0284C7' : '#64748B';
+      ctx.fillText(laneLabels[idx], x, bottomY + 38);
     });
 
     // 7. Render Collectibles (Coins)
     this.collectibleManager.render(ctx);
 
-    // 8. Render 3D Obstacles (Hurdles & Walls)
+    // 8. Render 3D Obstacles (Daylight Hurdles & Red Trains)
     this.obstacleManager.render(ctx);
 
-    // 9. Render Stickman Player (Subway Surfers View from behind/above)
+    // 9. Render Stickman Player (Daylight Stickman)
     this.player.render(ctx, horizonX, trackLaneWidth, 900);
 
     // 10. Render Particles & Floating Feedback
     this.particleSystem.render(ctx);
 
-    // 11. Game Over Overlay
+    // 11. Game Over Overlay (Light Theme Modal)
     if (this.isGameOver) {
       ctx.save();
-      ctx.fillStyle = 'rgba(5, 7, 17, 0.88)';
+      ctx.fillStyle = 'rgba(248, 250, 252, 0.92)';
       ctx.fillRect(0, 0, 1920, 1080);
 
-      ctx.fillStyle = '#FF0055';
-      ctx.shadowColor = '#FF0055';
-      ctx.shadowBlur = 30;
+      ctx.fillStyle = '#EF4444';
+      ctx.shadowColor = 'rgba(239, 68, 68, 0.3)';
+      ctx.shadowBlur = 20;
       ctx.font = '900 76px "Inter", sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('RUN COMPLETED', 960, 440);
 
       ctx.shadowBlur = 0;
-      ctx.fillStyle = '#FFFFFF';
+      ctx.fillStyle = '#0F172A';
       ctx.font = 'bold 34px "Inter", sans-serif';
       ctx.fillText(`Distance: ${Math.floor(this.distanceMeters)}m  •  Coins: ${this.coinsCollected} 🪙  •  Score: ${this.score}`, 960, 520);
 
-      ctx.fillStyle = '#00F0FF';
-      ctx.font = 'bold 24px "Inter", monospace';
+      ctx.fillStyle = '#0284C7';
+      ctx.font = '900 26px "Inter", sans-serif';
       ctx.fillText(`Restarting live run in ${Math.ceil(this.respawnCountdown)}s...`, 960, 590);
       ctx.restore();
     }
