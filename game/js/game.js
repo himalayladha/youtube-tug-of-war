@@ -1,455 +1,291 @@
-// Stickman Subway Surfers - Autonomous Server Game Surface
-(function () {
+(() => {
+  'use strict';
+
   const canvas = document.getElementById('game-canvas');
   const ctx = canvas.getContext('2d');
 
-  canvas.width = 1920;
-  canvas.height = 1080;
+  function resizeCanvas() {
+    canvas.width = 1920;
+    canvas.height = 1080;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
 
-  // Sound Synthesizer via Web Audio
+  // Procedural Web Audio Synthesizer
   class SoundManager {
     constructor() {
       this.ctx = null;
     }
     init() {
-      if (!this.ctx && typeof AudioContext !== 'undefined') {
-        this.ctx = new AudioContext();
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
       }
       if (this.ctx && this.ctx.state === 'suspended') {
         this.ctx.resume();
       }
     }
-    playJump() {
-      this.init();
-      if (!this.ctx) return;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      const t = this.ctx.currentTime;
-      osc.frequency.setValueAtTime(240, t);
-      osc.frequency.exponentialRampToValueAtTime(700, t + 0.15);
-      gain.gain.setValueAtTime(0.2, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.16);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.16);
-    }
-    playSlide() {
-      this.init();
-      if (!this.ctx) return;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      const t = this.ctx.currentTime;
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(300, t);
-      osc.frequency.exponentialRampToValueAtTime(150, t + 0.15);
-      gain.gain.setValueAtTime(0.15, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.16);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.16);
-    }
-    playCoin() {
-      this.init();
-      if (!this.ctx) return;
-      const t = this.ctx.currentTime;
-      [659, 880].forEach((f, i) => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.frequency.setValueAtTime(f, t + i * 0.05);
-        gain.gain.setValueAtTime(0.15, t + i * 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.01, t + i * 0.05 + 0.12);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(t + i * 0.05);
-        osc.stop(t + i * 0.05 + 0.12);
-      });
-    }
-    playHit() {
+    playPull() {
       this.init();
       if (!this.ctx) return;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       const t = this.ctx.currentTime;
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(140, t);
-      osc.frequency.exponentialRampToValueAtTime(40, t + 0.25);
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.28);
+      osc.frequency.setValueAtTime(110, t);
+      osc.frequency.exponentialRampToValueAtTime(160, t + 0.12);
+      gain.gain.setValueAtTime(0.12, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.14);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start(t);
-      osc.stop(t + 0.28);
+      osc.stop(t + 0.14);
     }
-    playPowerup() {
+    playSurge() {
       this.init();
       if (!this.ctx) return;
-      const t = this.ctx.currentTime;
-      [523, 659, 784, 1046].forEach((f, i) => {
+      const notes = [261.63, 329.63, 392.0, 523.25];
+      notes.forEach((freq, idx) => {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        osc.frequency.setValueAtTime(f, t + i * 0.05);
-        gain.gain.setValueAtTime(0.2, t + i * 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.01, t + i * 0.05 + 0.14);
+        const t = this.ctx.currentTime + idx * 0.06;
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.18, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
-        osc.start(t + i * 0.05);
-        osc.stop(t + i * 0.05 + 0.14);
+        osc.start(t);
+        osc.stop(t + 0.22);
       });
     }
-    playSpring() {
+    playCrown() {
       this.init();
       if (!this.ctx) return;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      const t = this.ctx.currentTime;
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(280, t);
-      osc.frequency.exponentialRampToValueAtTime(1100, t + 0.2);
-      gain.gain.setValueAtTime(0.25, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.22);
+      const chords = [523.25, 659.25, 783.99, 1046.5];
+      chords.forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const t = this.ctx.currentTime + idx * 0.08;
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.38);
+      });
     }
-    playWhistle() {
+    playWin() {
       this.init();
       if (!this.ctx) return;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      const t = this.ctx.currentTime;
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(1700, t);
-      osc.frequency.setValueAtTime(2200, t + 0.08);
-      osc.frequency.setValueAtTime(1700, t + 0.16);
-      gain.gain.setValueAtTime(0.18, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.28);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.28);
+      const fanfares = [392.0, 523.25, 659.25, 783.99];
+      fanfares.forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const t = this.ctx.currentTime + idx * 0.12;
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.25, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.45);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.5);
+      });
     }
   }
 
   const sound = new SoundManager();
 
-  // Perspective 3D Projection (Framed cleanly above bottom HUD overlay)
-  const horizonX = 960;
-  const horizonY = 270;
-  const bottomY = 760;
-  const horizonTrackWidth = 130;
-  const bottomTrackWidth = 960;
-  const trackLaneWidth = bottomTrackWidth / 3;
-  const horizonLaneWidth = horizonTrackWidth / 3;
+  // Curated Relatable Debate Topics
+  const DEBATE_TOPICS = [
+    { left: 'ANDROID', right: 'IPHONE' },
+    { left: 'INTROVERT', right: 'EXTROVERT' },
+    { left: 'DOGS', right: 'CATS' },
+    { left: 'COFFEE', right: 'TEA' },
+    { left: 'NIGHT OWL', right: 'EARLY BIRD' },
+    { left: 'PIZZA', right: 'BURGERS' },
+    { left: 'WORK FROM HOME', right: 'OFFICE' },
+    { left: 'SUMMER', right: 'WINTER' },
+    { left: 'TEXTING', right: 'CALLING' },
+    { left: 'MONEY', right: 'FREE TIME' },
+    { left: 'PLAYSTATION', right: 'XBOX' },
+    { left: 'MOVIES', right: 'SERIES' },
+    { left: 'BEACH', right: 'MOUNTAINS' },
+    { left: 'SWEET', right: 'SPICY' },
+    { left: 'INSTAGRAM', right: 'TIKTOK' },
+    { left: 'CHESS', right: 'VIDEO GAMES' },
+    { left: 'NETFLIX', right: 'YOUTUBE' },
+    { left: 'BOOKS', right: 'PODCASTS' },
+    { left: 'CARS', right: 'MOTORBIKES' },
+    { left: 'SOLO TRAVEL', right: 'GROUP TRIP' }
+  ];
 
-  function projectTrack(laneOffset, z, altitude = 0) {
-    const t = Math.max(0, Math.min(1, (1000 - z) / 1000));
-    const perspT = Math.pow(t, 1.4);
-    const screenY = horizonY + perspT * (bottomY - horizonY);
-    const trackWidth = horizonTrackWidth + perspT * (bottomTrackWidth - horizonTrackWidth);
-    const laneW = trackWidth / 3;
-    const screenX = horizonX + laneOffset * laneW;
-    const scale = 0.14 + perspT * 0.86;
-    return { x: screenX, y: screenY - altitude * scale, scale, laneW, t: perspT };
-  }
-
-  // Anchor Z depth for the player on the 3D perspective track
-  const PLAYER_Z = 120;
-
-  // Stickman Player
-  const player = {
-    laneIndex: 1, // 0 = Left, 1 = Mid, 2 = Right
-    laneProgress: 0,
-    targetLane: 0,
-    isJumping: false,
-    jumpAltitude: 0,
-    vy: 0,
-    gravity: 2600,
-    jumpPower: 1020,
-    runTimer: 0,
-    tiltAngle: 0,
-    isInvulnerable: false,
-    invulTimer: 0,
-    powerup: null, // { type: 'MAGNET' | 'BOOTS' | 'JETPACK', timer: number, maxTimer: number }
-    activatePowerup(type, duration) {
-      this.powerup = { type, timer: duration, maxTimer: duration };
-      sound.playPowerup();
-      if (type === 'BOOTS') sound.playSpring();
-      updatePowerupHUD();
-      const col = type === 'MAGNET' ? '#F59E0B' : type === 'BOOTS' ? '#10B981' : '#8B5CF6';
-      addFloatingText(`★ ${type} ACTIVATED!`, 960, 680, col);
-      addBurst(960, 750, col, 20);
-    },
-    update(dt) {
-      const diff = this.targetLane - this.laneProgress;
-      if (Math.abs(diff) < 0.015) {
-        this.laneProgress = this.targetLane;
-        this.tiltAngle = 0;
-      } else {
-        this.laneProgress += diff * Math.min(1, dt * 22);
-        this.tiltAngle = Math.max(-0.25, Math.min(0.25, diff * 0.4));
-      }
-
-      // Power-up countdown
-      if (this.powerup) {
-        this.powerup.timer -= dt;
-        if (this.powerup.timer <= 0) {
-          this.powerup = null;
-          updatePowerupHUD();
-        } else {
-          updatePowerupHUD();
-        }
-      }
-
-      // Jetpack flight mechanics
-      if (this.powerup && this.powerup.type === 'JETPACK') {
-        this.jumpAltitude += (165 - this.jumpAltitude) * dt * 8;
-        this.isJumping = true;
-        // spawn exhaust particles
-        if (Math.random() > 0.3) {
-          const foot = projectTrack(this.laneProgress, PLAYER_Z);
-          addParticle(foot.x - 12, foot.y - this.jumpAltitude + 40, '#F97316', 0, 180, 0.3);
-          addParticle(foot.x + 12, foot.y - this.jumpAltitude + 40, '#F97316', 0, 180, 0.3);
-        }
-      } else if (this.isJumping) {
-        this.jumpAltitude += this.vy * dt;
-        this.vy -= this.gravity * dt;
-        if (this.jumpAltitude <= 0) {
-          this.jumpAltitude = 0;
-          this.vy = 0;
-          this.isJumping = false;
-        }
-      }
-
-      if (this.isInvulnerable) {
-        this.invulTimer -= dt;
-        if (this.invulTimer <= 0) this.isInvulnerable = false;
-      }
-      this.runTimer += dt * 16;
-    },
-    reset() {
-      this.laneIndex = 1;
-      this.laneProgress = 0;
-      this.targetLane = 0;
-      this.isJumping = false;
-      this.jumpAltitude = 0;
-      this.vy = 0;
-      this.runTimer = 0;
-      this.tiltAngle = 0;
-      this.isInvulnerable = false;
-      this.invulTimer = 0;
-      this.powerup = null;
-      updatePowerupHUD();
-    },
-    action(act, user = 'Viewer') {
-      if (act === 'LEFT' && this.laneIndex > 0) {
-        this.laneIndex--;
-        this.targetLane = this.laneIndex - 1;
-        sound.playSlide();
-        addFloatingText(`◄ LEFT (${user})`, 800, 740, '#F43F5E');
-      } else if (act === 'RIGHT' && this.laneIndex < 2) {
-        this.laneIndex++;
-        this.targetLane = this.laneIndex - 1;
-        sound.playSlide();
-        addFloatingText(`► RIGHT (${user})`, 1120, 740, '#059669');
-      } else if (act === 'JUMP') {
-        if (!this.isJumping || (this.powerup && this.powerup.type === 'BOOTS' && this.jumpAltitude < 120)) {
-          this.isJumping = true;
-          if (this.powerup && this.powerup.type === 'BOOTS') {
-            this.vy = 1520; // Super high leap!
-            sound.playSpring();
-            addFloatingText(`★ SUPER JUMP! (${user})`, 960, 720, '#10B981');
-          } else {
-            this.vy = this.jumpPower;
-            sound.playJump();
-            addFloatingText(`▲ JUMP! (${user})`, 960, 720, '#0284C7');
-          }
-        }
-      }
-    },
-    render(ctx) {
-      if (this.isInvulnerable && Math.floor(Date.now() / 90) % 2 === 0) return;
-
-      const foot = projectTrack(this.laneProgress, PLAYER_Z);
-      const footX = foot.x;
-      const footY = foot.y;
-      const bodyY = footY - this.jumpAltitude * foot.scale;
-
-      ctx.save();
-      ctx.translate(footX, bodyY);
-      const pScale = foot.scale * 1.1;
-      ctx.scale(pScale, pScale);
-      ctx.rotate(this.tiltAngle);
-
-      // Drop shadow (stays grounded on the track beneath the jumping stickman)
-      ctx.save();
-      ctx.rotate(-this.tiltAngle);
-      const shadowScale = Math.max(0.35, 1 - this.jumpAltitude / 400);
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
-      ctx.beginPath();
-      ctx.ellipse(0, (this.jumpAltitude / 1.1) + 4, 34 * shadowScale, 11 * shadowScale, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-
-      const stickColor = '#0F172A';
-      ctx.strokeStyle = stickColor;
-      ctx.fillStyle = stickColor;
-      ctx.lineWidth = 7;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      const stride = Math.sin(this.runTimer);
-      const hipY = -48;
-
-      if (this.isJumping) {
-        ctx.beginPath();
-        ctx.moveTo(0, hipY); ctx.lineTo(-24, hipY + 18); ctx.lineTo(-14, hipY + 36);
-        ctx.moveTo(0, hipY); ctx.lineTo(24, hipY + 18); ctx.lineTo(14, hipY + 36);
-        ctx.stroke();
-        const shoeColor = (this.powerup && this.powerup.type === 'BOOTS') ? '#10B981' : '#2563EB';
-        ctx.fillStyle = shoeColor;
-        ctx.fillRect(-22, hipY + 34, 15, 9);
-        ctx.fillRect(10, hipY + 34, 15, 9);
-      } else {
-        const lY = stride * 22;
-        const rY = -stride * 22;
-        ctx.beginPath();
-        ctx.moveTo(0, hipY); ctx.lineTo(-16, hipY + 24 + lY * 0.4); ctx.lineTo(-14, lY);
-        ctx.moveTo(0, hipY); ctx.lineTo(16, hipY + 24 + rY * 0.4); ctx.lineTo(14, rY);
-        ctx.stroke();
-        const shoeColor = (this.powerup && this.powerup.type === 'BOOTS') ? '#10B981' : '#2563EB';
-        ctx.fillStyle = shoeColor;
-        ctx.fillRect(-21, lY - 3, 14, 8);
-        ctx.fillRect(9, rY - 3, 14, 8);
-      }
-
-      // Torso & backpack/jetpack
-      const shoulderY = -100;
-      ctx.beginPath(); ctx.moveTo(0, hipY); ctx.lineTo(0, shoulderY); ctx.stroke();
-      
-      if (this.powerup && this.powerup.type === 'JETPACK') {
-        // Dual Jet Thrusters
-        ctx.fillStyle = '#8B5CF6';
-        ctx.fillRect(-18, shoulderY + 8, 10, 32);
-        ctx.fillRect(8, shoulderY + 8, 10, 32);
-        ctx.fillStyle = '#C4B5FD';
-        ctx.fillRect(-15, shoulderY + 12, 4, 20);
-        ctx.fillRect(11, shoulderY + 12, 4, 20);
-        // Jet exhaust flame
-        ctx.fillStyle = '#F59E0B';
-        ctx.beginPath();
-        ctx.moveTo(-18, shoulderY + 40); ctx.lineTo(-13, shoulderY + 54 + Math.random() * 8); ctx.lineTo(-8, shoulderY + 40);
-        ctx.moveTo(8, shoulderY + 40); ctx.lineTo(13, shoulderY + 54 + Math.random() * 8); ctx.lineTo(18, shoulderY + 40);
-        ctx.fill();
-      } else {
-        ctx.fillStyle = '#F59E0B'; ctx.strokeStyle = '#D97706'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.roundRect(-10, shoulderY + 12, 20, 26, 4); ctx.fill(); ctx.stroke();
-      }
-
-      // Magnet Aura
-      if (this.powerup && this.powerup.type === 'MAGNET') {
-        ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(0, shoulderY + 10, 38 + Math.sin(Date.now() / 100) * 4, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      // Arms
-      ctx.strokeStyle = stickColor; ctx.lineWidth = 6;
-      if (this.isJumping) {
-        ctx.beginPath();
-        ctx.moveTo(0, shoulderY); ctx.lineTo(-32, shoulderY - 24); ctx.lineTo(-24, shoulderY - 50);
-        ctx.moveTo(0, shoulderY); ctx.lineTo(32, shoulderY - 24); ctx.lineTo(24, shoulderY - 50);
-        ctx.stroke();
-      } else {
-        const lArm = -stride * 22;
-        ctx.beginPath();
-        ctx.moveTo(0, shoulderY); ctx.lineTo(-24, shoulderY + 20 - lArm * 0.5); ctx.lineTo(-18, shoulderY + 38 - lArm * 0.7);
-        ctx.moveTo(0, shoulderY); ctx.lineTo(24, shoulderY + 20 + lArm * 0.5); ctx.lineTo(18, shoulderY + 38 + lArm * 0.7);
-        ctx.stroke();
-      }
-
-      // Head & Red Cap
-      const headY = shoulderY - 22;
-      ctx.fillStyle = stickColor;
-      ctx.beginPath(); ctx.arc(0, headY, 19, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#EF4444';
-      ctx.beginPath(); ctx.arc(0, headY, 21, Math.PI * 0.9, Math.PI * 2.1); ctx.fill();
-      ctx.fillRect(-14, headY - 23, 28, 7);
-
-      ctx.restore();
-    }
-  };
-
-  // Obstacles, Coins, Powerups
-  let obstacles = [];
-  let coins = [];
-  let powerups = [];
-  let floatingTexts = [];
-  let particles = [];
-  let spawnObsTimer = 0;
-  let spawnCoinTimer = 0;
-  let spawnPowerupTimer = 0;
-
-  function addFloatingText(text, x, y, color) {
-    floatingTexts.push({ text, x, y, color, vy: -50, life: 1.2 });
-  }
-
-  function addBurst(x, y, color, count = 16) {
-    for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const s = Math.random() * 200 + 40;
-      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, color, life: 0.6 });
-    }
-  }
-
-  function addParticle(x, y, color, vx = 0, vy = 0, life = 0.5) {
-    particles.push({ x, y, vx, vy, color, life });
-  }
-
-  // Scenery (Clouds, Buildings)
-  const clouds = [];
-  for (let i = 0; i < 6; i++) {
-    clouds.push({ x: Math.random() * 2000, y: Math.random() * 140 + 30, scale: Math.random() * 0.6 + 0.8, speed: Math.random() * 15 + 12 });
-  }
-
-  const buildings = [];
-  const bColors = ['#F87171', '#FB923C', '#FBBF24', '#38BDF8', '#818CF8', '#A78BFA', '#34D399'];
-  for (let x = -200; x < 2200; x += 110) {
-    const c = bColors[Math.floor(Math.random() * bColors.length)];
-    buildings.push({ x, w: 90, h: Math.random() * 140 + 90, color: c });
-  }
-
-  // Game State (Pure Endless Mode)
+  // Game State
   const gameState = {
-    distance: 0,
-    score: 0,
-    coins: 0,
-    streak: 0,
-    multiplier: 1.0,
-    speed: 380,
+    currentTopicIdx: 0,
+    roundTimeRemaining: 90.0,
+    roundDuration: 90.0,
+    isRoundOver: false,
+    winnerAnnounceTimer: 0,
+    roundWinner: null,
+    winsBlack: 0,
+    winsWhite: 0,
+    captainBlack: null,
+    captainWhite: null,
+    lastCaptainBlackName: '',
+    lastCaptainWhiteName: '',
+    leaderboardBlack: [],
+    leaderboardWhite: [],
+    velocity: 0,
+    pctBlack: 50,
+    pctWhite: 50,
   };
 
-  // Keyboard test controls & debug triggers
+  // Rope Spring-Damper Physics
+  const physics = {
+    x: 0, // Displacement from center (px): negative = Black wins, positive = White wins
+    vx: 0,
+    mass: 14.0,
+    damping: 0.88,
+    centeringSpring: 0.045, // Mild pull to center to avoid instant blowout
+    winThreshold: 310, // Pixels displacement to trigger instant win
+    blackImpulse: 0,
+    whiteImpulse: 0,
+  };
+
+  // Animated Pullers (Stickmen)
+  const pullers = {
+    black: [
+      { xOffset: -120, phase: 0, force: 1 },
+      { xOffset: -190, phase: 0.8, force: 1 },
+      { xOffset: -260, phase: 1.6, force: 1 },
+      { xOffset: -330, phase: 2.4, force: 1 },
+      { xOffset: -400, phase: 3.2, force: 1 },
+    ],
+    white: [
+      { xOffset: 120, phase: 0, force: 1 },
+      { xOffset: 190, phase: 0.8, force: 1 },
+      { xOffset: 260, phase: 1.6, force: 1 },
+      { xOffset: 330, phase: 2.4, force: 1 },
+      { xOffset: 400, phase: 3.2, force: 1 },
+    ],
+  };
+
+  // Particle System (Dust, Sparks, Confetti)
+  let particles = [];
+  function addParticle(x, y, vx, vy, color, size, life) {
+    particles.push({ x, y, vx, vy, color, size, life, maxLife: life });
+  }
+
+  function spawnConfetti(winnerTeam) {
+    const colors = winnerTeam === 'BLACK' ? ['#F59E0B', '#38BDF8', '#64748B', '#FFFFFF'] : ['#F59E0B', '#10B981', '#0F172A', '#38BDF8'];
+    for (let i = 0; i < 180; i++) {
+      const x = 960 + (Math.random() - 0.5) * 600;
+      const y = 300 + Math.random() * 200;
+      const vx = (Math.random() - 0.5) * 500;
+      const vy = -150 - Math.random() * 400;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      addParticle(x, y, vx, vy, color, Math.random() * 8 + 4, Math.random() * 2.5 + 1.5);
+    }
+  }
+
+  // Floating Combat Texts
+  let floatingTexts = [];
+  function addFloatingText(text, x, y, color) {
+    floatingTexts.push({ text, x, y, color, life: 1.4, maxLife: 1.4 });
+  }
+
+  // Apply Pull Vote
+  function applyPull(team, user = 'Viewer', pts = 10) {
+    sound.init();
+    sound.playPull();
+
+    const impulseAmount = 14;
+    if (team === 'BLACK') {
+      physics.blackImpulse += impulseAmount;
+      addParticle(960 + physics.x - 40, 620, -60, -30, '#F59E0B', 4, 0.4);
+      addFloatingText(`◄ ${user}`, 720, 560 + Math.random() * 40, '#F59E0B');
+    } else {
+      physics.whiteImpulse += impulseAmount;
+      addParticle(960 + physics.x + 40, 620, 60, -30, '#38BDF8', 4, 0.4);
+      addFloatingText(`${user} ►`, 1200, 560 + Math.random() * 40, '#38BDF8');
+    }
+
+    addTickerMessage(user, team);
+  }
+
+  // Add Ticker Pill to HUD
+  function addTickerMessage(user, team) {
+    const box = document.getElementById('chat-ticker-container');
+    if (!box) return;
+    const pill = document.createElement('div');
+    pill.className = `ticker-pill ${team.toLowerCase()}`;
+    const icon = team === 'BLACK' ? '⚫' : '⚪';
+    pill.innerHTML = `<span>${icon}</span> <span><b>@${user}</b> pulled for <b>${team}</b>!</span>`;
+    box.prepend(pill);
+    if (box.children.length > 5) {
+      box.removeChild(box.lastChild);
+    }
+  }
+
+  // Next Topic Cycle
+  function nextTopic() {
+    gameState.currentTopicIdx = (gameState.currentTopicIdx + 1) % DEBATE_TOPICS.length;
+    physics.x = 0;
+    physics.vx = 0;
+    gameState.roundTimeRemaining = gameState.roundDuration;
+    gameState.isRoundOver = false;
+    gameState.roundWinner = null;
+    gameState.winnerAnnounceTimer = 0;
+    updateTopicHUD();
+  }
+
+  // Trigger Round Win
+  async function triggerRoundWin(winnerTeam) {
+    if (gameState.isRoundOver) return;
+    gameState.isRoundOver = true;
+    gameState.roundWinner = winnerTeam;
+    gameState.winnerAnnounceTimer = 4.0;
+
+    if (winnerTeam === 'BLACK') gameState.winsBlack++;
+    else gameState.winsWhite++;
+
+    sound.playWin();
+    spawnConfetti(winnerTeam);
+
+    // Persist round win to server
+    try {
+      await fetch('../api/chat.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'round_win',
+          team: winnerTeam,
+          topic_idx: (gameState.currentTopicIdx + 1) % DEBATE_TOPICS.length
+        })
+      });
+    } catch (e) {}
+
+    updateTopicHUD();
+  }
+
+  // Keyboard Test Controls & Dev Hotkeys
   window.addEventListener('keydown', (e) => {
     const k = e.key.toLowerCase();
-    if (e.key === 'ArrowLeft' || k === 'a' || e.key === '1') player.action('LEFT', 'Host');
-    else if (e.key === 'ArrowUp' || k === 'w' || e.key === ' ' || e.key === '2') player.action('JUMP', 'Host');
-    else if (e.key === 'ArrowRight' || k === 'd' || e.key === '3') player.action('RIGHT', 'Host');
-    else if (k === 'm') player.activatePowerup('MAGNET', 10);
-    else if (k === 'b') player.activatePowerup('BOOTS', 8);
-    else if (k === 'j') player.activatePowerup('JETPACK', 6);
-    else if (k === 't') obstacles.push({ type: 'TRAIN', lane: player.laneIndex, z: 650, hit: false, passed: false, cleared: false });
-    else if (k === 'h') obstacles.push({ type: 'HURDLE', lane: player.laneIndex, z: 650, hit: false, passed: false, cleared: false });
+    if (e.key === 'ArrowLeft' || e.key === '1' || k === 'a') {
+      applyPull('BLACK', 'Host', 10);
+    } else if (e.key === 'ArrowRight' || e.key === '2' || k === 'd') {
+      applyPull('WHITE', 'Host', 10);
+    } else if (k === 't') {
+      nextTopic();
+    }
   });
 
-  // Main Loop
+  // Main Game Loop
   let lastTime = performance.now();
-  let trackOffset = 0;
-
   function loop(now) {
     const dt = Math.min(0.1, (now - lastTime) / 1000);
     lastTime = now;
@@ -460,609 +296,457 @@
   }
 
   function update(dt) {
-    gameState.distance += (gameState.speed * dt) / 10;
-    gameState.score += Math.floor(dt * 15 * gameState.multiplier);
-    gameState.speed = Math.min(850, 380 + (gameState.distance / 100) * 15);
-    trackOffset = (trackOffset + gameState.speed * dt * 2.5) % 48;
-
-    // Clouds
-    for (const c of clouds) {
-      c.x += c.speed * dt;
-      if (c.x > 2100) c.x = -200;
-    }
-
-    player.update(dt);
-
-    // Spawning Obstacles (TRAIN, WALL, HURDLE)
-    spawnObsTimer += dt;
-    const interval = Math.max(1.1, 2.3 - (gameState.speed - 300) / 600);
-    if (spawnObsTimer >= interval) {
-      spawnObsTimer = 0;
-      const r = Math.random();
-      const type = r > 0.62 ? 'TRAIN' : r > 0.32 ? 'WALL' : 'HURDLE';
-      const lane = Math.floor(Math.random() * 3);
-      obstacles.push({ type, lane, z: 1000, hit: false, passed: false, cleared: false });
-    }
-
-    // Spawning Coins
-    spawnCoinTimer += dt;
-    if (spawnCoinTimer >= 1.0) {
-      spawnCoinTimer = 0;
-      const lane = Math.floor(Math.random() * 3);
-      for (let i = 0; i < 3; i++) {
-        coins.push({ lane, z: 1000 + i * 75, collected: false });
+    // Round Timer Countdown
+    if (!gameState.isRoundOver) {
+      gameState.roundTimeRemaining -= dt;
+      if (gameState.roundTimeRemaining <= 0) {
+        // Sudden-death overtime decision: side with majority displacement wins
+        const winner = physics.x < 0 ? 'BLACK' : physics.x > 0 ? 'WHITE' : (Math.random() > 0.5 ? 'BLACK' : 'WHITE');
+        triggerRoundWin(winner);
+      }
+    } else {
+      gameState.winnerAnnounceTimer -= dt;
+      if (gameState.winnerAnnounceTimer <= 0) {
+        nextTopic();
       }
     }
 
-    // Spawning Power-Ups (MAGNET, BOOTS, JETPACK)
-    spawnPowerupTimer += dt;
-    if (spawnPowerupTimer >= 13.0) {
-      spawnPowerupTimer = 0;
-      const puTypes = ['MAGNET', 'BOOTS', 'JETPACK'];
-      const puType = puTypes[Math.floor(Math.random() * puTypes.length)];
-      const puLane = Math.floor(Math.random() * 3);
-      powerups.push({ type: puType, lane: puLane, z: 1000, collected: false });
-    }
+    // Physics Update
+    const netForce = (physics.whiteImpulse - physics.blackImpulse) - (physics.x * physics.centeringSpring);
+    physics.blackImpulse *= 0.82;
+    physics.whiteImpulse *= 0.82;
 
-    // Jetpack Sky Coins
-    if (player.powerup && player.powerup.type === 'JETPACK' && Math.random() < 0.12) {
-      coins.push({ lane: player.laneIndex, z: 900, collected: false, sky: true });
-    }
+    const ax = netForce / physics.mass;
+    physics.vx = (physics.vx + ax) * physics.damping;
+    physics.x += physics.vx * dt * 60;
 
-    // Update Obstacles
-    const playerFoot = projectTrack(player.laneProgress, PLAYER_Z);
-
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-      const obs = obstacles[i];
-      obs.z -= (gameState.speed * 1.5) * dt;
-
-      if (!obs.hit && !obs.passed) {
-        const dz = obs.z - PLAYER_Z;
-
-        // Contact window
-        if (dz <= 38 && dz >= -25) {
-          const laneOffset = obs.lane - 1;
-          if (Math.abs(player.laneProgress - laneOffset) < 0.48) {
-            // Jetpack flies high above all obstacles!
-            if (player.powerup && player.powerup.type === 'JETPACK') {
-              if (!obs.cleared) {
-                obs.cleared = true;
-                gameState.streak++;
-                gameState.multiplier = Math.min(4.0, 1.0 + Math.floor(gameState.streak / 4) * 0.5);
-                const pts = Math.round(80 * gameState.multiplier);
-                gameState.score += pts;
-                addFloatingText(`FLYOVER! +${pts}`, playerFoot.x, playerFoot.y - player.jumpAltitude - 30, '#8B5CF6');
-                updateHUD();
-              }
-            } else if (obs.type === 'HURDLE' && player.jumpAltitude > 45) {
-              if (!obs.cleared) {
-                obs.cleared = true;
-                gameState.streak++;
-                gameState.multiplier = Math.min(4.0, 1.0 + Math.floor(gameState.streak / 4) * 0.5);
-                const pts = Math.round(75 * gameState.multiplier);
-                gameState.score += pts;
-                addFloatingText(`CLEAR! +${pts}`, playerFoot.x, playerFoot.y - player.jumpAltitude - 30, '#10B981');
-                updateHUD();
-              }
-            } else if (obs.type === 'TRAIN' && player.jumpAltitude > 140) {
-              // High leap with boots over train!
-              if (!obs.cleared) {
-                obs.cleared = true;
-                gameState.streak++;
-                gameState.multiplier = Math.min(4.0, 1.0 + Math.floor(gameState.streak / 4) * 0.5);
-                const pts = Math.round(150 * gameState.multiplier);
-                gameState.score += pts;
-                addFloatingText(`TRAIN LEAP! +${pts}`, playerFoot.x, playerFoot.y - player.jumpAltitude - 30, '#10B981');
-                updateHUD();
-              }
-            } else if (!obs.cleared) {
-              obs.hit = true;
-              if (!player.isInvulnerable) {
-                sound.playHit();
-                player.isInvulnerable = true;
-                player.invulTimer = 2.0;
-                gameState.streak = 0;
-                gameState.multiplier = 1.0;
-                gameState.score = Math.max(0, gameState.score - 50);
-                addBurst(playerFoot.x, playerFoot.y, '#EF4444', 25);
-                addFloatingText('STUMBLE! -50', playerFoot.x, playerFoot.y - 60, '#EF4444');
-                updateHUD();
-              }
-            }
-          }
-        } else if (dz < -25) {
-          obs.passed = true;
-          if (!obs.cleared && !obs.hit) {
-            gameState.streak++;
-            gameState.multiplier = Math.min(4.0, 1.0 + Math.floor(gameState.streak / 4) * 0.5);
-            gameState.score += Math.round((obs.type === 'TRAIN' ? 100 : 50) * gameState.multiplier);
-            updateHUD();
-          }
-        }
+    // Check Win Threshold
+    if (!gameState.isRoundOver) {
+      if (physics.x <= -physics.winThreshold) {
+        triggerRoundWin('BLACK');
+      } else if (physics.x >= physics.winThreshold) {
+        triggerRoundWin('WHITE');
       }
-
-      if (obs.z < -80) obstacles.splice(i, 1);
     }
 
-    // Update Coins (with Magnet suction)
-    const isMagnetActive = (player.powerup && player.powerup.type === 'MAGNET');
-    for (let i = coins.length - 1; i >= 0; i--) {
-      const c = coins[i];
-      c.z -= (gameState.speed * 1.5) * dt;
-
-      // Magnet attraction
-      if (isMagnetActive && !c.collected) {
-        const distZ = Math.abs(c.z - PLAYER_Z);
-        if (distZ < 260) {
-          c.lane += ((player.laneIndex) - c.lane) * dt * 9;
-        }
-      }
-
-      const dz = c.z - PLAYER_Z;
-      if (!c.collected && dz <= 40 && dz >= -25) {
-        const laneOffset = c.lane - 1;
-        if (Math.abs(player.laneProgress - laneOffset) < (isMagnetActive ? 0.85 : 0.50)) {
-          c.collected = true;
-          gameState.coins++;
-          gameState.score += 25;
-          sound.playCoin();
-          const p = projectTrack(laneOffset, PLAYER_Z, c.sky ? 140 : 0);
-          addBurst(p.x, p.y, '#F59E0B', 12);
-          addFloatingText('+25 🪙', p.x, p.y - 20, '#D97706');
-          updateHUD();
-        }
-      }
-      if (c.z < -40 || c.collected) coins.splice(i, 1);
-    }
-
-    // Update Power-ups
-    for (let i = powerups.length - 1; i >= 0; i--) {
-      const pu = powerups[i];
-      pu.z -= (gameState.speed * 1.5) * dt;
-      const dz = pu.z - PLAYER_Z;
-      if (!pu.collected && dz <= 38 && dz >= -25) {
-        const laneOffset = pu.lane - 1;
-        if (Math.abs(player.laneProgress - laneOffset) < 0.52) {
-          pu.collected = true;
-          const dur = pu.type === 'MAGNET' ? 10 : pu.type === 'BOOTS' ? 8 : 6;
-          player.activatePowerup(pu.type, dur);
-        }
-      }
-      if (pu.z < -40 || pu.collected) powerups.splice(i, 1);
-    }
-
-    // Particles & Texts
-    for (let i = floatingTexts.length - 1; i >= 0; i--) {
-      const ft = floatingTexts[i];
-      ft.y += ft.vy * dt;
-      ft.life -= dt;
-      if (ft.life <= 0) floatingTexts.splice(i, 1);
-    }
+    // Update Particles
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
       p.x += p.vx * dt;
       p.y += p.vy * dt;
+      p.vy += 320 * dt; // Gravity
       p.life -= dt;
       if (p.life <= 0) particles.splice(i, 1);
     }
 
-    updateHUD();
+    // Update Floating Text
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+      const ft = floatingTexts[i];
+      ft.y -= 38 * dt;
+      ft.life -= dt;
+      if (ft.life <= 0) floatingTexts.splice(i, 1);
+    }
+
+    // Animate Pullers cadence
+    pullers.black.forEach(p => { p.phase += dt * (3.5 + Math.abs(physics.vx) * 0.05); });
+    pullers.white.forEach(p => { p.phase += dt * (3.5 + Math.abs(physics.vx) * 0.05); });
+
+    updateHUDGauges();
   }
 
+  // Render Arena & Mechanics
   function render() {
     ctx.clearRect(0, 0, 1920, 1080);
 
-    // 1. Sky & Sun
-    const sky = ctx.createLinearGradient(0, 0, 0, horizonY);
-    sky.addColorStop(0, '#38BDF8'); sky.addColorStop(0.6, '#7DD3FC'); sky.addColorStop(1, '#E0F2FE');
-    ctx.fillStyle = sky; ctx.fillRect(0, 0, 1920, horizonY);
+    // 1. Split Arena Background
+    // Left Half: Obsidian Black Realm
+    ctx.fillStyle = '#0F172A';
+    ctx.fillRect(0, 0, 960, 1080);
 
-    const sun = ctx.createRadialGradient(horizonX + 280, 120, 20, horizonX + 280, 120, 160);
-    sun.addColorStop(0, '#FEF08A'); sun.addColorStop(0.3, '#FBBF24'); sun.addColorStop(1, 'rgba(251, 191, 36, 0)');
-    ctx.fillStyle = sun; ctx.beginPath(); ctx.arc(horizonX + 280, 120, 160, 0, Math.PI * 2); ctx.fill();
+    // Right Half: Brilliant Pearl White Realm
+    ctx.fillStyle = '#F8FAFC';
+    ctx.fillRect(960, 0, 960, 1080);
 
-    // Clouds
-    for (const c of clouds) {
-      ctx.save(); ctx.translate(c.x, c.y); ctx.scale(c.scale, c.scale);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.beginPath();
-      ctx.arc(0, 0, 26, 0, Math.PI * 2); ctx.arc(28, -8, 22, 0, Math.PI * 2);
-      ctx.arc(52, 0, 20, 0, Math.PI * 2); ctx.arc(22, 10, 24, 0, Math.PI * 2);
-      ctx.fill(); ctx.restore();
+    // Floor Perspective Grid Lines
+    ctx.lineWidth = 1.5;
+    for (let i = -8; i <= 8; i++) {
+      const topX = 960 + i * 40;
+      const botX = 960 + i * 140;
+      ctx.strokeStyle = i < 0 ? 'rgba(255, 255, 255, 0.04)' : 'rgba(15, 23, 42, 0.04)';
+      ctx.beginPath(); ctx.moveTo(topX, 480); ctx.lineTo(botX, 1080); ctx.stroke();
+    }
+    for (let y = 520; y < 1080; y += 60) {
+      const t = (y - 520) / 560;
+      const w = 400 + t * 1400;
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.08)';
+      ctx.beginPath(); ctx.moveTo(960 - w / 2, y); ctx.lineTo(960 + w / 2, y); ctx.stroke();
     }
 
-    // Skyline
-    for (const b of buildings) {
-      ctx.fillStyle = b.color;
-      ctx.fillRect(b.x, horizonY - b.h, b.w, b.h);
-      ctx.fillStyle = '#FFFFFF';
-      for (let r = 16; r < b.h - 20; r += 24) {
-        for (let c = 8; c < b.w - 12; c += 16) ctx.fillRect(b.x + c, horizonY - b.h + r, 8, 12);
-      }
-    }
+    // Center Energy Abyss / Laser Division Line
+    ctx.strokeStyle = '#F59E0B';
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(960, 200); ctx.lineTo(960, 950); ctx.stroke();
 
-    // 2. Lawn & Ballast Track
-    const lawn = ctx.createLinearGradient(0, horizonY, 0, 1080);
-    lawn.addColorStop(0, '#86EFAC'); lawn.addColorStop(1, '#22C55E');
-    ctx.fillStyle = lawn; ctx.fillRect(0, horizonY, 1920, 1080 - horizonY);
+    // Laser glow line
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
+    ctx.lineWidth = 14;
+    ctx.beginPath(); ctx.moveTo(960, 200); ctx.lineTo(960, 950); ctx.stroke();
 
-    // Concrete Walls with Coping Stone Rims
-    const wallLeftTop = horizonX - horizonTrackWidth / 2 - 20;
-    const wallLeftBot = horizonX - bottomTrackWidth / 2 - 60;
-    const wallRightTop = horizonX + horizonTrackWidth / 2 + 20;
-    const wallRightBot = horizonX + bottomTrackWidth / 2 + 60;
+    // Win Threshold Boundaries
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.35)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 8]);
+    ctx.beginPath(); ctx.moveTo(960 - physics.winThreshold, 460); ctx.lineTo(960 - physics.winThreshold, 860); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(960 + physics.winThreshold, 460); ctx.lineTo(960 + physics.winThreshold, 860); ctx.stroke();
+    ctx.setLineDash([]);
 
-    // Left wall
-    ctx.fillStyle = '#94A3B8';
+    // Large Team Watermark Emblems
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
+    ctx.font = '900 140px "Inter", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚫ BLACK', 480, 540);
+
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.035)';
+    ctx.fillText('WHITE ⚪', 1440, 540);
+
+    // 2. Heavy Rope & Strain Physics
+    const ropeY = 660;
+    const leftAnchorX = 320;
+    const rightAnchorX = 1600;
+    const centerKnotX = 960 + physics.x;
+
+    // Cable Shadow
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.lineWidth = 14;
     ctx.beginPath();
-    ctx.moveTo(wallLeftTop, horizonY);
-    ctx.lineTo(wallLeftTop - 35, horizonY - 45);
-    ctx.lineTo(wallLeftBot - 85, bottomY - 50);
-    ctx.lineTo(wallLeftBot, bottomY);
+    ctx.moveTo(leftAnchorX, ropeY + 45);
+    ctx.quadraticCurveTo(centerKnotX, ropeY + 58, rightAnchorX, ropeY + 45);
+    ctx.stroke();
+
+    // Rope Tension Strain Color
+    const tension = Math.min(1, Math.abs(physics.vx) / 12 + Math.abs(physics.x) / physics.winThreshold);
+    const ropeGrad = ctx.createLinearGradient(leftAnchorX, ropeY, rightAnchorX, ropeY);
+    ropeGrad.addColorStop(0, '#94A3B8');
+    ropeGrad.addColorStop(0.5, tension > 0.6 ? '#EF4444' : '#F59E0B');
+    ropeGrad.addColorStop(1, '#94A3B8');
+
+    ctx.strokeStyle = ropeGrad;
+    ctx.lineWidth = 16;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(leftAnchorX, ropeY);
+    ctx.quadraticCurveTo(centerKnotX, ropeY + 12 - tension * 8, rightAnchorX, ropeY);
+    ctx.stroke();
+
+    // Steel Rope Strands
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([12, 10]);
+    ctx.beginPath();
+    ctx.moveTo(leftAnchorX, ropeY);
+    ctx.quadraticCurveTo(centerKnotX, ropeY + 12 - tension * 8, rightAnchorX, ropeY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Center Ribbon Marker
+    ctx.save();
+    ctx.translate(centerKnotX, ropeY + 8);
+    // Pulsing indicator ring
+    ctx.fillStyle = '#F59E0B';
+    ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 4; ctx.stroke();
+
+    // Center Marker Flag
+    ctx.fillStyle = physics.x < -20 ? '#EF4444' : physics.x > 20 ? '#10B981' : '#0F172A';
+    ctx.beginPath();
+    ctx.moveTo(-16, -18);
+    ctx.lineTo(16, -18);
+    ctx.lineTo(0, -42);
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = '#CBD5E1'; ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.moveTo(wallLeftTop - 35, horizonY - 45); ctx.lineTo(wallLeftBot - 85, bottomY - 50); ctx.stroke();
+    ctx.restore();
 
-    // Right wall
-    ctx.fillStyle = '#94A3B8';
-    ctx.beginPath();
-    ctx.moveTo(wallRightTop, horizonY);
-    ctx.lineTo(wallRightTop + 35, horizonY - 45);
-    ctx.lineTo(wallRightBot + 85, bottomY - 50);
-    ctx.lineTo(wallRightBot, bottomY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#CBD5E1'; ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.moveTo(wallRightTop + 35, horizonY - 45); ctx.lineTo(wallRightBot + 85, bottomY - 50); ctx.stroke();
-
-    // Railway Ballast
-    const ballast = ctx.createLinearGradient(0, horizonY, 0, bottomY);
-    ballast.addColorStop(0, '#64748B'); ballast.addColorStop(1, '#475569');
-    ctx.fillStyle = ballast;
-    ctx.beginPath();
-    ctx.moveTo(wallLeftTop, horizonY);
-    ctx.lineTo(wallRightTop, horizonY);
-    ctx.lineTo(wallRightBot, bottomY);
-    ctx.lineTo(wallLeftBot, bottomY);
-    ctx.fill();
-
-    // Railway Ties
-    for (let i = 0; i < 22; i++) {
-      const baseT = (i * 48 + trackOffset) / 1000;
-      if (baseT < 0 || baseT > 1) continue;
-      const perspT = Math.pow(baseT, 1.4);
-      const tieY = horizonY + perspT * (bottomY - horizonY);
-      const tieWidth = horizonTrackWidth + perspT * (bottomTrackWidth - horizonTrackWidth);
-      ctx.fillStyle = '#78350F';
-      ctx.fillRect(horizonX - tieWidth / 2, tieY, tieWidth, Math.max(3, 10 * perspT));
-    }
-
-    // 6 Steel Rails
-    [-1, 0, 1].forEach((laneIdx) => {
-      [-0.32, 0.32].forEach((offset) => {
-        const topX = horizonX + (laneIdx + offset) * horizonLaneWidth;
-        const botX = horizonX + (laneIdx + offset) * trackLaneWidth;
-        ctx.strokeStyle = '#F1F5F9'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(topX, horizonY); ctx.lineTo(botX, bottomY); ctx.stroke();
-      });
+    // 3. Render Stickman Crowd Pullers
+    // Team Black Pullers (Pulling Left)
+    pullers.black.forEach((p, idx) => {
+      const baseX = centerKnotX + p.xOffset;
+      const pullAngle = -0.32 + Math.sin(p.phase) * 0.08;
+      drawPuller(baseX, ropeY, pullAngle, '#0F172A', '#F59E0B', p.phase, true);
     });
 
-    // Helper to render Overhead Catenary Gantry Arch with Signals
-    function drawGantry(z) {
-      if (z > 980 || z < -20) return;
-      const leftP = projectTrack(-1.6, z);
-      const rightP = projectTrack(1.6, z);
-      const beamH = 260 * leftP.scale;
+    // Team White Pullers (Pulling Right)
+    pullers.white.forEach((p, idx) => {
+      const baseX = centerKnotX + p.xOffset;
+      const pullAngle = 0.32 - Math.sin(p.phase) * 0.08;
+      drawPuller(baseX, ropeY, pullAngle, '#FFFFFF', '#0284C7', p.phase, false);
+    });
 
-      ctx.save();
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = Math.max(2, 6 * leftP.scale);
-      // Pylons
-      ctx.beginPath(); ctx.moveTo(leftP.x, leftP.y); ctx.lineTo(leftP.x, leftP.y - beamH); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(rightP.x, rightP.y); ctx.lineTo(rightP.x, rightP.y - beamH); ctx.stroke();
-      // Overhead Crossbeam
-      ctx.lineWidth = Math.max(3, 8 * leftP.scale);
-      ctx.beginPath(); ctx.moveTo(leftP.x, leftP.y - beamH); ctx.lineTo(rightP.x, rightP.y - beamH); ctx.stroke();
-
-      // 3 Signal Lights for each lane
-      [-1, 0, 1].forEach((laneIdx) => {
-        const laneP = projectTrack(laneIdx, z);
-        const sigX = laneP.x;
-        const sigY = laneP.y - beamH;
-        const danger = obstacles.some(o => o.lane === (laneIdx + 1) && o.z > z && o.z < z + 360);
-
-        ctx.fillStyle = '#0F172A';
-        ctx.fillRect(sigX - 8 * laneP.scale, sigY - 12 * laneP.scale, 16 * laneP.scale, 24 * laneP.scale);
-
-        ctx.fillStyle = danger ? '#EF4444' : '#10B981';
-        ctx.beginPath(); ctx.arc(sigX, sigY, 5 * laneP.scale, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = danger ? 'rgba(239, 68, 68, 0.4)' : 'rgba(16, 185, 129, 0.4)';
-        ctx.beginPath(); ctx.arc(sigX, sigY, 11 * laneP.scale, 0, Math.PI * 2); ctx.fill();
-      });
-      ctx.restore();
-    }
-
-    // Helper to render an obstacle (TRAIN, WALL, HURDLE)
-    function drawObstacle(o) {
-      if (o.z > 980 || o.z < -50) return;
-      const p = projectTrack(o.lane - 1, o.z);
-      const w = 150 * p.scale;
-      ctx.save();
-
-      if (o.type === 'TRAIN') {
-        // 3D Subway Train Carriage
-        const pBack = projectTrack(o.lane - 1, o.z + 160);
-        const hFront = 220 * p.scale;
-        const hBack = 220 * pBack.scale;
-        const wBack = 150 * pBack.scale;
-
-        // 1. Train Roof
-        ctx.fillStyle = '#94A3B8';
-        ctx.beginPath();
-        ctx.moveTo(p.x - w / 2, p.y - hFront);
-        ctx.lineTo(p.x + w / 2, p.y - hFront);
-        ctx.lineTo(pBack.x + wBack / 2, pBack.y - hBack);
-        ctx.lineTo(pBack.x - wBack / 2, pBack.y - hBack);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = '#64748B'; ctx.lineWidth = Math.max(1, 2 * p.scale); ctx.stroke();
-
-        // 2. Train Side Wall (if perspective shows left or right flank)
-        const laneIdx = o.lane - 1;
-        if (laneIdx !== 0) {
-          ctx.fillStyle = '#991B1B'; // Dark red carriage flank
-          ctx.beginPath();
-          if (laneIdx < 0) {
-            ctx.moveTo(p.x + w / 2, p.y - hFront);
-            ctx.lineTo(p.x + w / 2, p.y);
-            ctx.lineTo(pBack.x + wBack / 2, pBack.y);
-            ctx.lineTo(pBack.x + wBack / 2, pBack.y - hBack);
-          } else {
-            ctx.moveTo(p.x - w / 2, p.y - hFront);
-            ctx.lineTo(p.x - w / 2, p.y);
-            ctx.lineTo(pBack.x - wBack / 2, pBack.y);
-            ctx.lineTo(pBack.x - wBack / 2, pBack.y - hBack);
-          }
-          ctx.closePath();
-          ctx.fill();
-        }
-
-        // 3. Train Front Face
-        ctx.fillStyle = '#DC2626'; // Vibrant subway red
-        ctx.beginPath();
-        ctx.roundRect(p.x - w / 2, p.y - hFront, w, hFront, 14 * p.scale);
-        ctx.fill();
-
-        // Windshield (Cabin glass)
-        ctx.fillStyle = '#0F172A';
-        ctx.beginPath();
-        ctx.roundRect(p.x - w / 2 + 12 * p.scale, p.y - hFront + 24 * p.scale, w - 24 * p.scale, 54 * p.scale, 6 * p.scale);
-        ctx.fill();
-        // Windshield blue reflection
-        ctx.fillStyle = '#38BDF8';
-        ctx.fillRect(p.x - w / 2 + 18 * p.scale, p.y - hFront + 30 * p.scale, (w - 36 * p.scale) / 2, 42 * p.scale);
-
-        // Destination Banner
-        ctx.fillStyle = '#FEF08A';
-        ctx.font = `bold ${Math.round(11 * p.scale)}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText('SUBWAY EXPRESS', p.x, p.y - hFront + 16 * p.scale);
-
-        // Silver Front Grille
-        ctx.fillStyle = '#CBD5E1';
-        ctx.fillRect(p.x - w / 2 + 20 * p.scale, p.y - 70 * p.scale, w - 40 * p.scale, 35 * p.scale);
-        ctx.fillStyle = '#334155';
-        for (let g = 0; g < w - 46 * p.scale; g += 8 * p.scale) {
-          ctx.fillRect(p.x - w / 2 + 24 * p.scale + g, p.y - 68 * p.scale, 4 * p.scale, 31 * p.scale);
-        }
-
-        // Dual Headlights
-        ctx.fillStyle = '#FEF08A';
-        ctx.beginPath(); ctx.arc(p.x - w / 2 + 24 * p.scale, p.y - 25 * p.scale, 10 * p.scale, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(p.x + w / 2 - 24 * p.scale, p.y - 25 * p.scale, 10 * p.scale, 0, Math.PI * 2); ctx.fill();
-
-        // Glowing Headlight Cones
-        if (p.scale > 0.3) {
-          const beam = ctx.createLinearGradient(p.x, p.y, p.x, p.y + 110 * p.scale);
-          beam.addColorStop(0, 'rgba(254, 240, 138, 0.4)');
-          beam.addColorStop(1, 'rgba(254, 240, 138, 0)');
-          ctx.fillStyle = beam;
-          ctx.beginPath();
-          ctx.moveTo(p.x - w / 2 + 12 * p.scale, p.y - 25 * p.scale);
-          ctx.lineTo(p.x - w * 0.85, p.y + 110 * p.scale);
-          ctx.lineTo(p.x + w * 0.85, p.y + 110 * p.scale);
-          ctx.lineTo(p.x + w / 2 - 12 * p.scale, p.y - 25 * p.scale);
-          ctx.fill();
-        }
-      } else if (o.type === 'HURDLE') {
-        const h = 72 * p.scale;
-        ctx.fillStyle = '#FBBF24';
-        ctx.fillRect(p.x - w / 2, p.y - h, w, 30 * p.scale);
-        ctx.fillStyle = '#0F172A';
-        for (let s = 0; s < w; s += 36 * p.scale) {
-          ctx.fillRect(p.x - w / 2 + s, p.y - h, 18 * p.scale, 30 * p.scale);
-        }
-        if (p.scale > 0.4) {
-          ctx.fillStyle = '#0284C7'; ctx.font = `900 ${Math.round(20 * p.scale)}px sans-serif`;
-          ctx.textAlign = 'center'; ctx.fillText('▲ JUMP', p.x, p.y - h - 10 * p.scale);
-        }
-      } else {
-        const h = 195 * p.scale;
-        ctx.fillStyle = '#DC2626';
-        ctx.beginPath(); ctx.roundRect(p.x - w / 2, p.y - h, w, h, 14 * p.scale); ctx.fill();
-        ctx.fillStyle = '#E2E8F0'; ctx.fillRect(p.x - w / 2 + 4 * p.scale, p.y - h + 4 * p.scale, w - 8 * p.scale, 20 * p.scale);
-        ctx.fillStyle = '#38BDF8'; ctx.fillRect(p.x - w / 2 + 16 * p.scale, p.y - h + 32 * p.scale, w - 32 * p.scale, 46 * p.scale);
-        if (p.scale > 0.35) {
-          ctx.fillStyle = '#FFFFFF'; ctx.font = `900 ${Math.round(22 * p.scale)}px sans-serif`;
-          ctx.textAlign = 'center'; ctx.fillText('◄ DODGE ►', p.x, p.y - h - 12 * p.scale);
-        }
-      }
-      ctx.restore();
-    }
-
-    // Helper to render a coin
-    function drawCoin(c) {
-      if (c.collected || c.z > 980 || c.z < -20) return;
-      const p = projectTrack(c.lane - 1, c.z, c.sky ? 140 : 24);
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(0, 0, 22 * p.scale, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#FFA500'; ctx.lineWidth = 3 * p.scale; ctx.stroke();
-      ctx.restore();
-    }
-
-    // Helper to render a power-up
-    function drawPowerup(pu) {
-      if (pu.collected || pu.z > 980 || pu.z < -20) return;
-      const p = projectTrack(pu.lane - 1, pu.z, 28);
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      const bob = Math.sin(Date.now() / 150) * 8 * p.scale;
-      ctx.translate(0, bob);
-
-      // Glowing aura
-      const auraColor = pu.type === 'MAGNET' ? 'rgba(245, 158, 11, 0.35)' : pu.type === 'BOOTS' ? 'rgba(16, 185, 129, 0.35)' : 'rgba(139, 92, 246, 0.35)';
-      ctx.fillStyle = auraColor;
-      ctx.beginPath(); ctx.arc(0, 0, 36 * p.scale, 0, Math.PI * 2); ctx.fill();
-
-      // Icon circle
-      ctx.fillStyle = pu.type === 'MAGNET' ? '#F59E0B' : pu.type === 'BOOTS' ? '#10B981' : '#8B5CF6';
-      ctx.beginPath(); ctx.arc(0, 0, 24 * p.scale, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 3 * p.scale; ctx.stroke();
-
-      ctx.font = `${Math.round(22 * p.scale)}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const icon = pu.type === 'MAGNET' ? '🧲' : pu.type === 'BOOTS' ? '👟' : '🚀';
-      ctx.fillText(icon, 0, 2 * p.scale);
-      ctx.restore();
-    }
-
-    // Overhead Gantries
-    [320, 680].forEach(drawGantry);
-
-    // 3. Background Items (z > PLAYER_Z, sorted furthest to nearest)
-    coins.filter(c => c.z > PLAYER_Z).forEach(drawCoin);
-    powerups.filter(pu => pu.z > PLAYER_Z).forEach(drawPowerup);
-    obstacles.filter(o => o.z > PLAYER_Z).sort((a, b) => b.z - a.z).forEach(drawObstacle);
-
-    // 4. Stickman (at PLAYER_Z)
-    player.render(ctx);
-
-    // 5. Foreground Items (z <= PLAYER_Z, sorted furthest to nearest)
-    coins.filter(c => c.z <= PLAYER_Z).forEach(drawCoin);
-    powerups.filter(pu => pu.z <= PLAYER_Z).forEach(drawPowerup);
-    obstacles.filter(o => o.z <= PLAYER_Z).sort((a, b) => b.z - a.z).forEach(drawObstacle);
-
-    // 6. Particles & Text
+    // 4. Render Particles
     for (const p of particles) {
       ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (p.life / p.maxLife), 0, Math.PI * 2); ctx.fill();
     }
+
+    // 5. Render Floating Combat Text
     for (const ft of floatingTexts) {
-      ctx.fillStyle = ft.color; ctx.font = 'bold 20px "Inter", sans-serif';
-      ctx.textAlign = 'center'; ctx.fillText(ft.text, ft.x, ft.y);
+      const alpha = Math.min(1, ft.life / ft.maxLife);
+      ctx.fillStyle = ft.color;
+      ctx.globalAlpha = alpha;
+      ctx.font = '900 20px "Inter", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(ft.text, ft.x, ft.y);
+      ctx.globalAlpha = 1.0;
+    }
+
+    // 6. Victory Overlay Announcement
+    if (gameState.isRoundOver) {
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      ctx.fillRect(0, 360, 1920, 220);
+
+      ctx.fillStyle = '#FEF08A';
+      ctx.font = '900 68px "Inter", sans-serif';
+      ctx.textAlign = 'center';
+      const winnerName = gameState.roundWinner === 'BLACK' ? '⚫ TEAM BLACK WINS!' : '⚪ TEAM WHITE WINS!';
+      ctx.fillText(winnerName, 960, 460);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 24px "Inter", sans-serif';
+      ctx.fillText(`Next debate topic loading in ${Math.ceil(gameState.winnerAnnounceTimer)}s...`, 960, 520);
     }
   }
 
-  function updateHUD() {
-    document.getElementById('hud-distance').textContent = `${Math.floor(gameState.distance)}m`;
-    document.getElementById('hud-score').textContent = gameState.score.toLocaleString();
-    document.getElementById('hud-coins').textContent = gameState.coins;
+  // Draw a Single Stylized Stickman Puller
+  function drawPuller(x, y, angle, bodyColor, teamColor, phase, isFacingLeft) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
 
-    const streakEl = document.getElementById('hud-streak');
-    const multEl = document.getElementById('hud-multiplier');
-    if (streakEl) streakEl.textContent = `${gameState.streak}`;
-    if (multEl) multEl.textContent = `${gameState.multiplier.toFixed(1)}x`;
+    // Ground Drop Shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+    ctx.beginPath(); ctx.ellipse(0, 45, 26, 8, 0, 0, Math.PI * 2); ctx.fill();
+
+    ctx.strokeStyle = bodyColor;
+    ctx.fillStyle = bodyColor;
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const hipY = 8;
+    const shoulderY = -48;
+    const stride = Math.sin(phase);
+
+    // Legs (Dug deep into the floor)
+    ctx.beginPath();
+    ctx.moveTo(0, hipY);
+    ctx.lineTo(isFacingLeft ? 22 : -22, hipY + 26);
+    ctx.lineTo(isFacingLeft ? 38 + stride * 4 : -38 - stride * 4, hipY + 44);
+    ctx.moveTo(0, hipY);
+    ctx.lineTo(isFacingLeft ? -14 : 14, hipY + 26);
+    ctx.lineTo(isFacingLeft ? -24 - stride * 4 : 24 + stride * 4, hipY + 44);
+    ctx.stroke();
+
+    // Torso
+    ctx.beginPath(); ctx.moveTo(0, hipY); ctx.lineTo(0, shoulderY); ctx.stroke();
+
+    // Arms Gripping the Rope
+    ctx.beginPath();
+    ctx.moveTo(0, shoulderY);
+    ctx.lineTo(isFacingLeft ? -24 : 24, -12);
+    ctx.lineTo(isFacingLeft ? -14 : 14, 0);
+    ctx.stroke();
+
+    // Head
+    const headY = shoulderY - 20;
+    ctx.beginPath(); ctx.arc(0, headY, 17, 0, Math.PI * 2); ctx.fill();
+
+    // Team Armband
+    ctx.fillStyle = teamColor;
+    ctx.fillRect(isFacingLeft ? -12 : 6, shoulderY + 8, 6, 8);
+
+    ctx.restore();
   }
 
-  function updatePowerupHUD() {
-    const card = document.getElementById('hud-powerup-card');
-    if (!card) return;
-    if (!player.powerup) {
-      card.style.display = 'none';
-      return;
+  // Update Topic HUD
+  function updateTopicHUD() {
+    const topic = DEBATE_TOPICS[gameState.currentTopicIdx];
+    const topicTitleEl = document.getElementById('topic-title');
+    if (topicTitleEl) {
+      topicTitleEl.textContent = `${topic.left} vs ${topic.right}`;
     }
-    card.style.display = 'flex';
-    const iconEl = document.getElementById('hud-powerup-icon');
-    const nameEl = document.getElementById('hud-powerup-name');
-    const fillEl = document.getElementById('hud-powerup-fill');
 
-    const iconMap = { MAGNET: '🧲', BOOTS: '👟', JETPACK: '🚀' };
-    const colorMap = { MAGNET: '#F59E0B', BOOTS: '#10B981', JETPACK: '#8B5CF6' };
+    const winsBlackEl = document.getElementById('wins-black-count');
+    const winsWhiteEl = document.getElementById('wins-white-count');
+    if (winsBlackEl) winsBlackEl.textContent = gameState.winsBlack;
+    if (winsWhiteEl) winsWhiteEl.textContent = gameState.winsWhite;
+  }
 
-    if (iconEl) iconEl.textContent = iconMap[player.powerup.type] || '⚡';
-    if (nameEl) nameEl.textContent = player.powerup.type;
+  // Update Dynamic HUD Gauges & Timer
+  function updateHUDGauges() {
+    const timerEl = document.getElementById('round-timer-text');
+    if (timerEl) {
+      const mins = Math.floor(Math.max(0, gameState.roundTimeRemaining) / 60);
+      const secs = Math.floor(Math.max(0, gameState.roundTimeRemaining) % 60);
+      timerEl.textContent = `ROUND TIME: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
 
-    const pct = Math.max(0, Math.min(100, (player.powerup.timer / player.powerup.maxTimer) * 100));
-    if (fillEl) {
-      fillEl.style.width = `${pct}%`;
-      fillEl.style.backgroundColor = colorMap[player.powerup.type] || '#D97706';
+    const pctBlackEl = document.getElementById('pct-black');
+    const pctWhiteEl = document.getElementById('pct-white');
+    const barBlack = document.getElementById('tug-bar-black');
+    const barWhite = document.getElementById('tug-bar-white');
+
+    // Calculate percentage based on current displacement
+    const dispNorm = Math.max(-1, Math.min(1, physics.x / physics.winThreshold));
+    // dispNorm = -1 (100% Black) to +1 (100% White)
+    const blackShare = Math.round(50 - dispNorm * 50);
+    const whiteShare = 100 - blackShare;
+
+    if (pctBlackEl) pctBlackEl.textContent = `${blackShare}%`;
+    if (pctWhiteEl) pctWhiteEl.textContent = `${whiteShare}%`;
+    if (barBlack) barBlack.style.width = `${blackShare}%`;
+    if (barWhite) barWhite.style.width = `${whiteShare}%`;
+  }
+
+  // Update Dual Captains & Leaderboards
+  function updateCaptainsAndLeaderboards(data) {
+    if (!data) return;
+
+    // 1. Captains
+    const capBlack = data.captains?.black;
+    const capWhite = data.captains?.white;
+
+    const capBlackName = document.getElementById('captain-black-name');
+    const capBlackScore = document.getElementById('captain-black-score');
+    if (capBlack && capBlackName && capBlackScore) {
+      capBlackName.textContent = `@${capBlack.user_name}`;
+      capBlackScore.textContent = `${capBlack.score} pts`;
+      if (gameState.lastCaptainBlackName && gameState.lastCaptainBlackName !== capBlack.user_name) {
+        sound.playCrown();
+      }
+      gameState.lastCaptainBlackName = capBlack.user_name;
+    }
+
+    const capWhiteName = document.getElementById('captain-white-name');
+    const capWhiteScore = document.getElementById('captain-white-score');
+    if (capWhite && capWhiteName && capWhiteScore) {
+      capWhiteName.textContent = `@${capWhite.user_name}`;
+      capWhiteScore.textContent = `${capWhite.score} pts`;
+      if (gameState.lastCaptainWhiteName && gameState.lastCaptainWhiteName !== capWhite.user_name) {
+        sound.playCrown();
+      }
+      gameState.lastCaptainWhiteName = capWhite.user_name;
+    }
+
+    // 2. Dual Top 10 Leaderboards
+    const lbBlack = document.getElementById('lb-list-black');
+    if (lbBlack && Array.isArray(data.leaderboards?.black)) {
+      lbBlack.innerHTML = '';
+      if (data.leaderboards.black.length === 0) {
+        lbBlack.innerHTML = '<div class="lb-empty">Type 1 or BLACK to join!</div>';
+      } else {
+        data.leaderboards.black.forEach((item, idx) => {
+          const row = document.createElement('div');
+          row.className = `lb-item ${idx === 0 ? 'captain-highlight' : ''}`;
+          const rankDisplay = idx === 0 ? '👑' : `#${idx + 1}`;
+          row.innerHTML = `<span class="lb-rank ${idx === 0 ? 'gold' : ''}">${rankDisplay}</span><span class="lb-name">@${item.user_name}</span><span class="lb-score">${item.score}</span>`;
+          lbBlack.appendChild(row);
+        });
+      }
+    }
+
+    const lbWhite = document.getElementById('lb-list-white');
+    if (lbWhite && Array.isArray(data.leaderboards?.white)) {
+      lbWhite.innerHTML = '';
+      if (data.leaderboards.white.length === 0) {
+        lbWhite.innerHTML = '<div class="lb-empty">Type 2 or WHITE to join!</div>';
+      } else {
+        data.leaderboards.white.forEach((item, idx) => {
+          const row = document.createElement('div');
+          row.className = `lb-item ${idx === 0 ? 'captain-highlight' : ''}`;
+          const rankDisplay = idx === 0 ? '👑' : `#${idx + 1}`;
+          row.innerHTML = `<span class="lb-rank ${idx === 0 ? 'gold' : ''}">${rankDisplay}</span><span class="lb-name">@${item.user_name}</span><span class="lb-score">${item.score}</span>`;
+          lbWhite.appendChild(row);
+        });
+      }
+    }
+
+    // 3. Velocity & Round Stats
+    const velEl = document.getElementById('hud-velocity');
+    if (velEl && data.velocity !== undefined) {
+      velEl.textContent = `${data.velocity} msgs/s`;
+    }
+
+    if (data.round) {
+      gameState.winsBlack = data.round.wins_black;
+      gameState.winsWhite = data.round.wins_white;
+      updateTopicHUD();
     }
   }
 
-  // Poll YouTube Live Chat API from server
+  // Poll YouTube Live Chat API from Server
   async function pollServerChat() {
     try {
       const res = await fetch('../api/chat.php?poll=1');
       const data = await res.json();
       if (data.success) {
-        if (Array.isArray(data.actions)) {
-          for (const item of data.actions) {
-            player.action(item.action, item.user);
-            addTickerMessage(item.user, item.action);
+        if (Array.isArray(data.incoming_pulls)) {
+          for (const item of data.incoming_pulls) {
+            applyPull(item.team, item.user);
           }
         }
-
-        if (data.percentages) {
-          document.getElementById('gauge-pct-left').textContent = `${data.percentages.LEFT}%`;
-          document.getElementById('gauge-bar-left').style.width = `${data.percentages.LEFT}%`;
-          document.getElementById('gauge-pct-jump').textContent = `${data.percentages.JUMP}%`;
-          document.getElementById('gauge-bar-jump').style.width = `${data.percentages.JUMP}%`;
-          document.getElementById('gauge-pct-right').textContent = `${data.percentages.RIGHT}%`;
-          document.getElementById('gauge-bar-right').style.width = `${data.percentages.RIGHT}%`;
-        }
-
-        if (data.velocity !== undefined) {
-          document.getElementById('hud-velocity').textContent = `${data.velocity} msgs/s`;
-        }
-
-        if (Array.isArray(data.top_viewers)) {
-          const lb = document.getElementById('leaderboard-list');
-          lb.innerHTML = '';
-          data.top_viewers.forEach((v, idx) => {
-            const row = document.createElement('div');
-            row.className = 'leaderboard-item';
-            row.innerHTML = `<span class="lb-rank">#${idx + 1}</span><span class="lb-name">${v.user_name}</span><span class="lb-score">${v.score} pts</span>`;
-            lb.appendChild(row);
-          });
-        }
+        updateCaptainsAndLeaderboards(data);
       }
     } catch (e) {}
-  }
-
-  function addTickerMessage(user, act) {
-    const box = document.getElementById('chat-ticker-container');
-    const pill = document.createElement('div');
-    pill.className = 'chat-ticker-pill';
-    pill.innerHTML = `<span class="ticker-user">@${user}</span><span class="ticker-cmd">${act}</span>`;
-    box.prepend(pill);
-    if (box.children.length > 6) box.removeChild(box.lastChild);
   }
 
   // Instant Developer & Visual Test Preview Mode (?test=1)
   if (window.location.search.includes('test=1')) {
     setTimeout(() => {
-      player.activatePowerup('MAGNET', 10);
-      obstacles.push({ type: 'TRAIN', lane: 1, z: 460, hit: false, passed: false, cleared: false });
-      obstacles.push({ type: 'HURDLE', lane: 0, z: 620, hit: false, passed: false, cleared: false });
-      powerups.push({ type: 'BOOTS', lane: 2, z: 520, collected: false });
-      coins.push({ lane: 1, z: 260, collected: false });
-      coins.push({ lane: 1, z: 320, collected: false });
-    }, 200);
+      gameState.winsBlack = 7;
+      gameState.winsWhite = 9;
+      updateCaptainsAndLeaderboards({
+        captains: {
+          black: { user_name: 'ShadowKing', score: 1240 },
+          white: { user_name: 'Solaris', score: 1410 }
+        },
+        leaderboards: {
+          black: [
+            { user_name: 'ShadowKing', score: 1240 },
+            { user_name: 'DarkKnight', score: 890 },
+            { user_name: 'Viper99', score: 640 },
+            { user_name: 'Ghost', score: 510 },
+            { user_name: 'Raven', score: 430 },
+            { user_name: 'Onyx', score: 380 },
+            { user_name: 'Eclipse', score: 310 },
+            { user_name: 'Void', score: 260 },
+            { user_name: 'Phantom', score: 190 },
+            { user_name: 'Obsidian', score: 140 }
+          ],
+          white: [
+            { user_name: 'Solaris', score: 1410 },
+            { user_name: 'HyperNova', score: 980 },
+            { user_name: 'FrostBite', score: 720 },
+            { user_name: 'Blaze', score: 610 },
+            { user_name: 'Aura', score: 530 },
+            { user_name: 'Starlight', score: 410 },
+            { user_name: 'Zenith', score: 340 },
+            { user_name: 'Apollo', score: 290 },
+            { user_name: 'Crystal', score: 220 },
+            { user_name: 'Polaris', score: 180 }
+          ]
+        },
+        velocity: 4.8
+      });
+
+      // Apply initial displacement for visual demonstration
+      physics.x = -65;
+      physics.vx = -4;
+      addTickerMessage('ShadowKing', 'BLACK');
+      addTickerMessage('Solaris', 'WHITE');
+      addTickerMessage('Viper99', 'BLACK');
+    }, 250);
   }
 
+  updateTopicHUD();
   setInterval(pollServerChat, 1000);
   requestAnimationFrame(loop);
 })();
