@@ -1,4 +1,4 @@
--- YouTube Live Chat Runner - Database Schema
+-- YouTube Live Chat Tug-of-War: Black vs White - Database Schema
 -- Compatible with MySQL 5.7+, MySQL 8.0+, and MariaDB
 
 CREATE TABLE IF NOT EXISTS `settings` (
@@ -38,3 +38,13 @@ CREATE TABLE IF NOT EXISTS `chat_logs` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX `idx_created` (`created_at` DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `round_stats` (
+  `id` INT PRIMARY KEY DEFAULT 1,
+  `wins_black` INT DEFAULT 0,
+  `wins_white` INT DEFAULT 0,
+  `current_topic_idx` INT DEFAULT 0,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO `round_stats` (`id`, `wins_black`, `wins_white`, `current_topic_idx`) VALUES (1, 0, 0, 0);

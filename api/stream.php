@@ -99,9 +99,12 @@ if ($action === 'start') {
     $fps = $settings['stream_fps'] ?? '30';
     $bitrate = $settings['stream_bitrate'] ?? '4500k';
 
-    // Build Game URL
+    // Build Game URL dynamically based on current protocol, host, and install directory
+    $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $gameUrl = "http://{$host}/game/index.html?stream=1";
+    $scriptDir = dirname(dirname($_SERVER['SCRIPT_NAME']));
+    $baseUri = ($scriptDir === '/' || $scriptDir === '\\') ? '' : rtrim(str_replace('\\', '/', $scriptDir), '/');
+    $gameUrl = "{$proto}://{$host}{$baseUri}/game/index.html?stream=1";
 
     $daemonScript = realpath(__DIR__ . '/../streamer/stream_daemon.js');
     if (!$daemonScript || !file_exists($daemonScript)) {
