@@ -1,6 +1,7 @@
 <?php
 /**
- * YouTube Live Chat Runner - First-Time Setup Wizard
+ * The Great Tug-of-War: Black vs White - First-Time Setup Wizard
+ * Supports MySQL / MariaDB and pure SQLite (Termux & TermuxPanel)
  */
 
 session_start();
@@ -24,6 +25,26 @@ if (file_exists($configFile)) {
 // AJAX endpoint for testing database connection
 if (isset($_GET['action']) && $_GET['action'] === 'test_db') {
     header('Content-Type: application/json');
+    $driver = $_POST['db_driver'] ?? 'mysql';
+
+    if ($driver === 'sqlite') {
+        try {
+            $dataDir = __DIR__ . '/data';
+            if (!is_dir($dataDir)) {
+                @mkdir($dataDir, 0777, true);
+            }
+            $testPdo = new PDO("sqlite:" . $dataDir . '/database.sqlite', null, null, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            ]);
+            runSchemaMigration($testPdo, __DIR__ . '/db/schema_sqlite.sql');
+            echo json_encode(['success' => true, 'message' => 'SQLite database initialized successfully! (Zero-config ready)']);
+            exit;
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'SQLite error: ' . $e->getMessage()]);
+            exit;
+        }
+    }
+
     $host = $_POST['db_host'] ?? 'localhost';
     $port = $_POST['db_port'] ?? '3306';
     $name = $_POST['db_name'] ?? 'youtube_runner';
@@ -31,20 +52,16 @@ if (isset($_GET['action']) && $_GET['action'] === 'test_db') {
     $pass = $_POST['db_pass'] ?? '';
 
     try {
-        // Connect to MySQL server without database first
         $pdo = new PDO("mysql:host={$host};port={$port};charset=utf8mb4", $user, $pass, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ]);
-        // Create database if not exists
         $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-        // Reconnect with database selected
         $pdo->exec("USE `{$name}`");
-        // Run migrations
         runSchemaMigration($pdo, __DIR__ . '/db/schema.sql');
 
-        echo json_encode(['success' => true, 'message' => "Database `{$name}` connected and initialized successfully!"]);
+        echo json_encode(['success' => true, 'message' => 'MySQL connection verified and tables migrated!']);
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Connection failed: ' . $e->getMessage()]);
     }
     exit;
 }
@@ -57,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
     if ($isInstalled) {
         $error = "System is already installed. To reconfigure, remove config.php.";
     } else {
+        $dbDriver = $_POST['db_driver'] ?? 'mysql';
         $dbHost = trim($_POST['db_host'] ?? 'localhost');
         $dbPort = trim($_POST['db_port'] ?? '3306');
         $dbName = trim($_POST['db_name'] ?? 'youtube_runner');
@@ -78,26 +96,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
             $error = "Admin passwords do not match.";
         } else {
             try {
-                // 1. Connect and initialize DB
-                $pdo = new PDO("mysql:host={$dbHost};port={$dbPort};charset=utf8mb4", $dbUser, $dbPass, [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-                ]);
-                $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-                $pdo->exec("USE `{$dbName}`");
-                runSchemaMigration($pdo, __DIR__ . '/db/schema.sql');
+                if ($dbDriver === 'sqlite') {
+                    $dataDir = __DIR__ . '/data';
+                    if (!is_dir($dataDir)) {
+                        @mkdir($dataDir, 0777, true);
+                    }
+                    $dbFile = $dataDir . '/database.sqlite';
+                    $pdo = new PDO("sqlite:{$dbFile}", null, null, [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                    ]);
+                    runSchemaMigration($pdo, __DIR__ . '/db/schema_sqlite.sql');
 
-                // 2. Write config.php
-                $configCode = "<?php\nreturn [\n"
-                    . "    'db_host' => " . var_export($dbHost, true) . ",\n"
-                    . "    'db_port' => " . var_export($dbPort, true) . ",\n"
-                    . "    'db_name' => " . var_export($dbName, true) . ",\n"
-                    . "    'db_user' => " . var_export($dbUser, true) . ",\n"
-                    . "    'db_pass' => " . var_export($dbPass, true) . ",\n"
-                    . "    'app_url' => 'http://' . (\$_SERVER['HTTP_HOST'] ?? 'localhost'),\n"
-                    . "];\n";
-                file_put_contents($configFile, $configCode);
+                    $configCode = "<?php\nreturn [\n"
+                        . "    'db_driver' => 'sqlite',\n"
+                        . "    'db_path'   => __DIR__ . '/data/database.sqlite',\n"
+                        . "    'app_url'   => 'http://' . (\$_SERVER['HTTP_HOST'] ?? 'localhost'),\n"
+                        . "];\n";
+                    file_put_contents($configFile, $configCode);
+                } else {
+                    $pdo = new PDO("mysql:host={$dbHost};port={$dbPort};charset=utf8mb4", $dbUser, $dbPass, [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                    ]);
+                    $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                    $pdo->exec("USE `{$dbName}`");
+                    runSchemaMigration($pdo, __DIR__ . '/db/schema.sql');
 
-                // 3. Store settings in database
+                    $configCode = "<?php\nreturn [\n"
+                        . "    'db_driver' => 'mysql',\n"
+                        . "    'db_host'   => " . var_export($dbHost, true) . ",\n"
+                        . "    'db_port'   => " . var_export($dbPort, true) . ",\n"
+                        . "    'db_name'   => " . var_export($dbName, true) . ",\n"
+                        . "    'db_user'   => " . var_export($dbUser, true) . ",\n"
+                        . "    'db_pass'   => " . var_export($dbPass, true) . ",\n"
+                        . "    'app_url'   => 'http://' . (\$_SERVER['HTTP_HOST'] ?? 'localhost'),\n"
+                        . "];\n";
+                    file_put_contents($configFile, $configCode);
+                }
+
+                // Store settings in database
                 setSetting($pdo, 'admin_user', $adminUser);
                 setSetting($pdo, 'admin_password_hash', password_hash($adminPass, PASSWORD_BCRYPT));
                 setSetting($pdo, 'yt_api_key', $ytApiKey);
@@ -124,14 +160,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YouTube Live Runner - Setup Wizard</title>
+  <title>The Great Tug-of-War: Setup Wizard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700;800;900&family=Inter:wght@400;600;700;800;900&family=Russo+One&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #F8FAFC;
-      --card-bg: rgba(255, 255, 255, 0.95);
+      --card-bg: rgba(255, 255, 255, 0.96);
       --border: rgba(15, 23, 42, 0.1);
       --text: #0F172A;
       --text-muted: #64748B;
@@ -168,10 +204,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
       margin-bottom: 28px;
     }
     .wizard-title {
+      font-family: 'Russo One', sans-serif;
       font-size: 26px;
-      font-weight: 900;
       color: var(--text);
-      letter-spacing: -0.5px;
+      letter-spacing: 0.5px;
     }
     .wizard-desc {
       font-size: 14px;
@@ -186,6 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
       margin-bottom: 20px;
     }
     .step-title {
+      font-family: 'Chakra Petch', sans-serif;
       font-size: 15px;
       font-weight: 800;
       color: var(--blue);
@@ -269,27 +306,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
     }
     .alert-error {
       background: #FFE4E6;
-      border: 1px solid #FECDD3;
       color: var(--red);
+      border: 1px solid #FECDD3;
     }
-    .alert-success {
-      background: #D1FAE5;
-      border: 1px solid #A7F3D0;
-      color: var(--green);
+    .driver-selector {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
     }
-    .locked-card {
+    .driver-tab {
+      flex: 1;
+      padding: 10px;
       text-align: center;
-      padding: 40px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: #FFFFFF;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      transition: all 0.15s ease;
     }
-    .locked-icon { font-size: 48px; margin-bottom: 12px; }
+    .driver-tab.active {
+      border-color: var(--blue);
+      background: #F0F9FF;
+      color: var(--blue);
+    }
   </style>
 </head>
 <body>
-
   <div class="wizard-card">
     <?php if ($isInstalled): ?>
-      <div class="locked-card">
-        <div class="locked-icon">🔒</div>
+      <div style="text-align: center; padding: 20px;">
+        <div style="font-size: 40px; margin-bottom: 12px;">🔒</div>
         <h2 class="wizard-title">System Already Installed</h2>
         <p class="wizard-desc" style="margin-bottom: 24px;">The setup wizard is locked for security. To reconfigure, remove <code>config.php</code> or access the admin dashboard.</p>
         <a href="admin/login.php" class="btn btn-primary" style="display: inline-block; width: auto;">Go to Admin Dashboard</a>
@@ -297,7 +345,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
     <?php else: ?>
       <div class="wizard-header">
         <h1 class="wizard-title">🚀 First-Time Setup Wizard</h1>
-        <p class="wizard-desc">Configure your server to live stream directly to YouTube without OBS.</p>
+        <p class="wizard-desc">Deploy The Great Tug-of-War live stream on Linux VPS, Termux (Android), or Local Server.</p>
       </div>
 
       <?php if ($error): ?>
@@ -308,33 +356,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
         <!-- Step 1: Database Setup -->
         <div class="step-section">
           <div class="step-title">
-            <span>1️⃣ Database Configuration</span>
+            <span>1️⃣ Database Engine Selection</span>
           </div>
-          <div class="form-grid">
+          
+          <input type="hidden" name="db_driver" id="db_driver" value="sqlite">
+          
+          <div class="driver-selector">
+            <div id="tab-sqlite" class="driver-tab active" onclick="selectDriver('sqlite')">
+              📱 SQLite (Zero-Config / Termux / Android)
+            </div>
+            <div id="tab-mysql" class="driver-tab" onclick="selectDriver('mysql')">
+              🐬 MySQL / MariaDB (VPS / XAMPP)
+            </div>
+          </div>
+
+          <!-- SQLite Notice -->
+          <div id="sqlite-notice" style="padding: 12px 14px; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; color: #065F46; font-size: 13px; font-weight: 600; margin-bottom: 10px;">
+            ✓ SQLite database will be stored in <code>data/database.sqlite</code> with zero server dependencies. Perfect for TermuxPanel!
+          </div>
+
+          <!-- MySQL Fields (Hidden by default when SQLite is selected) -->
+          <div id="mysql-fields" class="form-grid" style="display: none;">
             <div class="form-group">
               <label>Host</label>
-              <input type="text" name="db_host" id="db_host" value="localhost" required>
+              <input type="text" name="db_host" id="db_host" value="localhost">
             </div>
             <div class="form-group">
               <label>Port</label>
-              <input type="text" name="db_port" id="db_port" value="3306" required>
+              <input type="text" name="db_port" id="db_port" value="3306">
             </div>
             <div class="form-group">
               <label>Database Name</label>
-              <input type="text" name="db_name" id="db_name" value="youtube_runner" required>
+              <input type="text" name="db_name" id="db_name" value="youtube_runner">
             </div>
             <div class="form-group">
               <label>Username</label>
-              <input type="text" name="db_user" id="db_user" value="root" required>
+              <input type="text" name="db_user" id="db_user" value="root">
             </div>
             <div class="form-group full">
               <label>Password</label>
               <input type="password" name="db_pass" id="db_pass" placeholder="(Leave blank if none)">
             </div>
-            <div class="form-group full" style="display: flex; gap: 10px; align-items: center;">
-              <button type="button" class="btn btn-secondary" onclick="testDbConnection()">⚡ Test Connection & Migrate Tables</button>
-              <span id="db_test_status" style="font-size: 12px; font-weight: 700;"></span>
-            </div>
+          </div>
+
+          <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+            <button type="button" class="btn btn-secondary" onclick="testDbConnection()">⚡ Test Connection & Migrate Tables</button>
+            <span id="db_test_status" style="font-size: 12px; font-weight: 700;"></span>
           </div>
         </div>
 
@@ -397,17 +464,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
   </div>
 
   <script>
+    function selectDriver(driver) {
+      document.getElementById('db_driver').value = driver;
+      const tabSqlite = document.getElementById('tab-sqlite');
+      const tabMysql = document.getElementById('tab-mysql');
+      const sqliteNotice = document.getElementById('sqlite-notice');
+      const mysqlFields = document.getElementById('mysql-fields');
+
+      if (driver === 'sqlite') {
+        tabSqlite.classList.add('active');
+        tabMysql.classList.remove('active');
+        sqliteNotice.style.display = 'block';
+        mysqlFields.style.display = 'none';
+      } else {
+        tabMysql.classList.add('active');
+        tabSqlite.classList.remove('active');
+        sqliteNotice.style.display = 'none';
+        mysqlFields.style.display = 'grid';
+      }
+    }
+
     async function testDbConnection() {
       const statusEl = document.getElementById('db_test_status');
       statusEl.textContent = 'Testing connection...';
       statusEl.style.color = '#0284C7';
 
+      const driver = document.getElementById('db_driver').value;
       const formData = new FormData();
-      formData.append('db_host', document.getElementById('db_host').value);
-      formData.append('db_port', document.getElementById('db_port').value);
-      formData.append('db_name', document.getElementById('db_name').value);
-      formData.append('db_user', document.getElementById('db_user').value);
-      formData.append('db_pass', document.getElementById('db_pass').value);
+      formData.append('db_driver', driver);
+
+      if (driver === 'mysql') {
+        formData.append('db_host', document.getElementById('db_host').value);
+        formData.append('db_port', document.getElementById('db_port').value);
+        formData.append('db_name', document.getElementById('db_name').value);
+        formData.append('db_user', document.getElementById('db_user').value);
+        formData.append('db_pass', document.getElementById('db_pass').value);
+      }
 
       try {
         const res = await fetch('setup.php?action=test_db', {
@@ -423,7 +515,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
           statusEl.style.color = '#E11D48';
         }
       } catch (err) {
-        statusEl.textContent = '✗ Network/Server error testing database.';
+        statusEl.textContent = '✗ Error testing database.';
         statusEl.style.color = '#E11D48';
       }
     }

@@ -1,6 +1,7 @@
 <?php
 /**
- * Database Helper Functions for YouTube Live Runner
+ * Database Helper Functions for YouTube Live Runner & Tug-of-War
+ * Supports MySQL / MariaDB and pure SQLite (Termux / TermuxPanel)
  */
 
 function getDbConnection(?array $config = null): PDO {
@@ -13,6 +14,25 @@ function getDbConnection(?array $config = null): PDO {
         }
     }
 
+    $dbDriver = strtolower($config['db_driver'] ?? ($config['db_type'] ?? 'mysql'));
+
+    // SQLite Mode (Ideal for Android Termux & TermuxPanel with 0 configuration)
+    if ($dbDriver === 'sqlite' || (!empty($config['db_path']) && empty($config['db_host']))) {
+        $dbPath = $config['db_path'] ?? (__DIR__ . '/../data/database.sqlite');
+        $dir = dirname($dbPath);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        $pdo = new PDO("sqlite:{$dbPath}", null, null, [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]);
+        $pdo->exec("PRAGMA journal_mode = WAL;");
+        return $pdo;
+    }
+
+    // MySQL / MariaDB Mode
     $dbHost = $config['db_host'] ?? 'localhost';
     $dbPort = $config['db_port'] ?? '3306';
     $dbName = $config['db_name'] ?? '';
@@ -39,7 +59,6 @@ function runSchemaMigration(PDO $pdo, string $sqlPath): bool {
     }
 
     $sql = file_get_contents($sqlPath);
-    // Split on semicolons outside of quotes
     $queries = array_filter(array_map('trim', explode(';', $sql)));
 
     foreach ($queries as $query) {
@@ -63,11 +82,18 @@ function getSetting(PDO $pdo, string $key, $default = null): ?string {
 }
 
 function setSetting(PDO $pdo, string $key, string $value): bool {
-    $stmt = $pdo->prepare(
-        "INSERT INTO settings (setting_key, setting_value) 
-         VALUES (:k, :v) 
-         ON DUPLICATE KEY UPDATE setting_value = :v2, updated_at = CURRENT_TIMESTAMP"
-    );
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    if ($driver === 'sqlite') {
+        $stmt = $pdo->prepare(
+            "INSERT INTO settings (setting_key, setting_value) VALUES (:k, :v)
+             ON CONFLICT(setting_key) DO UPDATE SET setting_value = :v2, updated_at = CURRENT_TIMESTAMP"
+        );
+    } else {
+        $stmt = $pdo->prepare(
+            "INSERT INTO settings (setting_key, setting_value) VALUES (:k, :v)
+             ON DUPLICATE KEY UPDATE setting_value = :v2, updated_at = CURRENT_TIMESTAMP"
+        );
+    }
     return $stmt->execute([':k' => $key, ':v' => $value, ':v2' => $value]);
 }
 

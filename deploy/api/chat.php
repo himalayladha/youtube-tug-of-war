@@ -1,32 +1,54 @@
 <?php
+/**
+ * The Great Tug-of-War: Black vs White - Live Chat Poller & Force Engine
+ * Compatible with MySQL / MariaDB and SQLite (Termux & TermuxPanel)
+ */
+
+session_start();
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/youtube.php';
 
 try {
     $pdo = getDbConnection();
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Database connection failed']);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     exit;
 }
 
-// 2-Team Command Parser (Black vs. White)
-function parseTeamVote(string $raw): ?string {
-    $clean = strtolower(trim($raw));
-    if (empty($clean)) return null;
-    if (str_starts_with($clean, '!')) {
-        $clean = trim(substr($clean, 1));
+$isSqlite = ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite');
+
+// Helper to record a vote into the leaderboard
+function recordVote(PDO $pdo, bool $isSqlite, string $userId, string $userName, string $team, string $rawText) {
+    $stmt = $pdo->prepare("INSERT INTO chat_logs (user_name, raw_text, team) VALUES (:u, :t, :a)");
+    $stmt->execute([':u' => $userName, ':t' => $rawText, ':a' => $team]);
+
+    if ($isSqlite) {
+        $stmt = $pdo->prepare(
+            "INSERT INTO leaderboard (user_id, user_name, team, total_votes, score, last_active) 
+             VALUES (:uid, :name, :team, 1, 10, datetime('now')) 
+             ON CONFLICT(user_id) DO UPDATE SET team = :team2, total_votes = total_votes + 1, score = score + 10, last_active = datetime('now')"
+        );
+    } else {
+        $stmt = $pdo->prepare(
+            "INSERT INTO leaderboard (user_id, user_name, team, total_votes, score, last_active) 
+             VALUES (:uid, :name, :team, 1, 10, NOW()) 
+             ON DUPLICATE KEY UPDATE team = :team2, total_votes = total_votes + 1, score = score + 10, last_active = NOW()"
+        );
     }
+    $stmt->execute([':uid' => $userId, ':name' => $userName, ':team' => $team, ':team2' => $team]);
+}
 
-    $blackAliases = ['black', '1', 'b', 'left', 'with', 'dark', 'blackteam', '#black', 'team1'];
-    $whiteAliases = ['white', '2', 'w', 'right', 'against', 'light', 'whiteteam', '#white', 'team2'];
+// Parse Chat Command for Team Black vs Team White
+function parseTeamVote(string $text): ?string {
+    $clean = strtolower(trim($text));
+    
+    // Numeric shortcuts
+    if ($clean === '1' || $clean === 'lane1' || $clean === 'left') return 'BLACK';
+    if ($clean === '2' || $clean === 'lane2' || $clean === 'right') return 'WHITE';
 
-    if (in_array($clean, $blackAliases, true)) return 'BLACK';
-    if (in_array($clean, $whiteAliases, true)) return 'WHITE';
-
-    // Partial prefix matching for fast chat typers
+    // Word triggers
     if (str_starts_with($clean, 'black') || str_starts_with($clean, 'with')) return 'BLACK';
     if (str_starts_with($clean, 'white') || str_starts_with($clean, 'against')) return 'WHITE';
 
@@ -56,16 +78,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $team = parseTeamVote($rawText);
 
     if ($team) {
-        $stmt = $pdo->prepare("INSERT INTO chat_logs (user_name, raw_text, team) VALUES (:u, :t, :a)");
-        $stmt->execute([':u' => $user, ':t' => $rawText, ':a' => $team]);
-
         $userId = 'sim-' . md5($user);
-        $stmt = $pdo->prepare(
-            "INSERT INTO leaderboard (user_id, user_name, team, total_votes, score, last_active) 
-             VALUES (:uid, :name, :team, 1, 10, NOW()) 
-             ON DUPLICATE KEY UPDATE team = :team2, total_votes = total_votes + 1, score = score + 10, last_active = NOW()"
-        );
-        $stmt->execute([':uid' => $userId, ':name' => $user, ':team' => $team, ':team2' => $team]);
+        recordVote($pdo, $isSqlite, $userId, $user, $team, $rawText);
 
         echo json_encode(['success' => true, 'team' => $team, 'user' => $user]);
         exit;
@@ -75,50 +89,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// 2. Poll Endpoint (polled by the game canvas every 1000ms)
+// 2. Poll Active YouTube Live Stream
 $settings = getAllSettings($pdo);
 $apiKey = $settings['yt_api_key'] ?? '';
 $videoId = $settings['yt_video_id'] ?? '';
+$liveChatId = $settings['yt_live_chat_id'] ?? '';
+$pageToken = $settings['yt_page_token'] ?? '';
 
 $incomingPulls = [];
 
-// If YouTube API is configured, poll live chat
 if (!empty($apiKey) && !empty($videoId)) {
-    $chatId = $settings['yt_active_chat_id'] ?? '';
-    if (empty($chatId)) {
-        $resolved = resolveLiveChatId($apiKey, $videoId);
-        if ($resolved['success']) {
-            $chatId = $resolved['liveChatId'];
-            setSetting($pdo, 'yt_active_chat_id', $chatId);
+    // Resolve LiveChatId if missing
+    if (empty($liveChatId)) {
+        $videoApiUrl = "https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=" . urlencode($videoId) . "&key=" . urlencode($apiKey);
+        $videoRes = @file_get_contents($videoApiUrl);
+        if ($videoRes) {
+            $videoData = json_decode($videoRes, true);
+            $chatId = $videoData['items'][0]['liveStreamingDetails']['activeLiveChatId'] ?? null;
+            if ($chatId) {
+                $liveChatId = $chatId;
+                setSetting($pdo, 'yt_live_chat_id', $liveChatId);
+            }
         }
     }
 
-    if (!empty($chatId)) {
-        $pageToken = $settings['yt_page_token'] ?? null;
-        $chatData = fetchLiveChatMessages($apiKey, $chatId, $pageToken);
-        if ($chatData['success']) {
-            if (!empty($chatData['nextPageToken'])) {
-                setSetting($pdo, 'yt_page_token', $chatData['nextPageToken']);
+    // Ingest new chat messages
+    if (!empty($liveChatId)) {
+        $chatApiUrl = "https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=" . urlencode($liveChatId) . "&part=snippet,authorDetails&key=" . urlencode($apiKey);
+        if (!empty($pageToken)) {
+            $chatApiUrl .= "&pageToken=" . urlencode($pageToken);
+        }
+
+        $chatRes = @file_get_contents($chatApiUrl);
+        if ($chatRes) {
+            $chatJson = json_decode($chatRes, true);
+            if (!empty($chatJson['nextPageToken'])) {
+                setSetting($pdo, 'yt_page_token', $chatJson['nextPageToken']);
             }
 
-            foreach ($chatData['items'] as $item) {
-                $team = parseTeamVote($item['text']);
-                if ($team) {
-                    $incomingPulls[] = [
-                        'team' => $team,
-                        'user' => $item['user'],
-                        'text' => $item['text']
-                    ];
+            if (!empty($chatJson['items'])) {
+                foreach ($chatJson['items'] as $item) {
+                    $rawMsg = $item['snippet']['displayMessage'] ?? '';
+                    $author = $item['authorDetails']['displayName'] ?? 'Viewer';
+                    $authorId = $item['authorDetails']['channelId'] ?? md5($author);
 
-                    $stmt = $pdo->prepare("INSERT INTO chat_logs (user_name, raw_text, team) VALUES (:u, :t, :a)");
-                    $stmt->execute([':u' => $item['user'], ':t' => $item['text'], ':a' => $team]);
-
-                    $stmt = $pdo->prepare(
-                        "INSERT INTO leaderboard (user_id, user_name, team, total_votes, score, last_active) 
-                         VALUES (:uid, :name, :team, 1, 10, NOW()) 
-                         ON DUPLICATE KEY UPDATE team = :team2, total_votes = total_votes + 1, score = score + 10, last_active = NOW()"
-                    );
-                    $stmt->execute([':uid' => $item['userId'], ':name' => $item['user'], ':team' => $team, ':team2' => $team]);
+                    $team = parseTeamVote($rawMsg);
+                    if ($team) {
+                        $incomingPulls[] = [
+                            'team' => $team,
+                            'user' => $author,
+                            'text' => $rawMsg
+                        ];
+                        recordVote($pdo, $isSqlite, $authorId, $author, $team, $rawMsg);
+                    }
                 }
             }
         }
@@ -126,7 +149,8 @@ if (!empty($apiKey) && !empty($videoId)) {
 }
 
 // Fetch recent 10 seconds of logs for pulling force ratio
-$stmt = $pdo->query("SELECT team FROM chat_logs WHERE created_at >= NOW() - INTERVAL 10 SECOND");
+$timeQuery = $isSqlite ? "datetime('now', '-10 seconds')" : "NOW() - INTERVAL 10 SECOND";
+$stmt = $pdo->query("SELECT team FROM chat_logs WHERE created_at >= {$timeQuery}");
 $recentTeams = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
 $blackVotes = 0;
@@ -140,7 +164,8 @@ $blackPct = $totalPulls > 0 ? (int)round(($blackVotes / $totalPulls) * 100) : 50
 $whitePct = 100 - $blackPct;
 
 // Velocity (messages in the last 2 seconds)
-$stmt = $pdo->query("SELECT COUNT(*) FROM chat_logs WHERE created_at >= NOW() - INTERVAL 2 SECOND");
+$velTimeQuery = $isSqlite ? "datetime('now', '-2 seconds')" : "NOW() - INTERVAL 2 SECOND";
+$stmt = $pdo->query("SELECT COUNT(*) FROM chat_logs WHERE created_at >= {$velTimeQuery}");
 $velocity = (float)round(($stmt->fetchColumn() / 2), 1);
 
 // Fetch Dual Top 10 Leaderboards
@@ -155,34 +180,31 @@ $captainBlack = !empty($blackTop10) ? $blackTop10[0] : null;
 $captainWhite = !empty($whiteTop10) ? $whiteTop10[0] : null;
 
 // Round wins
-$winsBlack = (int)($settings['wins_black'] ?? 0);
-$winsWhite = (int)($settings['wins_white'] ?? 0);
-$activeTopicIdx = (int)($settings['active_topic_idx'] ?? 0);
+$winsBlack = (int)(getSetting($pdo, 'wins_black', '0'));
+$winsWhite = (int)(getSetting($pdo, 'wins_white', '0'));
+$activeTopicIdx = (int)(getSetting($pdo, 'active_topic_idx', '0'));
 
 echo json_encode([
     'success' => true,
     'incoming_pulls' => $incomingPulls,
-    'tallies' => [
+    'force' => [
+        'black_pct' => $blackPct,
+        'white_pct' => $whitePct,
         'black_votes' => $blackVotes,
         'white_votes' => $whiteVotes,
-        'total' => $totalPulls,
-    ],
-    'percentages' => [
-        'BLACK' => $blackPct,
-        'WHITE' => $whitePct,
     ],
     'velocity' => $velocity,
     'captains' => [
         'black' => $captainBlack,
-        'white' => $captainWhite,
+        'white' => $captainWhite
     ],
     'leaderboards' => [
         'black' => $blackTop10,
-        'white' => $whiteTop10,
+        'white' => $whiteTop10
     ],
     'round' => [
         'wins_black' => $winsBlack,
         'wins_white' => $winsWhite,
-        'topic_idx' => $activeTopicIdx,
-    ],
+        'topic_idx' => $activeTopicIdx
+    ]
 ]);
