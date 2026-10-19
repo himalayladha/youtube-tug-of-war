@@ -972,11 +972,21 @@
 
   // Update Dynamic Topic HUD
   function updateTopicHUD() {
-    const topic = DEBATE_TOPICS[gameState.currentTopicIdx];
+    let leftText = '';
+    let rightText = '';
+    if (gameState.customTopic && gameState.customTopic.left && gameState.customTopic.right) {
+      leftText = gameState.customTopic.left;
+      rightText = gameState.customTopic.right;
+    } else {
+      const topic = DEBATE_TOPICS[gameState.currentTopicIdx % DEBATE_TOPICS.length];
+      leftText = topic.left;
+      rightText = topic.right;
+    }
+
     const leftEl = document.getElementById('topic-left');
     const rightEl = document.getElementById('topic-right');
-    if (leftEl) leftEl.textContent = topic.left;
-    if (rightEl) rightEl.textContent = topic.right;
+    if (leftEl) leftEl.textContent = leftText;
+    if (rightEl) rightEl.textContent = rightText;
 
     const winsBlackEl = document.getElementById('wins-black-count');
     const winsWhiteEl = document.getElementById('wins-white-count');
@@ -1082,6 +1092,17 @@
     if (data.round) {
       gameState.winsBlack = data.round.wins_black;
       gameState.winsWhite = data.round.wins_white;
+      if (data.round.topic_left && data.round.topic_right) {
+        gameState.customTopic = {
+          left: data.round.topic_left,
+          right: data.round.topic_right
+        };
+      } else {
+        gameState.customTopic = null;
+        if (typeof data.round.topic_idx === 'number') {
+          gameState.currentTopicIdx = data.round.topic_idx;
+        }
+      }
       updateTopicHUD();
     }
   }

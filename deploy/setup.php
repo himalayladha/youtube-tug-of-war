@@ -143,6 +143,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
                 setSetting($pdo, 'stream_fps', '30');
                 setSetting($pdo, 'stream_bitrate', $streamPreset === '720p' ? '2500k' : '4500k');
                 setSetting($pdo, 'game_mode', 'auto');
+                setSetting($pdo, 'public_site_title', 'The Great Tug-of-War: Black vs White (With vs Against)');
+                setSetting($pdo, 'announcement_banner', '🔥 LIVE MATCH ACTIVE! TYPE 1 FOR BLACK OR 2 FOR WHITE IN CHAT TO PULL! 🔥');
+                setSetting($pdo, 'announcement_active', '1');
+                setSetting($pdo, 'show_video_embed', '1');
+                setSetting($pdo, 'active_topic_idx', '0');
+                setSetting($pdo, 'wins_black', '0');
+                setSetting($pdo, 'wins_white', '0');
                 setSetting($pdo, 'db_installed', '1');
 
                 $_SESSION['setup_complete'] = true;

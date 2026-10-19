@@ -183,6 +183,8 @@ $captainWhite = !empty($whiteTop10) ? $whiteTop10[0] : null;
 $winsBlack = (int)(getSetting($pdo, 'wins_black', '0'));
 $winsWhite = (int)(getSetting($pdo, 'wins_white', '0'));
 $activeTopicIdx = (int)(getSetting($pdo, 'active_topic_idx', '0'));
+$topicLeft = getSetting($pdo, 'topic_left', '');
+$topicRight = getSetting($pdo, 'topic_right', '');
 
 echo json_encode([
     'success' => true,
@@ -205,6 +207,8 @@ echo json_encode([
     'round' => [
         'wins_black' => $winsBlack,
         'wins_white' => $winsWhite,
-        'topic_idx' => $activeTopicIdx
+        'topic_idx' => $activeTopicIdx,
+        'topic_left' => $topicLeft,
+        'topic_right' => $topicRight
     ]
 ]);
