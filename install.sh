@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Stickman Live Runner - Autonomous 24/7 YouTube Live Server Installer
+# Target OS: Ubuntu 20.04 / 22.04 / 24.04 LTS or Debian 11 / 12
+# ==============================================================================
+
+set -e
+
+# ANSI Color Codes
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+echo -e "${CYAN}====================================================================${NC}"
+echo -e "${CYAN}       Stickman Live Runner - 24/7 Autonomous Server Setup          ${NC}"
+echo -e "${CYAN}====================================================================${NC}"
+echo ""
+
+# 1. Root Privileges Check
+if [ "$EUID" -ne 0 ]; then
+  echo -e "${RED}[ERROR] This installer must be run as root or with sudo.${NC}"
+  echo "Usage: sudo bash install.sh"
+  exit 1
+fi
+
+# Detect Current Directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+echo -e "${GREEN}[*] Installing from: ${SCRIPT_DIR}${NC}"
+
+# 2. System Packages Update
+echo -e "\n${YELLOW}[1/6] Updating APT repositories...${NC}"
+apt-get update -y
+
+# 3. Install Core Tools & Repositories
+echo -e "\n${YELLOW}[2/6] Installing system utilities and dependencies...${NC}"
+apt-get install -y curl wget git unzip software-properties-common ca-certificates gnupg lsb-release
+
+# 4. Install Apache2 & PHP 8.x
+echo -e "\n${YELLOW}[3/6] Installing Apache2 and PHP with required extensions...${NC}"
+apt-get install -y apache2 libapache2-mod-php php php-cli php-mysql php-curl php-json php-mbstring php-xml
+a2enmod rewrite
+systemctl enable apache2
+systemctl restart apache2
+
+# 5. Install MySQL Server & FFmpeg
+echo -e "\n${YELLOW}[4/6] Installing MySQL Server and FFmpeg...${NC}"
+apt-get install -y mysql-server ffmpeg
+systemctl enable mysql
+systemctl start mysql
+
+# 6. Install Node.js 20.x & Chromium Shared Libraries
+echo -e "\n${YELLOW}[5/6] Installing Node.js LTS and Puppeteer runtime libraries...${NC}"
+if ! command -v node &> /dev/null; then
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get install -y nodejs
+else
+  echo -e "${GREEN}Node.js is already installed ($(node -v)).${NC}"
+fi
+
+# Install Headless Chromium GUI/Rendering dependencies for Puppeteer
+apt-get install -y \
+  libnss3 \
+  libatk1.0-0 \
+  libatk-bridge2.0-0 \
+  libcups2 \
+  libdrm2 \
+  libxkbcommon0 \
+  libxcomposite1 \
+  libxdamage1 \
+  libxfixes3 \
+  libxrandr2 \
+  libgbm1 \
+  libasound2 \
+  libpango-1.0-0 \
+  libcairo2
+
+# 7. Configure Application Permissions and Dependencies
+echo -e "\n${YELLOW}[6/6] Configuring application environment and permissions...${NC}"
+
+# Install streamer node dependencies
+if [ -d "$SCRIPT_DIR/streamer" ]; then
+  cd "$SCRIPT_DIR/streamer"
+  echo "Installing Puppeteer in $SCRIPT_DIR/streamer..."
+  npm install --production
+  cd "$SCRIPT_DIR"
+fi
+
+# Set directory permissions for Apache web server
+chown -R www-data:www-data "$SCRIPT_DIR"
+chmod -R 775 "$SCRIPT_DIR/streamer"
+
+# Allow Apache to write config.php during setup
+touch "$SCRIPT_DIR/config.php" 2>/dev/null || true
+chown www-data:www-data "$SCRIPT_DIR/config.php" 2>/dev/null || true
+chmod 664 "$SCRIPT_DIR/config.php" 2>/dev/null || true
+
+# Determine Server IP
+SERVER_IP=$(curl -s -4 ifconfig.me || hostname -I | awk '{print $1}')
+
+echo ""
+echo -e "${GREEN}====================================================================${NC}"
+echo -e "${GREEN}       Installation Complete! Stickman Live Runner is Ready        ${NC}"
+echo -e "${GREEN}====================================================================${NC}"
+echo ""
+echo -e "Apache Web Server : ${CYAN}Running (Port 80)${NC}"
+echo -e "MySQL Server      : ${CYAN}Running (Port 3306)${NC}"
+echo -e "FFmpeg Version    : ${CYAN}$(ffmpeg -version | head -n 1 | awk '{print $3}')${NC}"
+echo -e "Node.js Version   : ${CYAN}$(node -v)${NC}"
+echo ""
+echo -e "${YELLOW}Next Steps:${NC}"
+echo -e "1. If hosted in an Apache VirtualHost or webroot (e.g. /var/www/html), open your browser:"
+echo -e "   ${CYAN}http://${SERVER_IP}/setup.php${NC}"
+echo ""
+echo -e "2. Follow the 3-Step Setup Wizard to:"
+echo -e "   • Connect & initialize the MySQL database (1-click auto migration)"
+echo -e "   • Enter your YouTube Live Stream Key and YouTube Data API v3 Key"
+echo -e "   • Create your Admin credentials"
+echo ""
+echo -e "3. Log in to the Admin Dashboard and click ${GREEN}[Start Streaming]${NC}!"
+echo -e "${CYAN}====================================================================${NC}"
