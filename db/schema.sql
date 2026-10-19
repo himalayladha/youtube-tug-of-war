@@ -23,18 +23,18 @@ CREATE TABLE IF NOT EXISTS `leaderboard` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `user_id` VARCHAR(128) NOT NULL UNIQUE,
   `user_name` VARCHAR(128) NOT NULL,
+  `team` ENUM('BLACK', 'WHITE') NOT NULL DEFAULT 'BLACK',
   `total_votes` INT DEFAULT 0,
-  `successful_dodges` INT DEFAULT 0,
   `score` INT DEFAULT 0,
   `last_active` DATETIME NOT NULL,
-  INDEX `idx_score` (`score` DESC)
+  INDEX `idx_team_score` (`team`, `score` DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `chat_logs` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
   `user_name` VARCHAR(128) NOT NULL,
   `raw_text` VARCHAR(255) NOT NULL,
-  `action_executed` ENUM('LEFT', 'JUMP', 'RIGHT') NOT NULL,
+  `team` ENUM('BLACK', 'WHITE') NOT NULL DEFAULT 'BLACK',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX `idx_created` (`created_at` DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
