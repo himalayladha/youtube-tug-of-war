@@ -34,8 +34,10 @@
     }
 
     body, html {
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
       overflow: hidden;
       background-color: #020617;
       font-family: var(--font-body);
@@ -44,8 +46,9 @@
 
     #app-container {
       position: relative;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -53,20 +56,22 @@
     }
 
     #game-viewport {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      max-width: 1920px;
-      max-height: 1080px;
-      aspect-ratio: 16 / 9;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 1920px;
+      height: 1080px;
+      transform: translate(-50%, -50%);
+      transform-origin: center center;
       overflow: hidden;
       background: #050B14;
       box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
+      flex-shrink: 0;
     }
 
     #game-canvas {
-      width: 100%;
-      height: 100%;
+      width: 1920px;
+      height: 1080px;
       display: block;
     }
 
@@ -74,14 +79,15 @@
     #hud-overlay {
       position: absolute;
       inset: 0;
-      width: 100%;
-      height: 100%;
+      width: 1920px;
+      height: 1080px;
       pointer-events: none;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       padding: 24px 32px;
       z-index: 100;
+      box-sizing: border-box;
     }
 
     /* Top Dual Captain Header & Central Jumbotron */
@@ -709,6 +715,21 @@
     </div>
   </div>
 
-  <script src="./js/game.js?v=20261019_v4"></script>
+  <script>
+    function fitGameViewport() {
+      const vp = document.getElementById('game-viewport');
+      if (!vp) return;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const scale = Math.min(w / 1920, h / 1080);
+      vp.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+    window.addEventListener('resize', fitGameViewport);
+    window.addEventListener('orientationchange', fitGameViewport);
+    window.addEventListener('DOMContentLoaded', fitGameViewport);
+    window.addEventListener('load', fitGameViewport);
+    fitGameViewport();
+  </script>
+  <script src="./js/game.js?v=20261019_v5"></script>
 </body>
 </html>

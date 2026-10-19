@@ -607,7 +607,7 @@ $serverHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
             <button class="btn btn-sm btn-outline" onclick="reloadPreview()">Reload Canvas</button>
           </div>
           <div class="preview-frame">
-            <iframe id="preview_frame" src="../game/index.html?preview=1"></iframe>
+            <iframe id="preview_frame" src="../game/index.html?v=fit" allow="autoplay; audio"></iframe>
           </div>
         </div>
 
@@ -979,7 +979,7 @@ $serverHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
     // Reload Preview Frame
     function reloadPreview() {
       const frame = document.getElementById('preview_frame');
-      if (frame) frame.src = frame.src;
+      if (frame) frame.src = '../game/index.html?v=' + Date.now();
     }
 
     // Clear Console
