@@ -29,11 +29,11 @@
 - Produces: `getDbConnection(array $config): PDO`
 - Produces: `runSchemaMigration(PDO $pdo, string $sqlPath): bool`
 
-- [ ] **Step 1: Create `db/schema.sql` defining `settings`, `stream_sessions`, `leaderboard`, and `chat_logs` tables**
-- [ ] **Step 2: Create `includes/db.php` with robust PDO connection logic and schema migration helper**
-- [ ] **Step 3: Create automated verification script `test/db_test.php`**
-- [ ] **Step 4: Run `C:\xampp\php\php.exe test/db_test.php` to verify database connection and table creation**
-- [ ] **Step 5: Commit Task 1**
+- [x] **Step 1: Create `db/schema.sql` defining `settings`, `stream_sessions`, `leaderboard`, and `chat_logs` tables**
+- [x] **Step 2: Create `includes/db.php` with robust PDO connection logic and schema migration helper**
+- [x] **Step 3: Create automated verification script `test/db_test.php`**
+- [x] **Step 4: Run `C:\xampp\php\php.exe test/db_test.php` to verify database connection and table creation**
+- [x] **Step 5: Commit Task 1**
 
 ---
 
@@ -48,11 +48,11 @@
 - Produces: `setup.php` (3-step wizard: Database setup -> YouTube API & Stream Key -> Admin security)
 - Produces: `config.php` (written dynamically upon wizard completion)
 
-- [ ] **Step 1: Create `config.sample.php` as template for dynamic config generation**
-- [ ] **Step 2: Implement `setup.php` with clean, modern frosted-light UI, responsive cards, and live AJAX connection test**
-- [ ] **Step 3: Add Step 1 (DB test & table creation), Step 2 (YouTube API Key, RTMP Stream Key, Video ID), and Step 3 (Admin account & bcrypt password hash)**
-- [ ] **Step 4: Enforce lock file / `db_installed` check so `setup.php` cannot be run twice**
-- [ ] **Step 5: Verify setup wizard execution and commit Task 2**
+- [x] **Step 1: Create `config.sample.php` as template for dynamic config generation**
+- [x] **Step 2: Implement `setup.php` with clean, modern frosted-light UI, responsive cards, and live AJAX connection test**
+- [x] **Step 3: Add Step 1 (DB test & table creation), Step 2 (YouTube API Key, RTMP Stream Key, Video ID), and Step 3 (Admin account & bcrypt password hash)**
+- [x] **Step 4: Enforce lock file / `db_installed` check so `setup.php` cannot be run twice**
+- [x] **Step 5: Verify setup wizard execution and commit Task 2**
 
 ---
 
@@ -68,10 +68,10 @@
 - Produces: `requireAdminAuth(): void`
 - Produces: `logoutAdmin(): void`
 
-- [ ] **Step 1: Implement `includes/auth.php` with session initiation, bcrypt verification, and redirection gates**
-- [ ] **Step 2: Implement `admin/login.php` with frosted light theme card and error feedback**
-- [ ] **Step 3: Implement `admin/logout.php` cleanly destroying sessions and redirecting to login**
-- [ ] **Step 4: Verify authentication flow and commit Task 3**
+- [x] **Step 1: Implement `includes/auth.php` with session initiation, bcrypt verification, and redirection gates**
+- [x] **Step 2: Implement `admin/login.php` with frosted light theme card and error feedback**
+- [x] **Step 3: Implement `admin/logout.php` cleanly destroying sessions and redirecting to login**
+- [x] **Step 4: Verify authentication flow and commit Task 3**
 
 ---
 
@@ -85,10 +85,10 @@
 - Produces: `admin/index.php` (Stream Status Badge, [▶ Start Streaming] and [⏹ Stop Streaming] buttons, stats, log viewer)
 - Produces: `api/settings.php` (REST endpoint for updating Stream Key, Video ID, and stream presets)
 
-- [ ] **Step 1: Implement `api/settings.php` handling GET/POST for stream configurations**
-- [ ] **Step 2: Implement `admin/index.php` dashboard with live status pill, action buttons, telemetry cards, and embedded game preview**
-- [ ] **Step 3: Add real-time log viewer streaming the latest output from `streamer/stream.log`**
-- [ ] **Step 4: Verify dashboard UI rendering and commit Task 4**
+- [x] **Step 1: Implement `api/settings.php` handling GET/POST for stream configurations**
+- [x] **Step 2: Implement `admin/index.php` dashboard with live status pill, action buttons, telemetry cards, and embedded game preview**
+- [x] **Step 3: Add real-time log viewer streaming the latest output from `streamer/stream.log`**
+- [x] **Step 4: Verify dashboard UI rendering and commit Task 4**
 
 ---
 
@@ -105,10 +105,10 @@
 - Produces: `api/stream.php?action=status` (returns PID, uptime, active status)
 - Produces: `stream_daemon.js` (Headless Chromium -> FFmpeg -> YouTube RTMP)
 
-- [ ] **Step 1: Create `streamer/package.json` with Puppeteer dependency**
-- [ ] **Step 2: Implement `streamer/stream_daemon.js` using Chromium screencast and piping raw frames directly to FFmpeg**
-- [ ] **Step 3: Implement `api/stream.php` managing process lifecycle (start, stop, status, logs)**
-- [ ] **Step 4: Test process spawning and status reporting, then commit Task 5**
+- [x] **Step 1: Create `streamer/package.json` with Puppeteer dependency**
+- [x] **Step 2: Implement `streamer/stream_daemon.js` using Chromium screencast and piping raw frames directly to FFmpeg**
+- [x] **Step 3: Implement `api/stream.php` managing process lifecycle (start, stop, status, logs)**
+- [x] **Step 4: Test process spawning and status reporting, then commit Task 5**
 
 ---
 
@@ -122,10 +122,10 @@
 - Produces: `pollLiveChatMessages(string $apiKey, string $videoId): array`
 - Produces: `api/chat.php` (returns recent commands and current voting tallies)
 
-- [ ] **Step 1: Implement `includes/youtube.php` querying YouTube Data API v3 `liveChatMessages.list` and caching `nextPageToken`**
-- [ ] **Step 2: Implement `api/chat.php` delivering JSON feed of chat commands to the game canvas**
-- [ ] **Step 3: Add viewer scoring updates into MySQL `leaderboard` and `chat_logs`**
-- [ ] **Step 4: Verify chat poller logic and commit Task 6**
+- [x] **Step 1: Implement `includes/youtube.php` querying YouTube Data API v3 `liveChatMessages.list` and caching `nextPageToken`**
+- [x] **Step 2: Implement `api/chat.php` delivering JSON feed of chat commands to the game canvas**
+- [x] **Step 3: Add viewer scoring updates into MySQL `leaderboard` and `chat_logs`**
+- [x] **Step 4: Verify chat poller logic and commit Task 6**
 
 ---
 
@@ -140,9 +140,9 @@
 - Produces: `game/index.html` (light theme Subway Surfers stickman game rendered by the headless stream daemon)
 - Produces: `index.php` (public landing page with live status and stream embed)
 
-- [ ] **Step 1: Package the lightweight 3-lane stickman game inside `game/` with auto-polling of `../api/chat.php`**
-- [ ] **Step 2: Create `index.php` as the public landing page showing live stream preview, player stats, and instructions**
-- [ ] **Step 3: Test game loading in standalone browser and commit Task 7**
+- [x] **Step 1: Package the lightweight 3-lane stickman game inside `game/` with auto-polling of `../api/chat.php`**
+- [x] **Step 2: Create `index.php` as the public landing page showing live stream preview, player stats, and instructions**
+- [x] **Step 3: Test game loading in standalone browser and commit Task 7**
 
 ---
 
@@ -156,7 +156,7 @@
 - Produces: Automated single-command installation for Ubuntu/Debian VPS
 - Produces: Comprehensive setup and usage documentation
 
-- [ ] **Step 1: Create `install.sh` installing Apache, PHP 8.x, MySQL, Node.js, and FFmpeg**
-- [ ] **Step 2: Update `README.md` with complete step-by-step VPS hosting instructions**
-- [ ] **Step 3: Perform full end-to-end verification of setup wizard, database migration, and dashboard**
-- [ ] **Step 4: Commit all final files**
+- [x] **Step 1: Create `install.sh` installing Apache, PHP 8.x, MySQL, Node.js, and FFmpeg**
+- [x] **Step 2: Update `README.md` with complete step-by-step VPS hosting instructions**
+- [x] **Step 3: Perform full end-to-end verification of setup wizard, database migration, and dashboard**
+- [x] **Step 4: Commit all final files**
