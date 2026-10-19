@@ -141,6 +141,18 @@
       }
       this.runTimer += dt * 16;
     },
+    reset() {
+      this.laneIndex = 1;
+      this.laneProgress = 0;
+      this.targetLane = 0;
+      this.isJumping = false;
+      this.jumpAltitude = 0;
+      this.vy = 0;
+      this.runTimer = 0;
+      this.tiltAngle = 0;
+      this.isInvulnerable = false;
+      this.invulTimer = 0;
+    },
     action(act, user = 'Viewer') {
       if (gameState.isGameOver) return;
       if (act === 'LEFT' && this.laneIndex > 0) {
@@ -320,6 +332,11 @@
         gameState.speed = 380;
         obstacles = [];
         coins = [];
+        floatingTexts = [];
+        particles = [];
+        spawnObsTimer = 0;
+        spawnCoinTimer = 0;
+        trackOffset = 0;
         player.reset();
         updateHUD();
       }
