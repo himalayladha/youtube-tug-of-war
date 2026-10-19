@@ -1,0 +1,10 @@
+{
+  "name": "youtube-runner-streamer",
+  "version": "1.0.0",
+  "description": "Headless Chromium + FFmpeg RTMP Live Streamer for YouTube",
+  "main": "stream_daemon.js",
+  "type": "module",
+  "dependencies": {
+    "puppeteer": "^22.12.1"
+  }
+}
