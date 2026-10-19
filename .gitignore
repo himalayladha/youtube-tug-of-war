@@ -2,3 +2,6 @@ node_modules/
 dist/
 .env
 *.log
+config.php
+pid.lock
+streamer/pid.lock

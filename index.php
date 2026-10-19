@@ -30,12 +30,12 @@ $videoId = $settings['youtube_video_id'] ?? '';
 $streamMode = $settings['stream_mode'] ?? 'anarchy';
 
 // Check if there is an active stream session
-$stmt = $pdo->query("SELECT * FROM stream_sessions WHERE status = 'active' ORDER BY id DESC LIMIT 1");
+$stmt = $pdo->query("SELECT * FROM stream_sessions WHERE status = 'running' ORDER BY id DESC LIMIT 1");
 $activeSession = $stmt->fetch();
 $isStreaming = ($activeSession !== false);
 
 // Top contributors from leaderboard
-$leadStmt = $pdo->query("SELECT username, score, commands_count, last_action FROM leaderboard ORDER BY score DESC, commands_count DESC LIMIT 5");
+$leadStmt = $pdo->query("SELECT user_name, score, total_votes FROM leaderboard ORDER BY score DESC, total_votes DESC LIMIT 5");
 $topViewers = $leadStmt->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -668,7 +668,7 @@ $topViewers = $leadStmt->fetchAll();
                 <?php foreach ($topViewers as $idx => $v): ?>
                   <tr>
                     <td class="rank-cell top-<?= $idx + 1 ?>">#<?= $idx + 1 ?></td>
-                    <td><?= htmlspecialchars($v['username']) ?></td>
+                    <td><?= htmlspecialchars($v['user_name']) ?></td>
                     <td style="text-align: right;">
                       <span class="score-badge"><?= number_format($v['score']) ?> pts</span>
                     </td>
