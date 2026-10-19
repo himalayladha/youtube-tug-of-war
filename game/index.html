@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Stickman Subway Runner - Server Game Surface</title>
+  <title>The Great Tug-of-War: Black vs White - Live Interactive Arena</title>
   <link rel="stylesheet" href="./css/styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,103 +16,79 @@
 
       <!-- Stream Overlay HUD -->
       <div id="hud-overlay">
-        <!-- Top Header -->
+        <!-- Top Dual Captain Header & Rotating Debate Topic -->
         <div class="hud-header">
-          <div class="hud-group">
-            <div class="hud-card">
-              <span class="hud-label">DISTANCE</span>
-              <span id="hud-distance" class="hud-value">0m</span>
+          <!-- Team Black Captain Card -->
+          <div id="captain-black-card" class="captain-card black">
+            <div class="captain-badge">👑 CAPTAIN OF BLACK</div>
+            <div class="captain-body">
+              <span id="captain-black-name" class="captain-name">Waiting for leader...</span>
+              <span id="captain-black-score" class="captain-score">0 pts</span>
             </div>
-            <div class="hud-card">
-              <span class="hud-label">SCORE</span>
-              <span id="hud-score" class="hud-value">0</span>
-            </div>
-            <div class="hud-card">
-              <span class="hud-label">COINS</span>
-              <span id="hud-coins" class="hud-value" style="color: #D97706;">0</span>
+            <div class="team-score-tally">VICTORIES: <span id="wins-black-count">0</span></div>
+          </div>
+
+          <!-- Central Debate Topic Banner -->
+          <div id="topic-container" class="topic-container">
+            <div class="topic-tag">🔥 CURRENT DEBATE TOPIC</div>
+            <div id="topic-title" class="topic-title">ANDROID vs IPHONE</div>
+            <div class="round-timer-row">
+              <span id="round-timer-text">ROUND TIME: 1:30</span>
+              <span id="hud-velocity" class="velocity-pill">0 msgs/s</span>
             </div>
           </div>
 
-          <div class="hud-group">
-            <div id="hud-mode-badge" class="mode-badge anarchy">⚡ Anarchy (Instant)</div>
-            <div id="hud-powerup-card" class="hud-card powerup-card" style="display: none;">
-              <span id="hud-powerup-label" class="hud-label">POWER-UP</span>
-              <div class="powerup-content">
-                <span id="hud-powerup-icon">🧲</span>
-                <span id="hud-powerup-name">MAGNET</span>
-                <div class="powerup-bar-track">
-                  <div id="hud-powerup-fill" class="powerup-bar-fill"></div>
-                </div>
-              </div>
+          <!-- Team White Captain Card -->
+          <div id="captain-white-card" class="captain-card white">
+            <div class="captain-badge">👑 CAPTAIN OF WHITE</div>
+            <div class="captain-body">
+              <span id="captain-white-name" class="captain-name">Waiting for leader...</span>
+              <span id="captain-white-score" class="captain-score">0 pts</span>
             </div>
-          </div>
-
-          <div class="hud-group">
-            <div class="hud-card">
-              <span class="hud-label">CHAT RATE</span>
-              <span id="hud-velocity" class="hud-value" style="color: var(--blue); font-size: 18px;">0 msgs/s</span>
-            </div>
-            <div class="hud-card">
-              <span class="hud-label">DODGE STREAK</span>
-              <div style="display: flex; align-items: baseline; gap: 8px;">
-                <span id="hud-streak" class="hud-value" style="color: #F59E0B;">0</span>
-                <span id="hud-multiplier" style="font-size: 13px; font-weight: 800; color: #10B981; background: #ECFDF5; padding: 2px 8px; border-radius: 6px; border: 1px solid #A7F3D0;">1.0x</span>
-              </div>
-            </div>
+            <div class="team-score-tally">VICTORIES: <span id="wins-white-count">0</span></div>
           </div>
         </div>
 
-        <!-- Middle Feeds -->
+        <!-- Middle Arena: Dual Top 10 Leaderboards Flanking Arena -->
         <div class="hud-middle">
-          <div id="chat-ticker-container"></div>
-          <div id="leaderboard-card">
-            <div class="leaderboard-title">🏆 Top Contributors</div>
-            <div id="leaderboard-list" class="leaderboard-list">
-              <div style="font-size: 11px; color: #64748B; font-style: italic;">Waiting for chat votes...</div>
+          <!-- Left: Top 10 Black -->
+          <div id="leaderboard-black" class="leaderboard-panel black">
+            <div class="lb-header black">
+              <span class="lb-dot black">⚫</span>
+              <span class="lb-title">TOP 10 BLACK</span>
+            </div>
+            <div id="lb-list-black" class="lb-list">
+              <div class="lb-empty">Type 1 or BLACK to join!</div>
+            </div>
+          </div>
+
+          <!-- Recent Chat Pulls Ticker (Centered Lower Middle) -->
+          <div id="chat-ticker-container" class="chat-ticker-container"></div>
+
+          <!-- Right: Top 10 White -->
+          <div id="leaderboard-white" class="leaderboard-panel white">
+            <div class="lb-header white">
+              <span class="lb-dot white">⚪</span>
+              <span class="lb-title">TOP 10 WHITE</span>
+            </div>
+            <div id="lb-list-white" class="lb-list">
+              <div class="lb-empty">Type 2 or WHITE to join!</div>
             </div>
           </div>
         </div>
 
-        <!-- Bottom Voting Gauges -->
+        <!-- Bottom Tug Force Ratio & Chat Instructions -->
         <div class="hud-footer">
-          <div id="voting-gauges-container">
-            <div class="gauges-header">
-              <span>LIVE COMMUNITY VOTES (Type in Live Chat: <b>LEFT</b> • <b>JUMP</b> • <b>RIGHT</b> or <b>1</b> • <b>2</b> • <b>3</b>)</span>
-              <span style="font-size: 11px;">Next Action Window</span>
+          <div id="tug-gauge-card" class="tug-gauge-card">
+            <div class="tug-label-row">
+              <span class="team-label black">⚫ TEAM BLACK (<span id="pct-black">50%</span>)</span>
+              <span class="center-callout">💬 CHAT COMMANDS: Type <b>1</b> or <b>BLACK</b> &nbsp;|&nbsp; <b>2</b> or <b>WHITE</b> to pull!</span>
+              <span class="team-label white">(<span id="pct-white">50%</span>) TEAM WHITE ⚪</span>
             </div>
-            <div class="window-timer-track">
-              <div id="window-timer-fill" class="window-timer-fill"></div>
-            </div>
-            <div class="gauges-row three-cols">
-              <div class="gauge-item">
-                <div class="gauge-label-row">
-                  <span class="gauge-name">◄ LEFT (1 / L / A)</span>
-                  <span id="gauge-pct-left" class="gauge-pct">0%</span>
-                </div>
-                <div class="gauge-bar-track">
-                  <div id="gauge-bar-left" class="gauge-bar-fill left"></div>
-                </div>
-              </div>
-
-              <div class="gauge-item highlight-jump">
-                <div class="gauge-label-row">
-                  <span class="gauge-name">▲ JUMP (2 / J / W)</span>
-                  <span id="gauge-pct-jump" class="gauge-pct">0%</span>
-                </div>
-                <div class="gauge-bar-track">
-                  <div id="gauge-bar-jump" class="gauge-bar-fill jump"></div>
-                </div>
-              </div>
-
-              <div class="gauge-item">
-                <div class="gauge-label-row">
-                  <span class="gauge-name">► RIGHT (3 / R / D)</span>
-                  <span id="gauge-pct-right" class="gauge-pct">0%</span>
-                </div>
-                <div class="gauge-bar-track">
-                  <div id="gauge-bar-right" class="gauge-bar-fill right"></div>
-                </div>
-              </div>
+            <div class="tug-bar-track">
+              <div id="tug-bar-black" class="tug-bar-fill black" style="width: 50%;"></div>
+              <div id="tug-bar-marker" class="tug-bar-marker"></div>
+              <div id="tug-bar-white" class="tug-bar-fill white" style="width: 50%;"></div>
             </div>
           </div>
         </div>
