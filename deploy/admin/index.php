@@ -708,8 +708,8 @@ $serverHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
               <option value="14">#15: INSTAGRAM vs TIKTOK</option>
               <option value="15">#16: CHESS vs VIDEO GAMES</option>
               <option value="16">#17: NETFLIX vs YOUTUBE</option>
-              <option value="18">#18: BOOKS vs PODCASTS</option>
-              <option value="19">#19: CARS vs MOTORBIKES</option>
+              <option value="17">#18: BOOKS vs PODCASTS</option>
+              <option value="18">#19: CARS vs MOTORBIKES</option>
               <option value="19">#20: SOLO TRAVEL vs GROUP TRIP</option>
             </select>
           </div>
@@ -798,13 +798,125 @@ $serverHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
     <!-- ======================================================== -->
     <!-- TAB 4: STREAM BROADCAST CONFIGURATION                    -->
     <!-- ======================================================== -->
+    <!-- TAB 4: STREAM BROADCAST SETTINGS & YOUTUBE STUDIO        -->
+    <!-- ======================================================== -->
     <section id="tab-stream" class="tab-content">
+
+      <!-- 1. YouTube Live Studio Automation (1-Click Generator) -->
+      <div class="card" style="border: 1px solid rgba(2, 132, 199, 0.4); background: linear-gradient(180deg, rgba(2, 132, 199, 0.05) 0%, rgba(18, 24, 38, 0.95) 100%);">
+        <div class="card-title" style="color: #38BDF8;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          YouTube Live Studio Automation (1-Click Broadcast &amp; RTMP Stream)
+        </div>
+        <p class="card-desc">Automatically create a scheduled YouTube Live Event, generate a 1080p 60fps RTMP ingest key, bind the stream, and configure live chat polling in 1 click using OAuth 2.0.</p>
+
+        <form id="studio_create_form" onsubmit="createYouTubeStream(event)">
+          <div class="form-group">
+            <label>Stream Broadcast Title</label>
+            <input type="text" id="studio_title" value="The Great Tug-of-War: Live Interactive Arena" required>
+          </div>
+
+          <div class="form-group">
+            <label>Stream Description</label>
+            <input type="text" id="studio_desc" value="Live Interactive Tug-of-War! Comment 1 or BLACK / 2 or WHITE to pull the rope!">
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Privacy Setting</label>
+              <select id="studio_privacy">
+                <option value="unlisted" selected>Unlisted (Recommended for Testing)</option>
+                <option value="public">Public (Live for All Viewers)</option>
+                <option value="private">Private (Only You)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Ingest Preset</label>
+              <select id="studio_preset">
+                <option value="1080p,60fps" selected>1080p @ 60 FPS (FHD Broadcast)</option>
+                <option value="720p,30fps">720p @ 30 FPS (Low Latency / Mobile)</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" id="btn_create_stream" class="btn btn-primary" style="margin-top: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span id="btn_create_stream_text">Auto-Create &amp; Bind YouTube Live Stream</span>
+          </button>
+        </form>
+
+        <!-- Stream Result Box (dynamically shown) -->
+        <div id="studio_result_box" style="display: none; margin-top: 16px; padding: 14px; background: rgba(5, 11, 20, 0.8); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px;">
+          <div style="font-size: 13px; font-weight: 700; color: #38BDF8; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Broadcast Successfully Created &amp; Bound!
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); display: grid; gap: 4px;">
+            <div>Watch URL: <a id="studio_res_watch" href="#" target="_blank" style="color: #38BDF8; text-decoration: underline;"></a></div>
+            <div>Video ID: <code id="studio_res_video" style="color: #F8FAFC;"></code></div>
+            <div>RTMP Ingest: <code id="studio_res_rtmp" style="color: #F8FAFC;"></code></div>
+            <div>Active Live Chat ID: <code id="studio_res_chat" style="color: #F8FAFC;"></code></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Python Live Chat Poller Daemon Card -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div class="card-title" style="margin-bottom: 0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Python Live Chat Poller &amp; Force Engine
+          </div>
+          <span id="poller_status_pill" class="stream-status-pill status-offline">POLLER: STOPPED</span>
+        </div>
+        <p class="card-desc">Asynchronous Python service with adaptive backoff polling YouTube live comments and injecting votes directly into the database.</p>
+
+        <div style="display: flex; gap: 12px; align-items: center; margin-top: 12px;">
+          <button id="btn_poller_start" class="btn btn-success" onclick="togglePollerDaemon(true)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Start Python Poller</span>
+          </button>
+          <button id="btn_poller_stop" class="btn btn-danger" style="display: none;" onclick="togglePollerDaemon(false)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+            <span>Stop Python Poller</span>
+          </button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="fetchStudioStatus()">Refresh Status</button>
+        </div>
+
+        <div style="margin-top: 14px;">
+          <label style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">Live Poller Console Log</label>
+          <pre id="poller_console" style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 12px; font-family: monospace; font-size: 12px; color: #38BDF8; max-height: 120px; overflow-y: auto; margin-top: 6px; white-space: pre-wrap;">Poller daemon idle...</pre>
+        </div>
+      </div>
+
+      <!-- 3. Google OAuth 2.0 Credentials Card -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div class="card-title" style="margin-bottom: 0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Google Cloud OAuth 2.0 Credentials (client_secret.json)
+          </div>
+          <span id="oauth_status_pill" class="badge">Checking OAuth...</span>
+        </div>
+        <p class="card-desc">Paste your downloaded Google Cloud OAuth client secret JSON to enable 1-click broadcast generation and stream key auto-binding.</p>
+
+        <form id="oauth_secret_form" onsubmit="saveClientSecret(event)">
+          <div class="form-group">
+            <textarea id="oauth_json_input" rows="3" placeholder='Paste your client_secret.json content here (e.g. {"installed": {"client_id": "...", "client_secret": "..."}})'></textarea>
+          </div>
+          <button type="submit" class="btn btn-outline btn-sm">
+            <span>Save client_secret.json</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- 4. Manual Credentials Fallback -->
       <div class="card">
         <div class="card-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          YouTube Live &amp; Broadcast Engine Credentials
+          Manual RTMP Credentials &amp; Fallback API Key
         </div>
-        <p class="card-desc">Configure your RTMP ingest destination and YouTube Data API key for live chat polling.</p>
+        <p class="card-desc">Manually configure your RTMP ingest destination and YouTube Data API key for live chat polling if not using 1-Click Studio.</p>
 
         <form id="stream_config_form" onsubmit="saveStreamConfig(event)">
           <div class="form-group">
@@ -1268,12 +1380,159 @@ $serverHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
       }
     }
 
+    // YouTube Studio & Python Daemon Manager
+    async function fetchStudioStatus() {
+      try {
+        const res = await fetch('../api/admin.php?action=yt_studio_status');
+        const data = await res.json();
+        if (data.success) {
+          // Poller pill & buttons
+          const pollerPill = document.getElementById('poller_status_pill');
+          const startBtn = document.getElementById('btn_poller_start');
+          const stopBtn = document.getElementById('btn_poller_stop');
+          if (pollerPill && startBtn && stopBtn) {
+            if (data.poller_running) {
+              pollerPill.className = 'stream-status-pill status-live';
+              pollerPill.textContent = `POLLER: ACTIVE (PID: ${data.poller_pid})`;
+              startBtn.style.display = 'none';
+              stopBtn.style.display = 'inline-flex';
+            } else {
+              pollerPill.className = 'stream-status-pill status-offline';
+              pollerPill.textContent = 'POLLER: STOPPED';
+              startBtn.style.display = 'inline-flex';
+              stopBtn.style.display = 'none';
+            }
+          }
+
+          // Poller logs
+          if (data.recent_logs) {
+            const el = document.getElementById('poller_console');
+            if (el) {
+              el.textContent = data.recent_logs;
+              el.scrollTop = el.scrollHeight;
+            }
+          }
+
+          // OAuth status pill
+          const oauthPill = document.getElementById('oauth_status_pill');
+          if (oauthPill) {
+            if (data.has_token) {
+              oauthPill.className = 'badge';
+              oauthPill.style.background = 'rgba(16, 185, 129, 0.2)';
+              oauthPill.style.color = '#34D399';
+              oauthPill.textContent = 'OAuth Authorized (token.json)';
+            } else if (data.has_secret) {
+              oauthPill.className = 'badge';
+              oauthPill.style.background = 'rgba(2, 132, 199, 0.2)';
+              oauthPill.style.color = '#38BDF8';
+              oauthPill.textContent = 'Secret Ready (client_secret.json)';
+            } else {
+              oauthPill.className = 'badge';
+              oauthPill.style.background = 'rgba(239, 68, 68, 0.15)';
+              oauthPill.style.color = '#F87171';
+              oauthPill.textContent = 'OAuth Not Configured';
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function createYouTubeStream(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn_create_stream');
+      const btnText = document.getElementById('btn_create_stream_text');
+      btn.disabled = true;
+      btnText.textContent = 'Connecting to YouTube Studio...';
+
+      const preset = document.getElementById('studio_preset').value.split(',');
+      const payload = {
+        title: document.getElementById('studio_title').value.trim(),
+        description: document.getElementById('studio_desc').value.trim(),
+        privacy: document.getElementById('studio_privacy').value,
+        resolution: preset[0],
+        fps: preset[1]
+      };
+
+      try {
+        const res = await fetch('../api/admin.php?action=yt_create_stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success && data.data) {
+          showToast('success', 'YouTube Live Broadcast created & RTMP stream bound!');
+          const box = document.getElementById('studio_result_box');
+          box.style.display = 'block';
+          const d = data.data;
+          const watchLink = document.getElementById('studio_res_watch');
+          watchLink.href = d.watch_url;
+          watchLink.textContent = d.watch_url;
+          document.getElementById('studio_res_video').textContent = d.video_id;
+          document.getElementById('studio_res_rtmp').textContent = d.rtmp_url;
+          document.getElementById('studio_res_chat').textContent = d.live_chat_id || '(Auto-detected on broadcast)';
+          loadConfig();
+        } else {
+          showToast('error', data.error || 'Failed to auto-create YouTube stream.');
+        }
+      } catch (err) {
+        showToast('error', 'Network error communicating with YouTube Studio.');
+      } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Auto-Create & Bind YouTube Live Stream';
+      }
+    }
+
+    async function togglePollerDaemon(start) {
+      const act = start ? 'yt_daemon_start' : 'yt_daemon_stop';
+      try {
+        const res = await fetch(`../api/admin.php?action=${act}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('success', data.message);
+          fetchStudioStatus();
+        } else {
+          showToast('error', data.error || 'Poller action failed.');
+        }
+      } catch (e) {
+        showToast('error', 'Network error controlling poller.');
+      }
+    }
+
+    async function saveClientSecret(e) {
+      e.preventDefault();
+      const raw = document.getElementById('oauth_json_input').value.trim();
+      if (!raw) {
+        showToast('error', 'Please paste client_secret.json contents.');
+        return;
+      }
+      try {
+        const res = await fetch('../api/admin.php?action=yt_save_secret', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client_secret_json: raw })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('success', data.message);
+          document.getElementById('oauth_json_input').value = '';
+          fetchStudioStatus();
+        } else {
+          showToast('error', data.error || 'Failed to save client_secret.json.');
+        }
+      } catch (e) {
+        showToast('error', 'Network error saving client secret.');
+      }
+    }
+
     // Initialization
     loadConfig();
     checkStreamStatus();
     fetchLogs();
+    fetchStudioStatus();
     setInterval(checkStreamStatus, 3000);
     setInterval(fetchLogs, 5000);
+    setInterval(fetchStudioStatus, 3000);
   </script>
 
 </body>
