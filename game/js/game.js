@@ -106,6 +106,9 @@
     return { x: screenX, y: screenY - altitude * scale, scale, laneW, t: perspT };
   }
 
+  // Anchor Z depth for the player on the 3D perspective track
+  const PLAYER_Z = 130;
+
   // Stickman Player
   const player = {
     laneIndex: 1, // 0 = Left, 1 = Mid, 2 = Right
@@ -114,16 +117,21 @@
     isJumping: false,
     jumpAltitude: 0,
     vy: 0,
-    gravity: 2400,
-    jumpPower: 960,
+    gravity: 2600,
+    jumpPower: 1020,
     runTimer: 0,
     tiltAngle: 0,
     isInvulnerable: false,
     invulTimer: 0,
     update(dt) {
       const diff = this.targetLane - this.laneProgress;
-      this.laneProgress += diff * Math.min(1, dt * 18);
-      this.tiltAngle = diff * 0.35;
+      if (Math.abs(diff) < 0.015) {
+        this.laneProgress = this.targetLane;
+        this.tiltAngle = 0;
+      } else {
+        this.laneProgress += diff * Math.min(1, dt * 22);
+        this.tiltAngle = Math.max(-0.25, Math.min(0.25, diff * 0.4));
+      }
 
       if (this.isJumping) {
         this.jumpAltitude += this.vy * dt;
@@ -175,8 +183,9 @@
     render(ctx) {
       if (this.isInvulnerable && Math.floor(Date.now() / 90) % 2 === 0) return;
 
-      const footX = horizonX + this.laneProgress * trackLaneWidth;
-      const footY = 900;
+      const foot = projectTrack(this.laneProgress, PLAYER_Z);
+      const footX = foot.x;
+      const footY = foot.y;
       const bodyY = footY - this.jumpAltitude;
 
       ctx.save();
@@ -186,10 +195,10 @@
       // Drop shadow
       ctx.save();
       ctx.rotate(-this.tiltAngle);
-      const shadowScale = Math.max(0.35, 1 - this.jumpAltitude / 420);
+      const shadowScale = Math.max(0.35, 1 - this.jumpAltitude / 400) * foot.scale;
       ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
       ctx.beginPath();
-      ctx.ellipse(0, this.jumpAltitude + 4, 32 * shadowScale, 11 * shadowScale, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, this.jumpAltitude + 4, 34 * shadowScale, 11 * shadowScale, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
@@ -346,7 +355,7 @@
     gameState.distance += (gameState.speed * dt) / 10;
     gameState.score += Math.floor(dt * 15);
     gameState.speed = Math.min(850, 380 + (gameState.distance / 100) * 15);
-    trackOffset = (trackOffset + gameState.speed * dt * 2.5) % 120;
+    trackOffset = (trackOffset + gameState.speed * dt * 2.5) % 48;
 
     // Clouds
     for (const c of clouds) {
@@ -363,7 +372,7 @@
       spawnObsTimer = 0;
       const type = Math.random() > 0.45 ? 'WALL' : 'HURDLE';
       const lane = Math.floor(Math.random() * 3);
-      obstacles.push({ type, lane, z: 1000, hit: false, passed: false });
+      obstacles.push({ type, lane, z: 1000, hit: false, passed: false, cleared: false });
     }
 
     // Spawning Coins
@@ -377,25 +386,34 @@
     }
 
     // Update Obstacles
+    const playerFoot = projectTrack(player.laneProgress, PLAYER_Z);
+
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const obs = obstacles[i];
       obs.z -= (gameState.speed * 1.5) * dt;
 
       if (!obs.hit && !obs.passed) {
-        if (obs.z <= 65 && obs.z >= 15) {
+        const dz = obs.z - PLAYER_Z;
+
+        // Contact window perfectly centered around player 3D anchor
+        if (dz <= 35 && dz >= -25) {
           const laneOffset = obs.lane - 1;
-          if (Math.abs(player.laneProgress - laneOffset) < 0.52) {
-            if (obs.type === 'HURDLE' && player.jumpAltitude > 55) {
-              // Jumped over hurdle successfully!
-            } else {
+          if (Math.abs(player.laneProgress - laneOffset) < 0.48) {
+            if (obs.type === 'HURDLE' && player.jumpAltitude > 45) {
+              if (!obs.cleared) {
+                obs.cleared = true;
+                gameState.score += 75;
+                addFloatingText('CLEAR! +75', playerFoot.x, playerFoot.y - player.jumpAltitude - 30, '#10B981');
+              }
+            } else if (!obs.cleared) {
               obs.hit = true;
               if (!player.isInvulnerable) {
                 sound.playHit();
                 gameState.health--;
                 player.isInvulnerable = true;
                 player.invulTimer = 2.0;
-                addBurst(horizonX + player.laneProgress * trackLaneWidth, 880, '#EF4444', 25);
-                addFloatingText('CRASH! -1 HP', horizonX + player.laneProgress * trackLaneWidth, 820, '#EF4444');
+                addBurst(playerFoot.x, playerFoot.y, '#EF4444', 25);
+                addFloatingText('CRASH! -1 HP', playerFoot.x, playerFoot.y - 60, '#EF4444');
                 updateHUD();
                 if (gameState.health <= 0) {
                   gameState.isGameOver = true;
@@ -404,9 +422,11 @@
               }
             }
           }
-        } else if (obs.z < 15) {
+        } else if (dz < -25) {
           obs.passed = true;
-          gameState.score += 50;
+          if (!obs.cleared && !obs.hit) {
+            gameState.score += 50;
+          }
         }
       }
 
@@ -417,14 +437,16 @@
     for (let i = coins.length - 1; i >= 0; i--) {
       const c = coins[i];
       c.z -= (gameState.speed * 1.5) * dt;
-      if (!c.collected && c.z <= 60 && c.z >= 20) {
+      const dz = c.z - PLAYER_Z;
+
+      if (!c.collected && dz <= 35 && dz >= -25) {
         const laneOffset = c.lane - 1;
-        if (Math.abs(player.laneProgress - laneOffset) < 0.45) {
+        if (Math.abs(player.laneProgress - laneOffset) < 0.50) {
           c.collected = true;
           gameState.coins++;
           gameState.score += 25;
           sound.playCoin();
-          const p = projectTrack(laneOffset, 40);
+          const p = projectTrack(laneOffset, PLAYER_Z);
           addBurst(p.x, p.y, '#F59E0B', 12);
           addFloatingText('+25 🪙', p.x, p.y - 20, '#D97706');
           updateHUD();
@@ -519,21 +541,9 @@
       });
     });
 
-    // 3. Coins
-    for (const c of coins) {
-      if (c.collected || c.z > 980 || c.z < 0) continue;
-      const p = projectTrack(c.lane - 1, c.z, 24);
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(0, 0, 22 * p.scale, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#FFA500'; ctx.lineWidth = 3 * p.scale; ctx.stroke();
-      ctx.restore();
-    }
-
-    // 4. Obstacles
-    const sorted = [...obstacles].sort((a, b) => b.z - a.z);
-    for (const o of sorted) {
-      if (o.z > 980 || o.z < -50) continue;
+    // Helper to render an obstacle
+    function drawObstacle(o) {
+      if (o.z > 980 || o.z < -50) return;
       const p = projectTrack(o.lane - 1, o.z);
       const w = 145 * p.scale;
       ctx.save();
@@ -564,8 +574,27 @@
       ctx.restore();
     }
 
-    // 5. Stickman
+    // Helper to render a coin
+    function drawCoin(c) {
+      if (c.collected || c.z > 980 || c.z < -20) return;
+      const p = projectTrack(c.lane - 1, c.z, 24);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(0, 0, 22 * p.scale, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#FFA500'; ctx.lineWidth = 3 * p.scale; ctx.stroke();
+      ctx.restore();
+    }
+
+    // 3. Background Coins & Obstacles (z > PLAYER_Z, sorted furthest to nearest)
+    coins.filter(c => c.z > PLAYER_Z).forEach(drawCoin);
+    obstacles.filter(o => o.z > PLAYER_Z).sort((a, b) => b.z - a.z).forEach(drawObstacle);
+
+    // 4. Stickman (at PLAYER_Z)
     player.render(ctx);
+
+    // 5. Foreground Coins & Obstacles (z <= PLAYER_Z, sorted furthest to nearest)
+    coins.filter(c => c.z <= PLAYER_Z).forEach(drawCoin);
+    obstacles.filter(o => o.z <= PLAYER_Z).sort((a, b) => b.z - a.z).forEach(drawObstacle);
 
     // 6. Particles & Text
     for (const p of particles) {
