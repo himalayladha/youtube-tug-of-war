@@ -244,7 +244,6 @@
       updatePowerupHUD();
     },
     action(act, user = 'Viewer') {
-      if (gameState.isGameOver) return;
       if (act === 'LEFT' && this.laneIndex > 0) {
         this.laneIndex--;
         this.targetLane = this.laneIndex - 1;
@@ -424,134 +423,14 @@
     buildings.push({ x, w: 90, h: Math.random() * 140 + 90, color: c });
   }
 
-  // Game State
+  // Game State (Pure Endless Mode)
   const gameState = {
     distance: 0,
     score: 0,
     coins: 0,
-    health: 3,
+    streak: 0,
+    multiplier: 1.0,
     speed: 380,
-    isGameOver: false,
-    respawnTimer: 0,
-  };
-
-  // Pursuing Police Inspector & Dog
-  const inspector = {
-    laneProgress: 0,
-    distanceZ: 50, // Distance behind player (Z = PLAYER_Z - distanceZ)
-    targetDistanceZ: 50,
-    runTimer: 0,
-    surge() {
-      this.targetDistanceZ = 20; // Surges dangerously close on crash!
-      sound.playWhistle();
-      addFloatingText('🚨 POLICE ALERT! WHISTLE!', 960, 830, '#EF4444');
-    },
-    update(dt) {
-      this.laneProgress += (player.laneProgress - this.laneProgress) * dt * 9;
-      this.distanceZ += (this.targetDistanceZ - this.distanceZ) * dt * 3;
-      if (this.targetDistanceZ < 50) {
-        this.targetDistanceZ += dt * 6.5; // Slowly drop back after surge
-      }
-      this.runTimer += dt * 16;
-    },
-    render(ctx) {
-      if (gameState.isGameOver) return;
-      const inspectZ = PLAYER_Z - this.distanceZ;
-      if (inspectZ < -30) return;
-      const foot = projectTrack(this.laneProgress, inspectZ);
-      const stride = Math.sin(this.runTimer);
-
-      ctx.save();
-      ctx.translate(foot.x, foot.y);
-      const scale = foot.scale * 1.15;
-      ctx.scale(scale, scale);
-
-      // 1. Drop shadow
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
-      ctx.beginPath();
-      ctx.ellipse(0, 4, 30, 10, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 2. Legs
-      ctx.strokeStyle = '#1E3A8A'; // Police Navy Blue
-      ctx.lineWidth = 8;
-      ctx.lineCap = 'round';
-      const hipY = -46;
-      const lY = stride * 20;
-      const rY = -stride * 20;
-      ctx.beginPath();
-      ctx.moveTo(0, hipY); ctx.lineTo(-15, hipY + 22 + lY * 0.4); ctx.lineTo(-12, lY);
-      ctx.moveTo(0, hipY); ctx.lineTo(15, hipY + 22 + rY * 0.4); ctx.lineTo(12, rY);
-      ctx.stroke();
-
-      // Shoes
-      ctx.fillStyle = '#0F172A';
-      ctx.fillRect(-18, lY - 3, 14, 8);
-      ctx.fillRect(8, rY - 3, 14, 8);
-
-      // 3. Torso (Uniform & Belt)
-      const shoulderY = -96;
-      ctx.strokeStyle = '#1E3A8A';
-      ctx.lineWidth = 14;
-      ctx.beginPath(); ctx.moveTo(0, hipY); ctx.lineTo(0, shoulderY); ctx.stroke();
-      // Gold belt & buttons
-      ctx.fillStyle = '#F59E0B';
-      ctx.fillRect(-6, hipY + 4, 12, 5);
-      ctx.fillRect(-2, shoulderY + 16, 4, 4);
-
-      // 4. Arms & Nightstick
-      ctx.strokeStyle = '#1E3A8A';
-      ctx.lineWidth = 6;
-      const lArm = -stride * 20;
-      ctx.beginPath();
-      ctx.moveTo(0, shoulderY); ctx.lineTo(-24, shoulderY + 20 - lArm * 0.5); ctx.lineTo(-18, shoulderY + 38 - lArm * 0.7);
-      ctx.stroke();
-      // Right arm waving nightstick
-      ctx.beginPath();
-      ctx.moveTo(0, shoulderY); ctx.lineTo(24, shoulderY + 16 + lArm * 0.5); ctx.lineTo(28, shoulderY - 8 + lArm * 0.7);
-      ctx.stroke();
-      // Nightstick
-      ctx.strokeStyle = '#78350F';
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(28, shoulderY - 8 + lArm * 0.7); ctx.lineTo(38, shoulderY - 34 + lArm * 0.7); ctx.stroke();
-
-      // 5. Head & Police Cap
-      const headY = shoulderY - 20;
-      ctx.fillStyle = '#0F172A';
-      ctx.beginPath(); ctx.arc(0, headY, 17, 0, Math.PI * 2); ctx.fill();
-      // Cap
-      ctx.fillStyle = '#1E3A8A';
-      ctx.beginPath(); ctx.arc(0, headY - 4, 19, Math.PI, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#0F172A';
-      ctx.fillRect(-14, headY - 6, 28, 6);
-      // Gold Badge
-      ctx.fillStyle = '#FBBF24';
-      ctx.beginPath(); ctx.arc(0, headY - 10, 4, 0, Math.PI * 2); ctx.fill();
-
-      // 6. Running Dog (German Shepherd)
-      const dogX = 36;
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.25)';
-      ctx.beginPath(); ctx.ellipse(dogX, 2, 20, 6, 0, 0, Math.PI * 2); ctx.fill();
-
-      ctx.fillStyle = '#92400E'; // Brown coat
-      ctx.beginPath(); ctx.roundRect(dogX - 16, -26, 28, 14, 5); ctx.fill(); // Torso
-      ctx.beginPath(); ctx.arc(dogX + 14, -28, 9, 0, Math.PI * 2); ctx.fill(); // Head
-      // Ears
-      ctx.fillStyle = '#451A03';
-      ctx.beginPath(); ctx.moveTo(dogX + 11, -36); ctx.lineTo(dogX + 16, -42); ctx.lineTo(dogX + 19, -36); ctx.fill();
-      // Paws
-      ctx.strokeStyle = '#78350F'; ctx.lineWidth = 4;
-      const dogStride = Math.sin(this.runTimer * 1.5);
-      ctx.beginPath();
-      ctx.moveTo(dogX - 10, -14); ctx.lineTo(dogX - 12 - dogStride * 6, 0);
-      ctx.moveTo(dogX + 8, -14); ctx.lineTo(dogX + 6 + dogStride * 6, 0);
-      ctx.stroke();
-      // Wagging tail
-      ctx.beginPath();
-      ctx.moveTo(dogX - 16, -22); ctx.lineTo(dogX - 26, -28 + Math.cos(this.runTimer * 2) * 6); ctx.stroke();
-
-      ctx.restore();
-    }
   };
 
   // Keyboard test controls & debug triggers
@@ -581,34 +460,8 @@
   }
 
   function update(dt) {
-    if (gameState.isGameOver) {
-      gameState.respawnTimer -= dt;
-      if (gameState.respawnTimer <= 0) {
-        gameState.isGameOver = false;
-        gameState.health = 3;
-        gameState.distance = 0;
-        gameState.score = 0;
-        gameState.coins = 0;
-        gameState.speed = 380;
-        obstacles = [];
-        coins = [];
-        powerups = [];
-        floatingTexts = [];
-        particles = [];
-        spawnObsTimer = 0;
-        spawnCoinTimer = 0;
-        spawnPowerupTimer = 0;
-        trackOffset = 0;
-        inspector.distanceZ = 50;
-        inspector.targetDistanceZ = 50;
-        player.reset();
-        updateHUD();
-      }
-      return;
-    }
-
     gameState.distance += (gameState.speed * dt) / 10;
-    gameState.score += Math.floor(dt * 15);
+    gameState.score += Math.floor(dt * 15 * gameState.multiplier);
     gameState.speed = Math.min(850, 380 + (gameState.distance / 100) * 15);
     trackOffset = (trackOffset + gameState.speed * dt * 2.5) % 48;
 
@@ -619,7 +472,6 @@
     }
 
     player.update(dt);
-    inspector.update(dt);
 
     // Spawning Obstacles (TRAIN, WALL, HURDLE)
     spawnObsTimer += dt;
@@ -675,44 +527,56 @@
             if (player.powerup && player.powerup.type === 'JETPACK') {
               if (!obs.cleared) {
                 obs.cleared = true;
-                gameState.score += 80;
-                addFloatingText('FLYOVER! +80', playerFoot.x, playerFoot.y - player.jumpAltitude - 30, '#8B5CF6');
+                gameState.streak++;
+                gameState.multiplier = Math.min(4.0, 1.0 + Math.floor(gameState.streak / 4) * 0.5);
+                const pts = Math.round(80 * gameState.multiplier);
+                gameState.score += pts;
+                addFloatingText(`FLYOVER! +${pts}`, playerFoot.x, playerFoot.y - player.jumpAltitude - 30, '#8B5CF6');
+                updateHUD();
               }
             } else if (obs.type === 'HURDLE' && player.jumpAltitude > 45) {
               if (!obs.cleared) {
                 obs.cleared = true;
-                gameState.score += 75;
-                addFloatingText('CLEAR! +75', playerFoot.x, playerFoot.y - player.jumpAltitude - 30, '#10B981');
+                gameState.streak++;
+                gameState.multiplier = Math.min(4.0, 1.0 + Math.floor(gameState.streak / 4) * 0.5);
+                const pts = Math.round(75 * gameState.multiplier);
+                gameState.score += pts;
+                addFloatingText(`CLEAR! +${pts}`, playerFoot.x, playerFoot.y - player.jumpAltitude - 30, '#10B981');
+                updateHUD();
               }
             } else if (obs.type === 'TRAIN' && player.jumpAltitude > 140) {
               // High leap with boots over train!
               if (!obs.cleared) {
                 obs.cleared = true;
-                gameState.score += 150;
-                addFloatingText('TRAIN LEAP! +150', playerFoot.x, playerFoot.y - player.jumpAltitude - 30, '#10B981');
+                gameState.streak++;
+                gameState.multiplier = Math.min(4.0, 1.0 + Math.floor(gameState.streak / 4) * 0.5);
+                const pts = Math.round(150 * gameState.multiplier);
+                gameState.score += pts;
+                addFloatingText(`TRAIN LEAP! +${pts}`, playerFoot.x, playerFoot.y - player.jumpAltitude - 30, '#10B981');
+                updateHUD();
               }
             } else if (!obs.cleared) {
               obs.hit = true;
               if (!player.isInvulnerable) {
                 sound.playHit();
-                inspector.surge(); // Police inspector surges!
-                gameState.health--;
                 player.isInvulnerable = true;
                 player.invulTimer = 2.0;
+                gameState.streak = 0;
+                gameState.multiplier = 1.0;
+                gameState.score = Math.max(0, gameState.score - 50);
                 addBurst(playerFoot.x, playerFoot.y, '#EF4444', 25);
-                addFloatingText('CRASH! -1 HP', playerFoot.x, playerFoot.y - 60, '#EF4444');
+                addFloatingText('STUMBLE! -50', playerFoot.x, playerFoot.y - 60, '#EF4444');
                 updateHUD();
-                if (gameState.health <= 0) {
-                  gameState.isGameOver = true;
-                  gameState.respawnTimer = 5.0;
-                }
               }
             }
           }
         } else if (dz < -25) {
           obs.passed = true;
           if (!obs.cleared && !obs.hit) {
-            gameState.score += (obs.type === 'TRAIN' ? 100 : 50);
+            gameState.streak++;
+            gameState.multiplier = Math.min(4.0, 1.0 + Math.floor(gameState.streak / 4) * 0.5);
+            gameState.score += Math.round((obs.type === 'TRAIN' ? 100 : 50) * gameState.multiplier);
+            updateHUD();
           }
         }
       }
@@ -1091,10 +955,7 @@
     powerups.filter(pu => pu.z <= PLAYER_Z).forEach(drawPowerup);
     obstacles.filter(o => o.z <= PLAYER_Z).sort((a, b) => b.z - a.z).forEach(drawObstacle);
 
-    // 6. Pursuing Police Officer & Dog (behind player in perspective)
-    inspector.render(ctx);
-
-    // 7. Particles & Text
+    // 6. Particles & Text
     for (const p of particles) {
       ctx.fillStyle = p.color;
       ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
@@ -1103,18 +964,6 @@
       ctx.fillStyle = ft.color; ctx.font = 'bold 20px "Inter", sans-serif';
       ctx.textAlign = 'center'; ctx.fillText(ft.text, ft.x, ft.y);
     }
-
-    // 8. Game Over
-    if (gameState.isGameOver) {
-      ctx.fillStyle = 'rgba(248, 250, 252, 0.92)';
-      ctx.fillRect(0, 0, 1920, 1080);
-      ctx.fillStyle = '#EF4444'; ctx.font = '900 76px "Inter", sans-serif';
-      ctx.textAlign = 'center'; ctx.fillText('RUN COMPLETED', 960, 440);
-      ctx.fillStyle = '#0F172A'; ctx.font = 'bold 34px "Inter", sans-serif';
-      ctx.fillText(`Distance: ${Math.floor(gameState.distance)}m  •  Coins: ${gameState.coins} 🪙  •  Score: ${gameState.score}`, 960, 520);
-      ctx.fillStyle = '#0284C7'; ctx.font = '900 26px "Inter", sans-serif';
-      ctx.fillText(`Respawning in ${Math.ceil(gameState.respawnTimer)}s...`, 960, 590);
-    }
   }
 
   function updateHUD() {
@@ -1122,14 +971,10 @@
     document.getElementById('hud-score').textContent = gameState.score.toLocaleString();
     document.getElementById('hud-coins').textContent = gameState.coins;
 
-    const heartsEl = document.getElementById('hud-hearts');
-    heartsEl.innerHTML = '';
-    for (let i = 0; i < 3; i++) {
-      const h = document.createElement('span');
-      h.className = `heart ${i < gameState.health ? 'active' : 'lost'}`;
-      h.textContent = '❤️';
-      heartsEl.appendChild(h);
-    }
+    const streakEl = document.getElementById('hud-streak');
+    const multEl = document.getElementById('hud-multiplier');
+    if (streakEl) streakEl.textContent = `${gameState.streak}`;
+    if (multEl) multEl.textContent = `${gameState.multiplier.toFixed(1)}x`;
   }
 
   function updatePowerupHUD() {
