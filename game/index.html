@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stickman Subway Runner - Server Game Surface</title>
+  <link rel="stylesheet" href="./css/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app-container">
+    <div id="game-viewport">
+      <canvas id="game-canvas"></canvas>
+
+      <!-- Stream Overlay HUD -->
+      <div id="hud-overlay">
+        <!-- Top Header -->
+        <div class="hud-header">
+          <div class="hud-group">
+            <div class="hud-card">
+              <span class="hud-label">DISTANCE</span>
+              <span id="hud-distance" class="hud-value">0m</span>
+            </div>
+            <div class="hud-card">
+              <span class="hud-label">SCORE</span>
+              <span id="hud-score" class="hud-value">0</span>
+            </div>
+            <div class="hud-card">
+              <span class="hud-label">COINS</span>
+              <span id="hud-coins" class="hud-value" style="color: #D97706;">0</span>
+            </div>
+          </div>
+
+          <div class="hud-group">
+            <div id="hud-mode-badge" class="mode-badge anarchy">⚡ Anarchy (Instant)</div>
+            <div class="hud-card">
+              <span class="hud-label">CHAT RATE</span>
+              <span id="hud-velocity" class="hud-value" style="color: var(--blue); font-size: 18px;">0 msgs/s</span>
+            </div>
+            <div class="hud-card">
+              <span class="hud-label">HEALTH</span>
+              <div id="hud-hearts" class="hearts-container">
+                <span class="heart active">❤️</span>
+                <span class="heart active">❤️</span>
+                <span class="heart active">❤️</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Middle Feeds -->
+        <div class="hud-middle">
+          <div id="chat-ticker-container"></div>
+          <div id="leaderboard-card">
+            <div class="leaderboard-title">🏆 Top Contributors</div>
+            <div id="leaderboard-list" class="leaderboard-list">
+              <div style="font-size: 11px; color: #64748B; font-style: italic;">Waiting for chat votes...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Voting Gauges -->
+        <div class="hud-footer">
+          <div id="voting-gauges-container">
+            <div class="gauges-header">
+              <span>LIVE COMMUNITY VOTES (Type in Live Chat: <b>LEFT</b> • <b>JUMP</b> • <b>RIGHT</b> or <b>1</b> • <b>2</b> • <b>3</b>)</span>
+              <span style="font-size: 11px;">Next Action Window</span>
+            </div>
+            <div class="window-timer-track">
+              <div id="window-timer-fill" class="window-timer-fill"></div>
+            </div>
+            <div class="gauges-row three-cols">
+              <div class="gauge-item">
+                <div class="gauge-label-row">
+                  <span class="gauge-name">◄ LEFT (1 / L / A)</span>
+                  <span id="gauge-pct-left" class="gauge-pct">0%</span>
+                </div>
+                <div class="gauge-bar-track">
+                  <div id="gauge-bar-left" class="gauge-bar-fill left"></div>
+                </div>
+              </div>
+
+              <div class="gauge-item highlight-jump">
+                <div class="gauge-label-row">
+                  <span class="gauge-name">▲ JUMP (2 / J / W)</span>
+                  <span id="gauge-pct-jump" class="gauge-pct">0%</span>
+                </div>
+                <div class="gauge-bar-track">
+                  <div id="gauge-bar-jump" class="gauge-bar-fill jump"></div>
+                </div>
+              </div>
+
+              <div class="gauge-item">
+                <div class="gauge-label-row">
+                  <span class="gauge-name">► RIGHT (3 / R / D)</span>
+                  <span id="gauge-pct-right" class="gauge-pct">0%</span>
+                </div>
+                <div class="gauge-bar-track">
+                  <div id="gauge-bar-right" class="gauge-bar-fill right"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/game.js"></script>
+</body>
+</html>
