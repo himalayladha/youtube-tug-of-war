@@ -4,48 +4,661 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Great Tug-of-War: Black vs White - Live Interactive Arena</title>
-  <link rel="stylesheet" href="./css/styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700;800;900&family=Inter:wght@400;600;700;800;900&family=Russo+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/styles.css?v=20261019_v4" />
+  <style>
+    /* Inlined CSS to guarantee instantaneous rendering without browser cache delay */
+    :root {
+      --bg-dark: #0A0F1D;
+      --bg-stadium: #020617;
+      --accent-gold: #F59E0B;
+      --accent-gold-glow: rgba(245, 158, 11, 0.45);
+      --accent-cyan: #06B6D4;
+      --accent-cyan-glow: rgba(6, 182, 212, 0.4);
+      --accent-crimson: #EF4444;
+      --accent-crimson-glow: rgba(239, 68, 68, 0.4);
+      --team-black-glow: rgba(239, 68, 68, 0.25);
+      --team-white-glow: rgba(6, 182, 212, 0.25);
+      --font-display: 'Russo One', sans-serif;
+      --font-tech: 'Chakra Petch', sans-serif;
+      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #020617;
+      font-family: var(--font-body);
+      color: #F8FAFC;
+    }
+
+    #app-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #020617;
+    }
+
+    #game-viewport {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: 1920px;
+      max-height: 1080px;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background: #050B14;
+      box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
+    }
+
+    #game-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Broadcast Stream Overlay HUD */
+    #hud-overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px 32px;
+      z-index: 100;
+    }
+
+    /* Top Dual Captain Header & Central Jumbotron */
+    .hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      width: 100%;
+      gap: 20px;
+    }
+
+    /* Captain Cards - Esports Trophy Glass */
+    .captain-card {
+      width: 340px;
+      padding: 16px 22px;
+      border-radius: 18px;
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .captain-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .captain-card.black {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.88));
+      border: 1.5px solid rgba(239, 68, 68, 0.5);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px var(--team-black-glow);
+    }
+    .captain-card.black::before {
+      background: linear-gradient(90deg, #EF4444, #F59E0B);
+    }
+
+    .captain-card.white {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(241, 245, 249, 0.9));
+      border: 1.5px solid rgba(6, 182, 212, 0.6);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 25px var(--team-white-glow);
+      color: #0F172A;
+    }
+    .captain-card.white::before {
+      background: linear-gradient(90deg, #06B6D4, #F59E0B);
+    }
+
+    .captain-badge {
+      font-family: var(--font-tech);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .captain-card.black .captain-badge {
+      color: #F59E0B;
+      text-shadow: 0 0 12px var(--accent-gold-glow);
+    }
+    .captain-card.white .captain-badge {
+      color: #D97706;
+    }
+
+    .crown-icon {
+      width: 18px;
+      height: 18px;
+      fill: #F59E0B;
+      filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8));
+    }
+
+    .captain-body {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .captain-name {
+      font-family: var(--font-display);
+      font-size: 24px;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 210px;
+    }
+
+    .captain-card.black .captain-name {
+      color: #FFFFFF;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    }
+    .captain-card.white .captain-name {
+      color: #0F172A;
+    }
+
+    .captain-score {
+      font-family: var(--font-tech);
+      font-size: 20px;
+      font-weight: 800;
+      color: #F59E0B;
+      text-shadow: 0 0 10px var(--accent-gold-glow);
+    }
+
+    .team-score-tally {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-tech);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      opacity: 0.9;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 6px;
+    }
+    .captain-card.white .team-score-tally {
+      border-top: 1px solid rgba(15, 23, 42, 0.1);
+      color: #475569;
+    }
+
+    .tally-score {
+      font-weight: 900;
+      font-size: 15px;
+    }
+    .captain-card.black .tally-score { color: #EF4444; }
+    .captain-card.white .tally-score { color: #0284C7; }
+
+    /* Central Arena Jumbotron Debate Banner */
+    .topic-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(3, 7, 18, 0.94) 100%);
+      border: 2px solid rgba(245, 158, 11, 0.5);
+      border-top: 3px solid #F59E0B;
+      backdrop-filter: blur(24px);
+      padding: 14px 42px;
+      border-radius: 20px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 35px rgba(245, 158, 11, 0.2);
+      text-align: center;
+      min-width: 440px;
+    }
+
+    .topic-tag-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .flame-icon {
+      width: 14px;
+      height: 14px;
+      fill: #EF4444;
+      filter: drop-shadow(0 0 6px #EF4444);
+    }
+
+    .topic-tag {
+      font-family: var(--font-tech);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #F59E0B;
+    }
+
+    .topic-title {
+      font-family: var(--font-display);
+      font-size: 30px;
+      letter-spacing: 1px;
+      color: #FFFFFF;
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.3), 0 4px 12px rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topic-title .vs-badge {
+      font-family: var(--font-tech);
+      font-size: 18px;
+      font-weight: 900;
+      color: #EF4444;
+      background: rgba(239, 68, 68, 0.15);
+      padding: 2px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+
+    .round-timer-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 2px;
+    }
+
+    #round-timer-text {
+      font-family: var(--font-tech);
+      font-size: 14px;
+      font-weight: 800;
+      color: #94A3B8;
+      letter-spacing: 1px;
+    }
+
+    .velocity-pill {
+      font-family: var(--font-tech);
+      font-size: 13px;
+      font-weight: 800;
+      padding: 2px 12px;
+      border-radius: 12px;
+      background: rgba(6, 182, 212, 0.15);
+      color: #38BDF8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 8px #10B981;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* Middle Arena: Dual Top 10 Leaderboards Flanking Arena */
+    .hud-middle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex: 1;
+      margin: 10px 0;
+      pointer-events: none;
+    }
+
+    .leaderboard-panel {
+      width: 300px;
+      padding: 16px 18px;
+      border-radius: 20px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-top: 3px solid transparent;
+    }
+
+    .leaderboard-panel.black {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(10, 15, 29, 0.92) 100%);
+      border: 1.5px solid rgba(239, 68, 68, 0.4);
+      border-top: 3px solid #EF4444;
+      color: #FFFFFF;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.6), 0 0 20px var(--team-black-glow);
+    }
+
+    .leaderboard-panel.white {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(241, 245, 249, 0.94) 100%);
+      border: 1.5px solid rgba(6, 182, 212, 0.5);
+      border-top: 3px solid #06B6D4;
+      color: #0F172A;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.35), 0 0 20px var(--team-white-glow);
+    }
+
+    .lb-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-tech);
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .leaderboard-panel.white .lb-header {
+      border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+    }
+
+    .lb-title {
+      flex: 1;
+    }
+
+    .lb-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      max-height: 400px;
+      overflow: hidden;
+    }
+
+    .lb-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 5px 8px;
+      border-radius: 8px;
+      transition: background 0.15s ease;
+    }
+
+    .leaderboard-panel.black .lb-item {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .leaderboard-panel.white .lb-item {
+      background: rgba(15, 23, 42, 0.04);
+    }
+
+    .lb-item.captain-highlight {
+      background: rgba(245, 158, 11, 0.2) !important;
+      border: 1px solid rgba(245, 158, 11, 0.5);
+    }
+
+    .lb-rank {
+      font-family: var(--font-tech);
+      font-weight: 800;
+      width: 26px;
+      color: #94A3B8;
+      font-size: 13px;
+    }
+
+    .lb-rank.gold { color: #F59E0B; font-weight: 900; }
+    .lb-rank.silver { color: #CBD5E1; }
+    .lb-rank.bronze { color: #D97706; }
+
+    .lb-name {
+      flex: 1;
+      font-family: var(--font-body);
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 8px;
+    }
+
+    .lb-score {
+      font-family: var(--font-tech);
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      font-size: 14px;
+    }
+
+    .leaderboard-panel.black .lb-score { color: #F59E0B; }
+    .leaderboard-panel.white .lb-score { color: #0284C7; }
+
+    .lb-empty {
+      font-size: 12px;
+      font-style: italic;
+      opacity: 0.7;
+      text-align: center;
+      padding: 16px 0;
+      font-family: var(--font-tech);
+      letter-spacing: 0.5px;
+    }
+
+    /* Live Chat Activity Ticker (Centered Lower Middle) */
+    .chat-ticker-container {
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      gap: 8px;
+      max-height: 240px;
+      overflow: hidden;
+      width: 420px;
+      pointer-events: none;
+    }
+
+    .ticker-pill {
+      padding: 8px 20px;
+      border-radius: 24px;
+      font-family: var(--font-tech);
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px) scale(0.9); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .ticker-pill.black {
+      background: linear-gradient(90deg, #0F172A, #1E293B);
+      color: #FFFFFF;
+      border: 1px solid #EF4444;
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+    }
+
+    .ticker-pill.white {
+      background: linear-gradient(90deg, #FFFFFF, #F1F5F9);
+      color: #0F172A;
+      border: 1px solid #06B6D4;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+    }
+
+    /* Bottom High-Voltage Tug Gauge & Chat Instructions */
+    .hud-footer {
+      width: 100%;
+    }
+
+    .tug-gauge-card {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(2, 6, 23, 0.98) 100%);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-top: 3px solid #F59E0B;
+      backdrop-filter: blur(24px);
+      border-radius: 22px;
+      padding: 16px 32px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(245, 158, 11, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tug-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-tech);
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+    }
+
+    .team-label.black {
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    }
+
+    .team-label.white {
+      color: #F8FAFC;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+    }
+
+    .center-callout {
+      color: #FEF08A;
+      font-family: var(--font-body);
+      font-size: 14px;
+      letter-spacing: 0.6px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .center-callout .cmd-badge {
+      font-family: var(--font-tech);
+      font-weight: 900;
+      color: #0F172A;
+      background: #F59E0B;
+      padding: 3px 10px;
+      border-radius: 6px;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+      margin: 0 2px;
+    }
+
+    /* High-Voltage Dynamic Tug Bar */
+    .tug-bar-track {
+      position: relative;
+      width: 100%;
+      height: 24px;
+      background: #0B1120;
+      border-radius: 12px;
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      overflow: visible;
+      display: flex;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
+    }
+
+    .tug-bar-fill.black {
+      height: 100%;
+      background: linear-gradient(90deg, #991B1B, #EF4444);
+      border-radius: 10px 0 0 10px;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+      transition: width 0.12s ease-out;
+    }
+
+    .tug-bar-fill.white {
+      height: 100%;
+      background: linear-gradient(90deg, #0284C7, #38BDF8);
+      border-radius: 0 10px 10px 0;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+      transition: width 0.12s ease-out;
+    }
+
+    .tug-bar-marker {
+      position: absolute;
+      top: -8px;
+      bottom: -8px;
+      left: 50%;
+      width: 8px;
+      background: #F59E0B;
+      border-radius: 4px;
+      transform: translateX(-50%);
+      box-shadow: 0 0 16px #F59E0B, 0 0 30px #F59E0B;
+      z-index: 10;
+    }
+  </style>
 </head>
 <body>
   <div id="app-container">
     <div id="game-viewport">
       <canvas id="game-canvas"></canvas>
 
-      <!-- Stream Overlay HUD -->
+      <!-- Broadcast Stream Overlay HUD -->
       <div id="hud-overlay">
-        <!-- Top Dual Captain Header & Rotating Debate Topic -->
+        <!-- Top Dual Captain Header & Central Arena Jumbotron -->
         <div class="hud-header">
           <!-- Team Black Captain Card -->
           <div id="captain-black-card" class="captain-card black">
-            <div class="captain-badge">👑 CAPTAIN OF BLACK</div>
-            <div class="captain-body">
-              <span id="captain-black-name" class="captain-name">Waiting for leader...</span>
-              <span id="captain-black-score" class="captain-score">0 pts</span>
+            <div class="captain-badge">
+              <svg class="crown-icon" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
+              CAPTAIN OF BLACK
             </div>
-            <div class="team-score-tally">VICTORIES: <span id="wins-black-count">0</span></div>
+            <div class="captain-body">
+              <span id="captain-black-name" class="captain-name">@ShadowKing</span>
+              <span id="captain-black-score" class="captain-score">1,240 pts</span>
+            </div>
+            <div class="team-score-tally">
+              <span>ROUND VICTORIES</span>
+              <span id="wins-black-count" class="tally-score">0</span>
+            </div>
           </div>
 
-          <!-- Central Debate Topic Banner -->
+          <!-- Central Arena Jumbotron Debate Topic -->
           <div id="topic-container" class="topic-container">
-            <div class="topic-tag">🔥 CURRENT DEBATE TOPIC</div>
-            <div id="topic-title" class="topic-title">ANDROID vs IPHONE</div>
+            <div class="topic-tag-row">
+              <svg class="flame-icon" viewBox="0 0 24 24"><path d="M12 23c-4.97 0-9-4.03-9-9 0-3.32 1.8-6.19 4.46-7.7.35-.2.8-.07.98.28.18.35.05.78-.3 1-2.14 1.34-3.14 3.79-3.14 6.42 0 3.86 3.14 7 7 7s7-3.14 7-7c0-2.31-.83-4.49-2.32-6.14a.754.754 0 0 1 .1-1.06.75.75 0 0 1 1.06.1C19.16 8.87 20 11.35 20 14c0 4.97-4.03 9-9 9z"/><path d="M12 17c-2.21 0-4-1.79-4-4 0-1.54.89-2.9 2.22-3.56.36-.18.8-.02.97.34.17.36.02.8-.34.98-.82.41-1.35 1.25-1.35 2.24 0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5c0-.62-.22-1.22-.64-1.68a.749.749 0 0 1 .09-1.06.75.75 0 0 1 1.06.09c.67.74 1.02 1.7 1.02 2.65 0 2.21-1.79 4-4 4z"/></svg>
+              <span class="topic-tag">CURRENT LIVE DEBATE</span>
+            </div>
+            <div id="topic-title" class="topic-title">
+              <span id="topic-left">ANDROID</span>
+              <span class="vs-badge">VS</span>
+              <span id="topic-right">IPHONE</span>
+            </div>
             <div class="round-timer-row">
               <span id="round-timer-text">ROUND TIME: 1:30</span>
-              <span id="hud-velocity" class="velocity-pill">0 msgs/s</span>
+              <span id="hud-velocity" class="velocity-pill">
+                <span class="live-dot"></span>
+                <span id="velocity-val">0</span> pulls/s
+              </span>
             </div>
           </div>
 
           <!-- Team White Captain Card -->
           <div id="captain-white-card" class="captain-card white">
-            <div class="captain-badge">👑 CAPTAIN OF WHITE</div>
-            <div class="captain-body">
-              <span id="captain-white-name" class="captain-name">Waiting for leader...</span>
-              <span id="captain-white-score" class="captain-score">0 pts</span>
+            <div class="captain-badge">
+              <svg class="crown-icon" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
+              CAPTAIN OF WHITE
             </div>
-            <div class="team-score-tally">VICTORIES: <span id="wins-white-count">0</span></div>
+            <div class="captain-body">
+              <span id="captain-white-name" class="captain-name">@Solaris</span>
+              <span id="captain-white-score" class="captain-score">1,410 pts</span>
+            </div>
+            <div class="team-score-tally">
+              <span>ROUND VICTORIES</span>
+              <span id="wins-white-count" class="tally-score">0</span>
+            </div>
           </div>
         </div>
 
@@ -53,36 +666,36 @@
         <div class="hud-middle">
           <!-- Left: Top 10 Black -->
           <div id="leaderboard-black" class="leaderboard-panel black">
-            <div class="lb-header black">
-              <span class="lb-dot black">⚫</span>
-              <span class="lb-title">TOP 10 BLACK</span>
+            <div class="lb-header">
+              <span class="lb-title">⚔️ TOP 10 BLACK</span>
             </div>
             <div id="lb-list-black" class="lb-list">
-              <div class="lb-empty">Type 1 or BLACK to join!</div>
+              <div class="lb-empty">Type 1 or BLACK to claim #1!</div>
             </div>
           </div>
 
-          <!-- Recent Chat Pulls Ticker (Centered Lower Middle) -->
+          <!-- Live Chat Pulls Ticker (Centered Lower Middle) -->
           <div id="chat-ticker-container" class="chat-ticker-container"></div>
 
           <!-- Right: Top 10 White -->
           <div id="leaderboard-white" class="leaderboard-panel white">
-            <div class="lb-header white">
-              <span class="lb-dot white">⚪</span>
-              <span class="lb-title">TOP 10 WHITE</span>
+            <div class="lb-header">
+              <span class="lb-title">🛡️ TOP 10 WHITE</span>
             </div>
             <div id="lb-list-white" class="lb-list">
-              <div class="lb-empty">Type 2 or WHITE to join!</div>
+              <div class="lb-empty">Type 2 or WHITE to claim #1!</div>
             </div>
           </div>
         </div>
 
-        <!-- Bottom Tug Force Ratio & Chat Instructions -->
+        <!-- Bottom High-Voltage Tug Gauge & Chat Instructions -->
         <div class="hud-footer">
           <div id="tug-gauge-card" class="tug-gauge-card">
             <div class="tug-label-row">
               <span class="team-label black">⚫ TEAM BLACK (<span id="pct-black">50%</span>)</span>
-              <span class="center-callout">💬 CHAT COMMANDS: Type <b>1</b> or <b>BLACK</b> &nbsp;|&nbsp; <b>2</b> or <b>WHITE</b> to pull!</span>
+              <span class="center-callout">
+                💬 CHAT TO PULL: Type <span class="cmd-badge">1</span> or <span class="cmd-badge">BLACK</span> &nbsp;|&nbsp; <span class="cmd-badge">2</span> or <span class="cmd-badge">WHITE</span>
+              </span>
               <span class="team-label white">(<span id="pct-white">50%</span>) TEAM WHITE ⚪</span>
             </div>
             <div class="tug-bar-track">
@@ -96,6 +709,6 @@
     </div>
   </div>
 
-  <script src="./js/game.js"></script>
+  <script src="./js/game.js?v=20261019_v4"></script>
 </body>
 </html>
