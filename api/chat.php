@@ -101,6 +101,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
+// Fast non-blocking HTTP fetcher with strict timeout
+function fetchApiUrl(string $url, int $timeout = 2): ?string {
+    if (function_exists('curl_init')) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'YouTube-Live-TugOfWar/1.0');
+        $res = curl_exec($ch);
+        curl_close($ch);
+        return ($res !== false) ? $res : null;
+    }
+    $ctx = stream_context_create(['http' => ['timeout' => $timeout]]);
+    return @file_get_contents($url, false, $ctx) ?: null;
+}
+
 // 2. Poll Active YouTube Live Stream
 $apiKey = $settings['yt_api_key'] ?? '';
 $videoId = $settings['yt_video_id'] ?? '';
@@ -124,7 +142,7 @@ if (!empty($_GET['set_video_id'])) {
 // Auto-discover active live stream if videoId is missing
 if (empty($videoId) && !empty($apiKey)) {
     $searchUrl = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&eventType=live&q=Digital+Himalay&maxResults=1&key=" . urlencode($apiKey);
-    $searchRes = @file_get_contents($searchUrl);
+    $searchRes = fetchApiUrl($searchUrl, 3);
     if ($searchRes) {
         $searchJson = json_decode($searchRes, true);
         if (!empty($searchJson['items'][0]['id']['videoId'])) {
@@ -142,7 +160,7 @@ if (!empty($apiKey) && !empty($videoId)) {
     // Resolve LiveChatId if missing
     if (empty($liveChatId)) {
         $videoApiUrl = "https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=" . urlencode($videoId) . "&key=" . urlencode($apiKey);
-        $videoRes = @file_get_contents($videoApiUrl);
+        $videoRes = fetchApiUrl($videoApiUrl, 3);
         if ($videoRes) {
             $videoData = json_decode($videoRes, true);
             $chatId = $videoData['items'][0]['liveStreamingDetails']['activeLiveChatId'] ?? null;
@@ -160,7 +178,7 @@ if (!empty($apiKey) && !empty($videoId)) {
             $chatApiUrl .= "&pageToken=" . urlencode($pageToken);
         }
 
-        $chatRes = @file_get_contents($chatApiUrl);
+        $chatRes = fetchApiUrl($chatApiUrl, 2);
         if ($chatRes) {
             $chatJson = json_decode($chatRes, true);
             if (!empty($chatJson['nextPageToken'])) {
