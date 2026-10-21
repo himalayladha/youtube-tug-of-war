@@ -1,0 +1,51 @@
+name: Deploy to Google Cloud Run
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: tug-of-war
+  REGION: us-central1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        if: env.PROJECT_ID != ''
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        if: env.PROJECT_ID != ''
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authorize Docker push
+        if: env.PROJECT_ID != ''
+        run: gcloud auth configure-docker
+
+      - name: Build and Push Container
+        if: env.PROJECT_ID != ''
+        run: |
+          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/tug-of-war:${{ github.sha }} .
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/tug-of-war:${{ github.sha }}
+
+      - name: Deploy to Cloud Run
+        if: env.PROJECT_ID != ''
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/tug-of-war:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080 \
+            --memory 512Mi \
+            --set-env-vars YOUTUBE_API_KEY=AIzaSyDXaLD3JTFkMIOAW8GbhJoP8Fxpnr0HID0
