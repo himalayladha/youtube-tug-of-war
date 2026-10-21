@@ -16,6 +16,7 @@ NC='\033[0m'
 
 API_KEY=""
 STREAM_KEY=""
+VIDEO_ID=""
 
 for arg in "$@"; do
   case $arg in
@@ -25,6 +26,10 @@ for arg in "$@"; do
       ;;
     --stream-key=*|--yt-stream-key=*)
       STREAM_KEY="${arg#*=}"
+      shift
+      ;;
+    --video-id=*|--yt-video-id=*)
+      VIDEO_ID="${arg#*=}"
       shift
       ;;
   esac
@@ -64,6 +69,12 @@ if (!empty('$API_KEY')) {
 if (!empty('$STREAM_KEY')) {
     setSetting(\$pdo, 'yt_stream_key', '$STREAM_KEY');
     echo '[Success] YouTube Live Stream Key updated in database.' . PHP_EOL;
+}
+if (!empty('$VIDEO_ID')) {
+    setSetting(\$pdo, 'yt_video_id', '$VIDEO_ID');
+    setSetting(\$pdo, 'yt_live_chat_id', '');
+    setSetting(\$pdo, 'yt_page_token', '');
+    echo '[Success] YouTube Live Video ID updated in database: $VIDEO_ID' . PHP_EOL;
 }
 "
 

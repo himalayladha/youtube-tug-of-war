@@ -107,6 +107,35 @@ $videoId = $settings['yt_video_id'] ?? '';
 $liveChatId = $settings['yt_live_chat_id'] ?? '';
 $pageToken = $settings['yt_page_token'] ?? '';
 
+// Allow setting/updating video_id dynamically via query param (supports full URLs or video IDs)
+if (!empty($_GET['set_video_id'])) {
+    $rawVid = trim($_GET['set_video_id']);
+    if (preg_match('/(?:live\/|v=|youtu\.be\/|^)([a-zA-Z0-9_-]{11})/', $rawVid, $m)) {
+        $rawVid = $m[1];
+    }
+    setSetting($pdo, 'yt_video_id', $rawVid);
+    setSetting($pdo, 'yt_live_chat_id', '');
+    setSetting($pdo, 'yt_page_token', '');
+    $videoId = $rawVid;
+    $liveChatId = '';
+    $pageToken = '';
+}
+
+// Auto-discover active live stream if videoId is missing
+if (empty($videoId) && !empty($apiKey)) {
+    $searchUrl = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&eventType=live&q=Digital+Himalay&maxResults=1&key=" . urlencode($apiKey);
+    $searchRes = @file_get_contents($searchUrl);
+    if ($searchRes) {
+        $searchJson = json_decode($searchRes, true);
+        if (!empty($searchJson['items'][0]['id']['videoId'])) {
+            $videoId = $searchJson['items'][0]['id']['videoId'];
+            setSetting($pdo, 'yt_video_id', $videoId);
+            setSetting($pdo, 'yt_live_chat_id', '');
+            setSetting($pdo, 'yt_page_token', '');
+        }
+    }
+}
+
 $incomingPulls = [];
 
 if (!empty($apiKey) && !empty($videoId)) {
