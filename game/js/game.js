@@ -12,27 +12,11 @@
   window.addEventListener('resize', resizeCanvas);
 
   // High-Resolution AI Arena Background Loader
-  // Master Background
+  // Master Background Plate
   const arenaBgImg = new Image();
   let arenaBgLoaded = false;
   arenaBgImg.onload = () => { arenaBgLoaded = true; };
   arenaBgImg.src = './assets/images/arena_background.png';
-
-  // Synchronous Base64 Master Sprites (100% Match to Blueprint Artwork)
-  const spriteBlack = new Image();
-  let spriteBlackLoaded = false;
-  spriteBlack.onload = () => { spriteBlackLoaded = true; };
-  spriteBlack.src = window.SPRITE_BLACK_DATA || './assets/images/sprites/team_black.png';
-
-  const spriteWhite = new Image();
-  let spriteWhiteLoaded = false;
-  spriteWhite.onload = () => { spriteWhiteLoaded = true; };
-  spriteWhite.src = window.SPRITE_WHITE_DATA || './assets/images/sprites/team_white.png';
-
-  const spriteReticle = new Image();
-  let spriteReticleLoaded = false;
-  spriteReticle.onload = () => { spriteReticleLoaded = true; };
-  spriteReticle.src = window.SPRITE_RETICLE_DATA || './assets/images/sprites/center_reticle.png';
 
   function isImgReady(img) {
     return Boolean(img && img.complete && img.naturalWidth > 0);
@@ -161,21 +145,21 @@
     whiteImpulse: 0,
   };
 
-  // 5 Stick-figure pullers per side
+  // 5 Stick-figure pullers per side (offsets matching arena spacing)
   const pullers = {
     black: [
-      { xOffset: -125, phase: 0.0, isLeader: true },
-      { xOffset: -215, phase: 0.7, isLeader: false },
-      { xOffset: -305, phase: 1.4, isLeader: false },
-      { xOffset: -395, phase: 2.1, isLeader: false },
-      { xOffset: -485, phase: 2.8, isLeader: false },
+      { xOffset: -135, phase: 0.0, extraImpulse: 0, isLeader: true },
+      { xOffset: -260, phase: 0.45, extraImpulse: 0, isLeader: false },
+      { xOffset: -395, phase: 0.90, extraImpulse: 0, isLeader: false },
+      { xOffset: -535, phase: 1.35, extraImpulse: 0, isLeader: false },
+      { xOffset: -680, phase: 1.80, extraImpulse: 0, isLeader: false },
     ],
     white: [
-      { xOffset: 125, phase: 0.0, isLeader: true },
-      { xOffset: 215, phase: 0.7, isLeader: false },
-      { xOffset: 305, phase: 1.4, isLeader: false },
-      { xOffset: 395, phase: 2.1, isLeader: false },
-      { xOffset: 485, phase: 2.8, isLeader: false },
+      { xOffset: 135, phase: 0.0, extraImpulse: 0, isLeader: true },
+      { xOffset: 260, phase: 0.45, extraImpulse: 0, isLeader: false },
+      { xOffset: 395, phase: 0.90, extraImpulse: 0, isLeader: false },
+      { xOffset: 535, phase: 1.35, extraImpulse: 0, isLeader: false },
+      { xOffset: 680, phase: 1.80, extraImpulse: 0, isLeader: false },
     ],
   };
 
@@ -236,19 +220,30 @@
     sound.playPull();
 
     const impulseAmount = 14;
-    if (team === 'BLACK') {
+    const isBlack = (team === 'BLACK');
+    const teamPullers = isBlack ? pullers.black : pullers.white;
+    const pullDir = isBlack ? -1.0 : 1.0;
+
+    if (isBlack) {
       physics.blackImpulse += impulseAmount;
-      for (let i = 0; i < 5; i++) {
-        addParticle(960 + physics.x - 125 + Math.random() * 30, 750, -80 - Math.random() * 70, -10 - Math.random() * 50, '#FFFFFF', 3, 0.4);
-      }
       addFloatingText(`◄ ${user} +${pts}`, 740, 560 + (Math.random() - 0.5) * 50, '#FFFFFF');
     } else {
       physics.whiteImpulse += impulseAmount;
-      for (let i = 0; i < 5; i++) {
-        addParticle(960 + physics.x + 125 + Math.random() * 30, 750, 80 + Math.random() * 70, -10 - Math.random() * 50, '#FFFFFF', 3, 0.4);
-      }
       addFloatingText(`${user} +${pts} ►`, 1180, 560 + (Math.random() - 0.5) * 50, '#FFFFFF');
     }
+
+    // Dynamic exertion surge & ground friction sparks on all 5 pullers
+    teamPullers.forEach((p) => {
+      p.extraImpulse = Math.min(1.4, p.extraImpulse + 0.7);
+      const baseX = 960 + physics.x + p.xOffset;
+      const foot1X = baseX + pullDir * (-20.0 * 0.237);
+      const foot2X = baseX + pullDir * (410.0 * 0.237);
+      // Floor friction sparks spraying backward
+      for (let s = 0; s < 2; s++) {
+        addParticle(foot1X + (Math.random() - 0.5) * 8, 755, pullDir * (-40 - Math.random() * 50), -15 - Math.random() * 35, '#FFFFFF', Math.random() * 3 + 1.5, 0.35);
+        addParticle(foot2X + (Math.random() - 0.5) * 8, 755, pullDir * (-40 - Math.random() * 50), -15 - Math.random() * 35, '#FFFFFF', Math.random() * 3 + 1.5, 0.35);
+      }
+    });
 
     gameState.screenShake = Math.min(6, gameState.screenShake + 1.0);
     registerChatParticipant(user, team, pts);
@@ -514,10 +509,19 @@
       if (ft.life <= 0) floatingTexts.splice(i, 1);
     }
 
-    // Animate stick figure pull cadence
-    const effortSpeed = 3.6 + Math.abs(physics.vx) * 0.08;
-    pullers.black.forEach(p => { p.phase += dt * effortSpeed; });
-    pullers.white.forEach(p => { p.phase += dt * effortSpeed; });
+    // Decay pull impulse exertion smoothly
+    pullers.black.forEach(p => {
+      if (p.extraImpulse > 0) p.extraImpulse = Math.max(0, p.extraImpulse - dt * 3.2);
+    });
+    pullers.white.forEach(p => {
+      if (p.extraImpulse > 0) p.extraImpulse = Math.max(0, p.extraImpulse - dt * 3.2);
+    });
+
+    // Animate stick figure pull cadence with realistic muscular heave
+    const effortBlack = 3.2 + Math.abs(physics.vx) * 0.08 + physics.blackImpulse * 0.05;
+    const effortWhite = 3.2 + Math.abs(physics.vx) * 0.08 + physics.whiteImpulse * 0.05;
+    pullers.black.forEach(p => { p.phase += dt * effortBlack; });
+    pullers.white.forEach(p => { p.phase += dt * effortWhite; });
 
     updateHUDGauges();
   }
@@ -548,13 +552,10 @@
     // 2. Center Vertical Glowing Laser Beam (demarcation layer)
     drawCenterLaserBeam();
 
-    // 3. Heavy Braided Rope (fallback when sprites loading)
-    const spritesReady = (spriteBlackLoaded || isImgReady(spriteBlack)) && (spriteWhiteLoaded || isImgReady(spriteWhite));
-    if (!spritesReady) {
-      drawBraidedRope();
-    }
+    // 3. Heavy Braided Rope with Dynamic Strain & Tension
+    drawBraidedRope();
 
-    // 4. Black & White Stick-Figure Teams (Sprites or Procedural)
+    // 4. Black & White Stick-Figure Teams (100% Procedural Vector with Dynamic Motion)
     drawStickmanTeams();
 
     // 5. Particles & Sparks
@@ -793,22 +794,23 @@
     ctx.fill();
   }
 
-  // 5. Heavy Braided Rope with Center Reticle
+  // 5. Heavy Braided Rope with Dynamic Strain & Tension
   function drawBraidedRope() {
     const ropeY = 675;
+    const floorY = 755;
     const centerKnotX = 960 + physics.x;
-    const leftAnchorX = centerKnotX - 490;
-    const rightAnchorX = centerKnotX + 490;
+    const leftAnchorX = centerKnotX - 680;
+    const rightAnchorX = centerKnotX + 680;
 
     const tension = Math.min(1, Math.abs(physics.vx) / 8 + Math.abs(physics.x) / physics.winThreshold);
-    const sag = 6 - tension * 5;
+    const sag = 5 - tension * 4.5;
 
-    // Floor shadow under rope
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+    // Floor shadow under rope on the polished arena floor
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.65)';
     ctx.lineWidth = 14;
     ctx.beginPath();
-    ctx.moveTo(leftAnchorX, ropeY + 74);
-    ctx.quadraticCurveTo(centerKnotX, ropeY + 74 + sag, rightAnchorX, ropeY + 74);
+    ctx.moveTo(leftAnchorX - 160, floorY);
+    ctx.lineTo(rightAnchorX + 160, floorY);
     ctx.stroke();
 
     // Braided Rope Core
@@ -822,37 +824,37 @@
 
     // Braided white and dark twisted strands
     ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 5;
-    ctx.setLineDash([14, 12]);
+    ctx.lineWidth = 4.5;
+    ctx.setLineDash([12, 10]);
     ctx.beginPath();
     ctx.moveTo(leftAnchorX, ropeY - 2);
     ctx.quadraticCurveTo(centerKnotX, ropeY - 2 + sag, rightAnchorX, ropeY - 2);
     ctx.stroke();
 
     ctx.strokeStyle = '#050505';
-    ctx.lineWidth = 5;
-    ctx.lineDashOffset = 13;
+    ctx.lineWidth = 4.5;
+    ctx.lineDashOffset = 11;
     ctx.beginPath();
     ctx.moveTo(leftAnchorX, ropeY + 2);
     ctx.quadraticCurveTo(centerKnotX, ropeY + 2 + sag, rightAnchorX, ropeY + 2);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Rope tail curling off behind 5th pullers onto the floor
+    // Rope tails curling gracefully onto the arena floor behind the anchor pullers
     ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 10;
+    ctx.lineWidth = 9;
     ctx.lineCap = 'round';
 
-    // Left trail (Team Black)
+    // Left trail (Team Black anchor tail)
     ctx.beginPath();
     ctx.moveTo(leftAnchorX, ropeY);
-    ctx.bezierCurveTo(leftAnchorX - 80, ropeY + 15, leftAnchorX - 160, ropeY + 70, leftAnchorX - 260, ropeY + 75);
+    ctx.bezierCurveTo(leftAnchorX - 80, ropeY + 20, leftAnchorX - 120, floorY - 5, leftAnchorX - 180, floorY);
     ctx.stroke();
 
-    // Right trail (Team White)
+    // Right trail (Team White anchor tail)
     ctx.beginPath();
     ctx.moveTo(rightAnchorX, ropeY);
-    ctx.bezierCurveTo(rightAnchorX + 80, ropeY + 15, rightAnchorX + 160, ropeY + 70, rightAnchorX + 260, ropeY + 75);
+    ctx.bezierCurveTo(rightAnchorX + 80, ropeY + 20, rightAnchorX + 120, floorY - 5, rightAnchorX + 180, floorY);
     ctx.stroke();
 
     // Center Circular Reticle Marker
@@ -863,10 +865,10 @@
     ctx.strokeStyle = '#FFFFFF';
     ctx.lineWidth = 2.5;
     for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
-      const rx1 = Math.cos(angle) * 38;
-      const ry1 = Math.sin(angle) * 38;
-      const rx2 = Math.cos(angle) * 54;
-      const ry2 = Math.sin(angle) * 54;
+      const rx1 = Math.cos(angle) * 36;
+      const ry1 = Math.sin(angle) * 36;
+      const rx2 = Math.cos(angle) * 52;
+      const ry2 = Math.sin(angle) * 52;
       ctx.beginPath();
       ctx.moveTo(rx1, ry1);
       ctx.lineTo(rx2, ry2);
@@ -876,7 +878,7 @@
     // Outer white ring
     ctx.fillStyle = '#080808';
     ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 3.5;
     ctx.beginPath();
     ctx.arc(0, 0, 32, 0, Math.PI * 2);
     ctx.fill();
@@ -907,245 +909,228 @@
     ctx.restore();
   }
 
-  // 6. Black & White Stick-Figure Teams (100% Match to Blueprint Anatomy)
+  // 6. Black & White Stick-Figure Teams (100% Procedural Vector with Dynamic Motion)
   function drawStickmanTeams() {
     const centerKnotX = 960 + physics.x;
-
-    const blackOk = spriteBlackLoaded || isImgReady(spriteBlack);
-    const whiteOk = spriteWhiteLoaded || isImgReady(spriteWhite);
-
-    if (blackOk && whiteOk) {
-      // Athletic breathing & heave oscillation
-      const heaveY = Math.sin(pullers.black[0].phase) * 2.0;
-
-      // Draw Team Black pullers (5 contoured stickmen, rope tail, sweat drops)
-      ctx.drawImage(spriteBlack, 100 + physics.x, 530 + heaveY);
-
-      // Draw Team White pullers (5 contoured stickmen, rope tail, sweat drops)
-      ctx.drawImage(spriteWhite, 960 + physics.x, 530 - heaveY);
-
-      // Draw Center Reticle clamp
-      const retOk = spriteReticleLoaded || isImgReady(spriteReticle);
-      if (retOk) {
-        ctx.drawImage(spriteReticle, 920 + physics.x, 645);
-      }
-      return;
-    }
-
     const ropeY = 675;
 
     // Black Team (Left side: 5 Pullers pulling Left)
     pullers.black.forEach((p) => {
       const baseX = centerKnotX + p.xOffset;
-      drawStickmanPuller(baseX, ropeY, 'BLACK', p.phase);
+      drawStickmanPuller(baseX, ropeY, 'BLACK', p.phase, p.extraImpulse);
     });
 
     // White Team (Right side: 5 Pullers pulling Right)
     pullers.white.forEach((p) => {
       const baseX = centerKnotX + p.xOffset;
-      drawStickmanPuller(baseX, ropeY, 'WHITE', p.phase);
+      drawStickmanPuller(baseX, ropeY, 'WHITE', p.phase, p.extraImpulse);
     });
   }
 
-  function drawStickmanPuller(x, y, team, phase) {
+  function drawStickmanPuller(cx, cy, team, phase, extraImpulse = 0) {
     ctx.save();
-    const isBlack = team === 'BLACK';
+    const isBlack = (team === 'BLACK');
+    const pullDir = isBlack ? -1.0 : 1.0;
 
-    // Athletic pull lean oscillation
+    const outerStroke = isBlack ? '#FFFFFF' : '#000000';
+    const innerFill = isBlack ? '#000000' : '#FFFFFF';
+
+    const floorY = 755;
+    const scale = 0.237;
+
+    // Dynamic heave motion
     const heave = Math.sin(phase);
-    const leanPull = isBlack ? (-0.50 + heave * 0.08) : (0.50 - heave * 0.08);
-
-    // Coordinate calculation: hands grip rope at (x, y)
-    const hand1X = x + (isBlack ? 14 : -14);
-    const hand1Y = y;
-    const hand2X = x + (isBlack ? -16 : 16);
-    const hand2Y = y;
-
-    // Shoulders leaning back
-    const shoulderX = x + (isBlack ? -42 : 42) + (isBlack ? -heave * 6 : heave * 6);
-    const shoulderY = y - 50;
+    const leanPx = (heave * 12.0 + extraImpulse * 18.0) * scale;
+    const leanPy = (Math.abs(heave) * 5.0) * scale;
 
     // Head
-    const headX = shoulderX + (isBlack ? -20 : 20);
-    const headY = shoulderY - 34;
+    const headX = cx + pullDir * (220.0 * scale + leanPx * 1.2);
+    const headY = cy + (-167.5 * scale + leanPy);
+    const headR = 85.0 * scale;
+
+    // Shoulders
+    const shoulderX = cx + pullDir * (200.0 * scale + leanPx);
+    const shoulderY = cy + (-62.0 * scale + leanPy * 0.8);
 
     // Hips
-    const hipX = shoulderX + (isBlack ? -48 : 48);
-    const hipY = y + 26;
+    const hipX = cx + pullDir * (300.0 * scale + leanPx * 0.6);
+    const hipY = cy + (98.0 * scale + leanPy * 0.4);
+
+    // Dual ball fists gripping the rope
+    const fist1X = cx + pullDir * (-55.0 * scale - leanPx * 0.3);
+    const fist1Y = cy + (-7.5 * scale);
+    const fist1R = 34.0 * scale;
+
+    const fist2X = cx + pullDir * (+55.0 * scale - leanPx * 0.3);
+    const fist2Y = cy + (+7.5 * scale);
+    const fist2R = 34.0 * scale;
+
+    // Bent elbow for near arm
+    const elbowX = cx + pullDir * (180.0 * scale + leanPx * 0.5);
+    const elbowY = cy + (10.0 * scale + leanPy * 0.5);
 
     // Front leg (braced lunging forward with bent knee)
-    const knee1X = hipX + (isBlack ? 36 : -36);
-    const knee1Y = y + 52;
-    const foot1X = hipX + (isBlack ? 52 : -52);
-    const foot1Y = y + 78;
+    const knee1X = cx + pullDir * (90.0 * scale);
+    const knee1Y = cy + (168.0 * scale - leanPy * 0.3);
+    const foot1X = cx + pullDir * (-20.0 * scale);
+    const foot1Y = floorY;
 
     // Rear leg (digging backward with bent knee)
-    const knee2X = hipX + (isBlack ? -22 : 22);
-    const knee2Y = y + 50;
-    const foot2X = hipX + (isBlack ? -58 : 58);
-    const foot2Y = y + 78;
+    const knee2X = cx + pullDir * (350.0 * scale + leanPx * 0.3);
+    const knee2Y = cy + (198.0 * scale - leanPy * 0.2);
+    const foot2X = cx + pullDir * (410.0 * scale);
+    const foot2Y = floorY;
 
-    // Athletic bent elbows gripping rope
-    const elbow1X = (shoulderX + hand1X) / 2 + (isBlack ? -10 : 10);
-    const elbow1Y = (shoulderY + hand1Y) / 2 + 12;
-    const elbow2X = (shoulderX + hand2X) / 2 + (isBlack ? -12 : 12);
-    const elbow2Y = (shoulderY + hand2Y) / 2 + 15;
+    // Shoe sole dimensions
+    const soleW1 = 180.0 * scale;
+    const soleW2 = 160.0 * scale;
+    const soleH = 36.0 * scale;
+
+    const contourThick = 5.0;
+    const limbW = 24.0 * scale;
 
     // ----------------------------------------------------
-    // FLOOR REFLECTION ON GLOSSY TILES
+    // 1. FLOOR REFLECTION (Polished tile mirror reflection)
     // ----------------------------------------------------
     ctx.save();
-    ctx.globalAlpha = 0.16;
-    ctx.translate(0, foot1Y * 2);
-    ctx.scale(1, -0.65);
-
-    ctx.strokeStyle = isBlack ? '#383838' : '#FFFFFF';
-    ctx.lineWidth = 16;
+    ctx.globalAlpha = isBlack ? 0.20 : 0.25;
+    ctx.strokeStyle = isBlack ? '#404040' : '#FFFFFF';
+    ctx.fillStyle = isBlack ? '#404040' : '#FFFFFF';
+    ctx.lineWidth = limbW * 1.2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
     // Reflected torso
     ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(hipX, hipY);
+    ctx.moveTo(shoulderX, floorY * 2 - shoulderY);
+    ctx.lineTo(hipX, floorY * 2 - hipY);
     ctx.stroke();
 
-    // Reflected legs
+    // Reflected front leg
     ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(knee1X, knee1Y);
-    ctx.lineTo(foot1X, foot1Y);
+    ctx.moveTo(hipX, floorY * 2 - hipY);
+    ctx.lineTo(knee1X, floorY * 2 - knee1Y);
+    ctx.lineTo(foot1X, floorY);
     ctx.stroke();
 
+    // Reflected rear leg
     ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(knee2X, knee2Y);
-    ctx.lineTo(foot2X, foot2Y);
+    ctx.moveTo(hipX, floorY * 2 - hipY);
+    ctx.lineTo(knee2X, floorY * 2 - knee2Y);
+    ctx.lineTo(foot2X, floorY);
     ctx.stroke();
 
     // Reflected head
-    ctx.fillStyle = isBlack ? '#383838' : '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(headX, headY, 21, 0, Math.PI * 2);
+    ctx.arc(headX, floorY * 2 - headY, headR, 0, Math.PI * 2);
     ctx.fill();
-
     ctx.restore();
 
-    // ----------------------------------------------------
-    // SOLID STICKMAN SILHOUETTE WITH CRISP CONTOUR
-    // ----------------------------------------------------
-    const outerStroke = isBlack ? '#FFFFFF' : '#000000';
-    const innerFill = isBlack ? '#000000' : '#FFFFFF';
-
-    // 1. Outer contour stroke (thick border)
-    ctx.strokeStyle = outerStroke;
-    ctx.lineWidth = 24;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    // Front leg
-    ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(knee1X, knee1Y);
-    ctx.lineTo(foot1X, foot1Y);
-    ctx.lineTo(foot1X + (isBlack ? 14 : -14), foot1Y);
-    ctx.stroke();
-
-    // Rear leg
-    ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(knee2X, knee2Y);
-    ctx.lineTo(foot2X, foot2Y);
-    ctx.lineTo(foot2X + (isBlack ? -14 : 14), foot2Y);
-    ctx.stroke();
-
-    // Torso
-    ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(hipX, hipY);
-    ctx.stroke();
-
-    // Arms reaching to rope with bent elbows
-    ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(elbow1X, elbow1Y);
-    ctx.lineTo(hand1X, hand1Y);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(elbow2X, elbow2Y);
-    ctx.lineTo(hand2X, hand2Y);
-    ctx.stroke();
-
-    // Head outer border
-    ctx.fillStyle = outerStroke;
-    ctx.beginPath();
-    ctx.arc(headX, headY, 24, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 2. Inner core (solid black or solid white fill)
-    ctx.strokeStyle = innerFill;
-    ctx.lineWidth = 16;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    // Front leg core
-    ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(knee1X, knee1Y);
-    ctx.lineTo(foot1X, foot1Y);
-    ctx.lineTo(foot1X + (isBlack ? 14 : -14), foot1Y);
-    ctx.stroke();
-
-    // Rear leg core
-    ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(knee2X, knee2Y);
-    ctx.lineTo(foot2X, foot2Y);
-    ctx.lineTo(foot2X + (isBlack ? -14 : 14), foot2Y);
-    ctx.stroke();
-
-    // Torso core
-    ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(hipX, hipY);
-    ctx.stroke();
-
-    // Arms core
-    ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(elbow1X, elbow1Y);
-    ctx.lineTo(hand1X, hand1Y);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(elbow2X, elbow2Y);
-    ctx.lineTo(hand2X, hand2Y);
-    ctx.stroke();
-
-    // Head inner core
-    ctx.fillStyle = innerFill;
-    ctx.beginPath();
-    ctx.arc(headX, headY, 19, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 3. Sweat / Effort marks radiating from behind head (3 crisp white dashes)
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    const sweatDir = isBlack ? -1 : 1;
-    for (let s = 0; s < 3; s++) {
-      const sx1 = headX + sweatDir * 28;
-      const sy1 = headY + s * 9 - 10;
-      const sx2 = sx1 + sweatDir * 14;
-      const sy2 = sy1 - 8;
+    // Helper for double-contoured segments
+    function drawSegment(x1, y1, x2, y2, width) {
+      // Outer stroke
+      ctx.strokeStyle = outerStroke;
+      ctx.lineWidth = width + contourThick * 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.beginPath();
-      ctx.moveTo(sx1, sy1);
-      ctx.lineTo(sx2, sy2);
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+
+      // Inner core
+      ctx.strokeStyle = innerFill;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
       ctx.stroke();
     }
+
+    // Helper for rounded shoe soles
+    function drawShoeSole(x, y, w, h, facingDir) {
+      const rx = Math.min(x - facingDir * w * 0.5, x + facingDir * w * 0.5);
+      const r = h * 0.5;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(rx, y - h, Math.abs(w), h, r);
+      } else {
+        ctx.rect(rx, y - h, Math.abs(w), h);
+      }
+      ctx.fillStyle = innerFill;
+      ctx.strokeStyle = outerStroke;
+      ctx.lineWidth = contourThick;
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // 2. Draw Rear Leg (Hip -> Knee 2 -> Foot 2)
+    drawSegment(hipX, hipY, knee2X, knee2Y, limbW * 1.1);
+    drawSegment(knee2X, knee2Y, foot2X, foot2Y, limbW * 1.0);
+    drawShoeSole(foot2X, foot2Y, soleW2, soleH, pullDir);
+
+    // 3. Draw Far Arm (Shoulder -> Fist 1)
+    drawSegment(shoulderX, shoulderY, fist1X, fist1Y, limbW * 0.85);
+
+    // 4. Draw Torso (Shoulder -> Hip)
+    drawSegment(shoulderX, shoulderY, hipX, hipY, limbW * 1.45);
+
+    // 5. Draw Front Leg (Hip -> Knee 1 -> Foot 1)
+    drawSegment(hipX, hipY, knee1X, knee1Y, limbW * 1.15);
+    drawSegment(knee1X, knee1Y, foot1X, foot1Y, limbW * 1.0);
+    drawShoeSole(foot1X, foot1Y, soleW1, soleH, -pullDir);
+
+    // 6. Draw Near Arm (Shoulder -> Elbow -> Fist 2)
+    drawSegment(shoulderX, shoulderY, elbowX, elbowY, limbW * 0.95);
+    drawSegment(elbowX, elbowY, fist2X, fist2Y, limbW * 0.95);
+
+    // 7. Draw Ball Fists gripping rope
+    function drawBallFist(fx, fy, fr) {
+      ctx.beginPath();
+      ctx.arc(fx, fy, fr, 0, Math.PI * 2);
+      ctx.fillStyle = innerFill;
+      ctx.strokeStyle = outerStroke;
+      ctx.lineWidth = contourThick;
+      ctx.fill();
+      ctx.stroke();
+    }
+    drawBallFist(fist1X, fist1Y, fist1R);
+    drawBallFist(fist2X, fist2Y, fist2R);
+
+    // 8. Draw Head
+    ctx.beginPath();
+    ctx.arc(headX, headY, headR, 0, Math.PI * 2);
+    ctx.fillStyle = innerFill;
+    ctx.strokeStyle = outerStroke;
+    ctx.lineWidth = contourThick;
+    ctx.fill();
+    ctx.stroke();
+
+    // 9. Effort Sweat Spray radiating behind head
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    const sprayDir = -pullDir;
+    const sweatOffsets = [
+      { dx: 18, dy: -6, len: 12 },
+      { dx: 24, dy: 4, len: 10 },
+      { dx: 14, dy: 14, len: 8 },
+    ];
+    sweatOffsets.forEach(s => {
+      const sx = headX + sprayDir * s.dx;
+      const sy = headY + s.dy;
+      const ex = sx + sprayDir * (s.len + (extraImpulse || 0) * 8);
+      const ey = sy - 4;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(ex, ey, 2.0, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+    });
 
     ctx.restore();
   }
