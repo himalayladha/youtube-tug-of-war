@@ -520,34 +520,35 @@ body, html {
   transition: none;
 }
 
-/* Captain Rank 1: Dark technical card with silver square badge */
+/* Captain Rank 1: High-Contrast White Strip Highlight */
 .top5-item.captain-rank1 {
-  background: rgba(26, 26, 26, 0.95) !important;
-  border: 1.5px solid #505050;
-  color: var(--c-white) !important;
+  background: #FFFFFF !important;
+  border: 1.5px solid #FFFFFF !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.4), 0 2px 8px rgba(0, 0, 0, 0.8) !important;
 }
 
 .top5-item.captain-rank1 .top5-rank-badge {
-  color: var(--c-white);
-  background: #383838;
+  color: #FFFFFF !important;
+  background: #000000 !important;
   padding: 2px 8px;
   border-radius: 4px;
 }
 
 .top5-item.captain-rank1 .top5-rank-badge svg {
-  fill: var(--c-white);
+  fill: #FFFFFF !important;
   width: 17px;
   height: 17px;
 }
 
 .top5-item.captain-rank1 .top5-name {
-  color: var(--c-white);
-  font-weight: 800;
+  color: #000000 !important;
+  font-weight: 900;
   font-size: 19px;
 }
 
 .top5-item.captain-rank1 .top5-score {
-  color: var(--c-white);
+  color: #000000 !important;
   font-weight: 900;
   font-size: 21px;
 }
