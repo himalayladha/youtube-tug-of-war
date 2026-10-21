@@ -478,34 +478,33 @@ body, html {
 }
 
 .top5-card {
-  width: 326px;
-  background: rgba(10, 10, 10, 0.90);
-  border: 1.5px solid #333333;
-  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+  width: 440px;
+  background: rgba(10, 10, 10, 0.92);
+  border: 1.5px solid #383838;
+  clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
   backdrop-filter: blur(14px);
-  padding: 12px 16px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.90);
+  gap: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.92);
 }
 
 .top5-card-header {
   font-family: var(--font-tech);
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 900;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--c-white);
-  padding-bottom: 6px;
+  padding-bottom: 8px;
   border-bottom: 1.5px solid var(--c-dark-5);
 }
 
 .top5-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  max-height: 200px;
+  gap: 7px;
   overflow: hidden;
 }
 
@@ -513,9 +512,9 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 5px 8px;
-  border-radius: 4px;
-  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-size: 18px;
   font-family: var(--font-body);
   font-weight: 700;
   transition: none;
@@ -524,45 +523,49 @@ body, html {
 /* Captain Rank 1: Dark technical card with silver square badge */
 .top5-item.captain-rank1 {
   background: rgba(26, 26, 26, 0.95) !important;
-  border: 1px solid #484848;
+  border: 1.5px solid #505050;
   color: var(--c-white) !important;
 }
 
 .top5-item.captain-rank1 .top5-rank-badge {
   color: var(--c-white);
   background: #383838;
-  padding: 1px 6px;
-  border-radius: 3px;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .top5-item.captain-rank1 .top5-rank-badge svg {
   fill: var(--c-white);
+  width: 17px;
+  height: 17px;
 }
 
 .top5-item.captain-rank1 .top5-name {
   color: var(--c-white);
   font-weight: 800;
+  font-size: 19px;
 }
 
 .top5-item.captain-rank1 .top5-score {
   color: var(--c-white);
   font-weight: 900;
+  font-size: 21px;
 }
 
 .top5-rank-badge {
   font-family: var(--font-tech);
   font-weight: 900;
-  font-size: 13px;
-  width: 36px;
+  font-size: 17px;
+  width: 48px;
   color: var(--c-gray-4);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 
 .top5-rank-badge svg {
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
   fill: var(--c-white);
 }
 
@@ -571,14 +574,16 @@ body, html {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-right: 8px;
+  margin-right: 12px;
   color: var(--c-offwhite);
+  font-size: 18px;
+  font-weight: 800;
 }
 
 .top5-score {
   font-family: var(--font-tech);
   font-weight: 900;
-  font-size: 13px;
+  font-size: 20px;
   font-variant-numeric: tabular-nums;
   color: var(--c-white);
 }

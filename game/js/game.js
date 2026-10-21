@@ -447,7 +447,7 @@
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    const crownSvg = `<svg style="width:12px;height:12px;fill:#FFFFFF;margin-left:4px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
+    const crownSvg = `<svg style="width:17px;height:17px;fill:#FFFFFF;margin-left:5px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
 
     while (container.children.length > top5List.length) {
       container.removeChild(container.lastElementChild);
