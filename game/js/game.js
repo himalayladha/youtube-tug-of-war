@@ -773,76 +773,76 @@
   function drawBraidedRope() {
     const ropeY = 675;
     const centerKnotX = 960 + physics.x;
-    const leftAnchorX = centerKnotX - 510;
-    const rightAnchorX = centerKnotX + 510;
+    const leftAnchorX = centerKnotX - 490;
+    const rightAnchorX = centerKnotX + 490;
 
     const tension = Math.min(1, Math.abs(physics.vx) / 8 + Math.abs(physics.x) / physics.winThreshold);
-    const sag = 8 - tension * 6;
+    const sag = 6 - tension * 5;
 
-    // Floor shadow
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+    // Floor shadow under rope
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
     ctx.lineWidth = 14;
     ctx.beginPath();
-    ctx.moveTo(leftAnchorX, ropeY + 70);
-    ctx.quadraticCurveTo(centerKnotX, ropeY + 70 + sag, rightAnchorX, ropeY + 70);
+    ctx.moveTo(leftAnchorX, ropeY + 74);
+    ctx.quadraticCurveTo(centerKnotX, ropeY + 74 + sag, rightAnchorX, ropeY + 74);
     ctx.stroke();
 
-    // Rope Core
-    ctx.strokeStyle = '#4A4A4A';
-    ctx.lineWidth = 12;
+    // Braided Rope Core
+    ctx.strokeStyle = '#222222';
+    ctx.lineWidth = 14;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(leftAnchorX, ropeY);
     ctx.quadraticCurveTo(centerKnotX, ropeY + sag, rightAnchorX, ropeY);
     ctx.stroke();
 
-    // Braided texture (alternating white/dark stripes)
+    // Braided white and dark twisted strands
     ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 4;
-    ctx.setLineDash([12, 10]);
+    ctx.lineWidth = 5;
+    ctx.setLineDash([14, 12]);
     ctx.beginPath();
     ctx.moveTo(leftAnchorX, ropeY - 2);
     ctx.quadraticCurveTo(centerKnotX, ropeY - 2 + sag, rightAnchorX, ropeY - 2);
     ctx.stroke();
 
     ctx.strokeStyle = '#050505';
-    ctx.lineWidth = 4;
-    ctx.lineDashOffset = 11;
+    ctx.lineWidth = 5;
+    ctx.lineDashOffset = 13;
     ctx.beginPath();
     ctx.moveTo(leftAnchorX, ropeY + 2);
     ctx.quadraticCurveTo(centerKnotX, ropeY + 2 + sag, rightAnchorX, ropeY + 2);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Rope trail curl behind 5th pullers dropping naturally to the floor
+    // Rope tail curling off behind 5th pullers onto the floor
     ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 9;
+    ctx.lineWidth = 10;
     ctx.lineCap = 'round';
 
-    // Left trail (Black side)
+    // Left trail (Team Black)
     ctx.beginPath();
     ctx.moveTo(leftAnchorX, ropeY);
-    ctx.bezierCurveTo(leftAnchorX - 60, ropeY + 10, leftAnchorX - 120, ropeY + 70, leftAnchorX - 220, ropeY + 80);
+    ctx.bezierCurveTo(leftAnchorX - 80, ropeY + 15, leftAnchorX - 160, ropeY + 70, leftAnchorX - 260, ropeY + 75);
     ctx.stroke();
 
-    // Right trail (White side)
+    // Right trail (Team White)
     ctx.beginPath();
     ctx.moveTo(rightAnchorX, ropeY);
-    ctx.bezierCurveTo(rightAnchorX + 60, ropeY + 10, rightAnchorX + 120, ropeY + 70, rightAnchorX + 220, ropeY + 80);
+    ctx.bezierCurveTo(rightAnchorX + 80, ropeY + 15, rightAnchorX + 160, ropeY + 70, rightAnchorX + 260, ropeY + 75);
     ctx.stroke();
 
     // Center Circular Reticle Marker
     ctx.save();
     ctx.translate(centerKnotX, ropeY + sag);
 
-    // Radiating strain speed lines around reticle
+    // 8 Sharp white strain speed lines bursting from reticle
     ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
-      const rx1 = Math.cos(angle) * 36;
-      const ry1 = Math.sin(angle) * 36;
-      const rx2 = Math.cos(angle) * 48;
-      const ry2 = Math.sin(angle) * 48;
+      const rx1 = Math.cos(angle) * 38;
+      const ry1 = Math.sin(angle) * 38;
+      const rx2 = Math.cos(angle) * 54;
+      const ry2 = Math.sin(angle) * 54;
       ctx.beginPath();
       ctx.moveTo(rx1, ry1);
       ctx.lineTo(rx2, ry2);
@@ -850,109 +850,111 @@
     }
 
     // Outer white ring
-    ctx.fillStyle = '#050505';
+    ctx.fillStyle = '#080808';
     ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 3.5;
+    ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.arc(0, 0, 30, 0, Math.PI * 2);
+    ctx.arc(0, 0, 32, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
     // Inner ring
-    ctx.strokeStyle = '#888888';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#666666';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(0, 0, 24, 0, Math.PI * 2);
+    ctx.arc(0, 0, 25, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Center Crown in Reticle
+    // Center Crown Emblem in Reticle
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.moveTo(-14, 8);
-    ctx.lineTo(-16, -8);
+    ctx.moveTo(-15, 9);
+    ctx.lineTo(-17, -8);
     ctx.lineTo(-6, -1);
-    ctx.lineTo(0, -13);
+    ctx.lineTo(0, -14);
     ctx.lineTo(6, -1);
-    ctx.lineTo(16, -8);
-    ctx.lineTo(14, 8);
+    ctx.lineTo(17, -8);
+    ctx.lineTo(15, 9);
     ctx.closePath();
     ctx.fill();
 
-    ctx.fillRect(-14, 10, 28, 3.5);
+    ctx.fillRect(-15, 11, 30, 4);
 
     ctx.restore();
   }
 
-  // 6. Black & White Stick-Figure Teams
+  // 6. Black & White Stick-Figure Teams (100% Match to Blueprint Anatomy)
   function drawStickmanTeams() {
     const ropeY = 675;
     const centerKnotX = 960 + physics.x;
 
-    // Black Team (Left side)
+    // Black Team (Left side: 5 Pullers pulling Left)
     pullers.black.forEach((p) => {
       const baseX = centerKnotX + p.xOffset;
-      drawStickmanPuller(baseX, ropeY, 'BLACK', p.phase, p.isLeader);
+      drawStickmanPuller(baseX, ropeY, 'BLACK', p.phase);
     });
 
-    // White Team (Right side)
+    // White Team (Right side: 5 Pullers pulling Right)
     pullers.white.forEach((p) => {
       const baseX = centerKnotX + p.xOffset;
-      drawStickmanPuller(baseX, ropeY, 'WHITE', p.phase, p.isLeader);
+      drawStickmanPuller(baseX, ropeY, 'WHITE', p.phase);
     });
   }
 
-  function drawStickmanPuller(x, y, team, phase, isLeader) {
+  function drawStickmanPuller(x, y, team, phase) {
     ctx.save();
     const isBlack = team === 'BLACK';
 
-    // Effort oscillation
+    // Athletic pull lean oscillation
     const heave = Math.sin(phase);
-    const leanPull = isBlack ? (-0.46 + heave * 0.08) : (0.46 - heave * 0.08);
+    const leanPull = isBlack ? (-0.50 + heave * 0.08) : (0.50 - heave * 0.08);
 
-    // Anatomical positions relative to rope grasp
-    const shoulderX = x + (isBlack ? -36 : 36) + (isBlack ? -heave * 6 : heave * 6);
-    const shoulderY = y - 48;
-
-    const headX = shoulderX + (isBlack ? -18 : 18);
-    const headY = shoulderY - 32;
-
-    const hipX = shoulderX + (isBlack ? -46 : 46);
-    const hipY = y + 26;
-
-    // Braced front leg
-    const knee1X = hipX + (isBlack ? 32 : -32);
-    const knee1Y = y + 54;
-    const foot1X = hipX + (isBlack ? 44 : -44);
-    const foot1Y = y + 78;
-
-    // Extended rear leg (digging in)
-    const knee2X = hipX + (isBlack ? -24 : 24);
-    const knee2Y = y + 50;
-    const foot2X = hipX + (isBlack ? -54 : 54);
-    const foot2Y = y + 78;
-
-    // Hands gripping rope
-    const hand1X = x + (isBlack ? 8 : -8);
+    // Coordinate calculation: hands grip rope at (x, y)
+    const hand1X = x + (isBlack ? 14 : -14);
     const hand1Y = y;
     const hand2X = x + (isBlack ? -16 : 16);
     const hand2Y = y;
 
-    // Forearms with athletic bent elbows grasping the rope
-    const elbow1X = (shoulderX + hand1X) / 2 + (isBlack ? -8 : 8);
-    const elbow1Y = (shoulderY + hand1Y) / 2 + 10;
-    const elbow2X = (shoulderX + hand2X) / 2 + (isBlack ? -10 : 10);
-    const elbow2Y = (shoulderY + hand2Y) / 2 + 14;
+    // Shoulders leaning back
+    const shoulderX = x + (isBlack ? -42 : 42) + (isBlack ? -heave * 6 : heave * 6);
+    const shoulderY = y - 50;
+
+    // Head
+    const headX = shoulderX + (isBlack ? -20 : 20);
+    const headY = shoulderY - 34;
+
+    // Hips
+    const hipX = shoulderX + (isBlack ? -48 : 48);
+    const hipY = y + 26;
+
+    // Front leg (braced lunging forward with bent knee)
+    const knee1X = hipX + (isBlack ? 36 : -36);
+    const knee1Y = y + 52;
+    const foot1X = hipX + (isBlack ? 52 : -52);
+    const foot1Y = y + 78;
+
+    // Rear leg (digging backward with bent knee)
+    const knee2X = hipX + (isBlack ? -22 : 22);
+    const knee2Y = y + 50;
+    const foot2X = hipX + (isBlack ? -58 : 58);
+    const foot2Y = y + 78;
+
+    // Athletic bent elbows gripping rope
+    const elbow1X = (shoulderX + hand1X) / 2 + (isBlack ? -10 : 10);
+    const elbow1Y = (shoulderY + hand1Y) / 2 + 12;
+    const elbow2X = (shoulderX + hand2X) / 2 + (isBlack ? -12 : 12);
+    const elbow2Y = (shoulderY + hand2Y) / 2 + 15;
 
     // ----------------------------------------------------
     // FLOOR REFLECTION ON GLOSSY TILES
     // ----------------------------------------------------
     ctx.save();
-    ctx.globalAlpha = 0.18;
+    ctx.globalAlpha = 0.16;
     ctx.translate(0, foot1Y * 2);
     ctx.scale(1, -0.65);
 
-    ctx.strokeStyle = isBlack ? '#3A3A3A' : '#FFFFFF';
-    ctx.lineWidth = 15;
+    ctx.strokeStyle = isBlack ? '#383838' : '#FFFFFF';
+    ctx.lineWidth = 16;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -976,23 +978,22 @@
     ctx.stroke();
 
     // Reflected head
-    ctx.fillStyle = isBlack ? '#3A3A3A' : '#FFFFFF';
+    ctx.fillStyle = isBlack ? '#383838' : '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(headX, headY, 20, 0, Math.PI * 2);
+    ctx.arc(headX, headY, 21, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
 
     // ----------------------------------------------------
-    // SOLID STICKMAN WITH CRISP CONTOURED STROKE
+    // SOLID STICKMAN SILHOUETTE WITH CRISP CONTOUR
     // ----------------------------------------------------
-    // Outer outline stroke: Black has white outline; White has black outline
     const outerStroke = isBlack ? '#FFFFFF' : '#000000';
     const innerFill = isBlack ? '#000000' : '#FFFFFF';
 
-    // 1. Draw outer stroke skeleton (thick line)
+    // 1. Outer contour stroke (thick border)
     ctx.strokeStyle = outerStroke;
-    ctx.lineWidth = isBlack ? 24 : 22;
+    ctx.lineWidth = 24;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -1001,6 +1002,7 @@
     ctx.moveTo(hipX, hipY);
     ctx.lineTo(knee1X, knee1Y);
     ctx.lineTo(foot1X, foot1Y);
+    ctx.lineTo(foot1X + (isBlack ? 14 : -14), foot1Y);
     ctx.stroke();
 
     // Rear leg
@@ -1008,6 +1010,7 @@
     ctx.moveTo(hipX, hipY);
     ctx.lineTo(knee2X, knee2Y);
     ctx.lineTo(foot2X, foot2Y);
+    ctx.lineTo(foot2X + (isBlack ? -14 : 14), foot2Y);
     ctx.stroke();
 
     // Torso
@@ -1016,7 +1019,7 @@
     ctx.lineTo(hipX, hipY);
     ctx.stroke();
 
-    // Arms
+    // Arms reaching to rope with bent elbows
     ctx.beginPath();
     ctx.moveTo(shoulderX, shoulderY);
     ctx.lineTo(elbow1X, elbow1Y);
@@ -1029,15 +1032,15 @@
     ctx.lineTo(hand2X, hand2Y);
     ctx.stroke();
 
-    // Head outline
+    // Head outer border
     ctx.fillStyle = outerStroke;
     ctx.beginPath();
-    ctx.arc(headX, headY, 23, 0, Math.PI * 2);
+    ctx.arc(headX, headY, 24, 0, Math.PI * 2);
     ctx.fill();
 
-    // 2. Draw inner core (solid fill)
+    // 2. Inner core (solid black or solid white fill)
     ctx.strokeStyle = innerFill;
-    ctx.lineWidth = isBlack ? 15 : 14;
+    ctx.lineWidth = 16;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -1046,6 +1049,7 @@
     ctx.moveTo(hipX, hipY);
     ctx.lineTo(knee1X, knee1Y);
     ctx.lineTo(foot1X, foot1Y);
+    ctx.lineTo(foot1X + (isBlack ? 14 : -14), foot1Y);
     ctx.stroke();
 
     // Rear leg core
@@ -1053,6 +1057,7 @@
     ctx.moveTo(hipX, hipY);
     ctx.lineTo(knee2X, knee2Y);
     ctx.lineTo(foot2X, foot2Y);
+    ctx.lineTo(foot2X + (isBlack ? -14 : 14), foot2Y);
     ctx.stroke();
 
     // Torso core
@@ -1074,48 +1079,26 @@
     ctx.lineTo(hand2X, hand2Y);
     ctx.stroke();
 
-    // Head core
+    // Head inner core
     ctx.fillStyle = innerFill;
     ctx.beginPath();
-    ctx.arc(headX, headY, 18, 0, Math.PI * 2);
+    ctx.arc(headX, headY, 19, 0, Math.PI * 2);
     ctx.fill();
 
-    // 3. Sweat / Effort Marks radiating from head
+    // 3. Sweat / Effort marks radiating from behind head (3 crisp white dashes)
     ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
     const sweatDir = isBlack ? -1 : 1;
     for (let s = 0; s < 3; s++) {
-      const angle = -0.5 + s * 0.45;
-      const sx1 = headX + sweatDir * 24;
-      const sy1 = headY + s * 8 - 8;
-      const sx2 = sx1 + sweatDir * 12;
+      const sx1 = headX + sweatDir * 28;
+      const sy1 = headY + s * 9 - 10;
+      const sx2 = sx1 + sweatDir * 14;
       const sy2 = sy1 - 8;
       ctx.beginPath();
       ctx.moveTo(sx1, sy1);
       ctx.lineTo(sx2, sy2);
       ctx.stroke();
-    }
-
-    // 4. Captain Crown on Head
-    if (isLeader) {
-      ctx.save();
-      ctx.fillStyle = isBlack ? '#FFFFFF' : '#000000';
-      ctx.strokeStyle = isBlack ? '#000000' : '#FFFFFF';
-      ctx.lineWidth = 1.5;
-
-      const crownY = headY - 20;
-      ctx.beginPath();
-      ctx.moveTo(headX - 14, crownY);
-      ctx.lineTo(headX - 16, crownY - 14);
-      ctx.lineTo(headX - 6, crownY - 6);
-      ctx.lineTo(headX, crownY - 18);
-      ctx.lineTo(headX + 6, crownY - 6);
-      ctx.lineTo(headX + 16, crownY - 14);
-      ctx.lineTo(headX + 14, crownY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
     }
 
     ctx.restore();
@@ -1214,6 +1197,15 @@
     const roundCycleEl = document.getElementById('round-cycle-text');
     if (roundCycleEl) {
       roundCycleEl.textContent = `ROUND 0${gameState.roundNumber} / 0${gameState.totalRounds}`;
+    }
+
+    const capBlackScore = document.getElementById('captain-black-score');
+    const capWhiteScore = document.getElementById('captain-white-score');
+    if (capBlackScore && currentBlackRoster.length > 0) {
+      capBlackScore.textContent = `${currentBlackRoster[0].score || 0}`;
+    }
+    if (capWhiteScore && currentWhiteRoster.length > 0) {
+      capWhiteScore.textContent = `${currentWhiteRoster[0].score || 0}`;
     }
   }
 
