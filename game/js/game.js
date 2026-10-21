@@ -105,9 +105,8 @@
 
   const sound = new SoundManager();
 
-  // Curated Debate Topics
+  // Curated Debate Topics (Changes Every 3 Rounds)
   const DEBATE_TOPICS = [
-    { left: 'BLACK', right: 'WHITE' },
     { left: 'ANDROID', right: 'IPHONE' },
     { left: 'INTROVERT', right: 'EXTROVERT' },
     { left: 'DOGS', right: 'CATS' },
@@ -116,7 +115,8 @@
     { left: 'PIZZA', right: 'BURGERS' },
     { left: 'WORK FROM HOME', right: 'OFFICE' },
     { left: 'SUMMER', right: 'WINTER' },
-    { left: 'CHESS', right: 'VIDEO GAMES' }
+    { left: 'CHESS', right: 'VIDEO GAMES' },
+    { left: 'MAC', right: 'WINDOWS' }
   ];
 
   // Game State
@@ -486,10 +486,19 @@
     });
   }
 
-  // Next Round / Topic Cycle
+  // Next Round / Topic Cycle (Debate Topic changes every 3 rounds)
   function nextTopic() {
-    gameState.roundNumber = (gameState.roundNumber % gameState.totalRounds) + 1;
-    gameState.currentTopicIdx = (gameState.currentTopicIdx + 1) % DEBATE_TOPICS.length;
+    if (gameState.roundNumber >= gameState.totalRounds) {
+      // 3 rounds completed! Advance debate topic and reset match scores
+      gameState.roundNumber = 1;
+      gameState.currentTopicIdx = (gameState.currentTopicIdx + 1) % DEBATE_TOPICS.length;
+      gameState.winsBlack = 0;
+      gameState.winsWhite = 0;
+    } else {
+      // Advance to next round within current 3-round debate
+      gameState.roundNumber++;
+    }
+
     physics.x = 0;
     physics.vx = 0;
     physics.blackImpulse = 0;
@@ -534,6 +543,8 @@
   }
 
   // Keyboard Dev Controls
+  window.nextTopic = nextTopic;
+  window.gameState = gameState;
   window.addEventListener('keydown', (e) => {
     const k = e.key.toLowerCase();
     if (e.key === 'ArrowLeft' || e.key === '1' || k === 'a') {
@@ -1372,6 +1383,30 @@
   // HUD UPDATER
   // ----------------------------------------------------
   function updateTopicHUD() {
+    const curTopic = DEBATE_TOPICS[gameState.currentTopicIdx] || { left: 'ANDROID', right: 'IPHONE' };
+
+    // Update Above-Middle Debate Widget
+    const topicLeft = document.getElementById('topic-left-text');
+    const topicRight = document.getElementById('topic-right-text');
+    if (topicLeft) topicLeft.textContent = curTopic.left;
+    if (topicRight) topicRight.textContent = curTopic.right;
+
+    const footerBlack = document.getElementById('footer-topic-black');
+    const footerWhite = document.getElementById('footer-topic-white');
+    if (footerBlack) footerBlack.textContent = curTopic.left;
+    if (footerWhite) footerWhite.textContent = curTopic.right;
+
+    const debateRoundInd = document.getElementById('debate-round-indicator');
+    if (debateRoundInd) {
+      debateRoundInd.textContent = `ROUND ${gameState.roundNumber} OF ${gameState.totalRounds}`;
+    }
+
+    // Dynamic Command Box Action Subtexts
+    const cmdSubBlack = document.querySelector('.cmd-box.black .cmd-subtext');
+    const cmdSubWhite = document.querySelector('.cmd-box.white .cmd-subtext');
+    if (cmdSubBlack) cmdSubBlack.textContent = `FOR ${curTopic.left}`;
+    if (cmdSubWhite) cmdSubWhite.textContent = `FOR ${curTopic.right}`;
+
     const winsBlackEl = document.getElementById('wins-black-count');
     const winsWhiteEl = document.getElementById('wins-white-count');
     if (winsBlackEl) winsBlackEl.textContent = gameState.winsBlack;

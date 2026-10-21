@@ -128,10 +128,10 @@
           </div>
         </div>
 
-        <!-- 3. Flanking Top 5 Leaderboard Cards -->
+        <!-- 3. Flanking Top 5 Leaderboard Cards & Center Debate Topic -->
         <div class="middle-arena-hud">
           <!-- Left: Top 5 Black -->
-          <div id="leaderboard-black" class="top5-card">
+          <div id="leaderboard-black" class="top5-card black-card">
             <div class="top5-card-header">TOP 5 - BLACK</div>
             <div id="lb-list-black" class="top5-list">
               <div class="top5-item captain-rank1">
@@ -162,8 +162,35 @@
             </div>
           </div>
 
-          <!-- Right: Top 5 White -->
-          <div id="leaderboard-white" class="top5-card">
+          <!-- Center: Above Middle Arena Debate Topic (Changes Every 3 Rounds) -->
+          <div class="center-debate-widget">
+            <div class="debate-header-tag">
+              <span class="debate-icon">⚔️</span>
+              <span class="debate-label">ARENA DEBATE TOPIC</span>
+              <span id="debate-round-indicator" class="debate-round-indicator">ROUND 1 OF 3</span>
+            </div>
+            <div class="debate-matchup-row">
+              <div class="debate-side-col black-side">
+                <span class="side-team-tag">TEAM 1 (BLACK)</span>
+                <span id="topic-left-text" class="topic-name">ANDROID</span>
+              </div>
+              <div class="debate-vs-divider">
+                <span class="vs-glow-text">VS</span>
+              </div>
+              <div class="debate-side-col white-side">
+                <span class="side-team-tag">TEAM 2 (WHITE)</span>
+                <span id="topic-right-text" class="topic-name">IPHONE</span>
+              </div>
+            </div>
+            <div class="debate-footer-strip">
+              <span>TYPE 1 FOR <strong id="footer-topic-black">ANDROID</strong></span>
+              <span class="strip-dot">•</span>
+              <span>TYPE 2 FOR <strong id="footer-topic-white">IPHONE</strong></span>
+            </div>
+          </div>
+
+          <!-- Right: Top 5 White (White Background Card) -->
+          <div id="leaderboard-white" class="top5-card white-card">
             <div class="top5-card-header">TOP 5 - WHITE</div>
             <div id="lb-list-white" class="top5-list">
               <div class="top5-item captain-rank1">
