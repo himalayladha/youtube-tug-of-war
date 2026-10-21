@@ -94,9 +94,38 @@ fi
 
 # Ensure data directory and permissions
 mkdir -p "$TARGET_DIR/data" "$TARGET_DIR/streamer"
+
+# Initialize default config and SQLite database if not already created
+if [ ! -f "$TARGET_DIR/config.php" ]; then
+  echo "Generating initial configuration and SQLite database..."
+  cat << 'EOF' > "$TARGET_DIR/config.php"
+<?php
+return [
+    'db_driver' => 'sqlite',
+    'db_path'   => __DIR__ . '/data/database.sqlite',
+    'app_url'   => 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost'),
+];
+EOF
+
+  php -r "
+    require '$TARGET_DIR/includes/db.php';
+    \$pdo = getDbConnection();
+    runSchemaMigration(\$pdo, '$TARGET_DIR/db/schema_sqlite.sql');
+    setSetting(\$pdo, 'admin_user', 'admin');
+    setSetting(\$pdo, 'admin_password_hash', password_hash('admin123', PASSWORD_BCRYPT));
+    setSetting(\$pdo, 'yt_api_key', 'AIzaSyDXaLD3JTFkMIOAW8GbhJoP8Fxpnr0HID0');
+    setSetting(\$pdo, 'stream_resolution', '1920x1080');
+    setSetting(\$pdo, 'stream_fps', '30');
+    setSetting(\$pdo, 'stream_bitrate', '4500k');
+    setSetting(\$pdo, 'game_mode', 'auto');
+    setSetting(\$pdo, 'db_installed', '1');
+  "
+fi
+
 chown -R www-data:www-data "$TARGET_DIR"
 chmod -R 775 "$TARGET_DIR/data"
 chmod -R 775 "$TARGET_DIR/streamer"
+chmod 664 "$TARGET_DIR/config.php"
 systemctl restart apache2
 
 # Detect External IP
