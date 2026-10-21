@@ -37,6 +37,7 @@ console.log(`[Streamer] Resolution: ${WIDTH}x${HEIGHT} @ ${FPS}fps (Bitrate: ${B
 // Spawn FFmpeg RTMP encoder
 const ffmpegArgs = [
   '-y',
+  '-use_wallclock_as_timestamps', '1',
   '-f', 'image2pipe',
   '-vcodec', 'mjpeg',
   '-r', String(FPS),
@@ -46,6 +47,8 @@ const ffmpegArgs = [
   '-c:v', 'libx264',
   '-preset', 'ultrafast',
   '-tune', 'zerolatency',
+  '-r', String(FPS),
+  '-vsync', 'cfr',
   '-b:v', BITRATE,
   '-minrate', BITRATE,
   '-maxrate', BITRATE,
@@ -121,17 +124,18 @@ async function launchBrowserStreamer() {
     const client = await page.target().createCDPSession();
     await client.send('Page.startScreencast', {
       format: 'jpeg',
-      quality: 90,
+      quality: 80,
       everyNthFrame: 1,
     });
 
-    client.on('Page.screencastFrame', async (event) => {
+    client.on('Page.screencastFrame', (event) => {
+      // Immediately acknowledge frame so Chrome compositor does not throttle output
+      client.send('Page.screencastFrameAck', { sessionId: event.sessionId }).catch(() => {});
       try {
         const buffer = Buffer.from(event.data, 'base64');
         if (ffmpeg.stdin.writable) {
           ffmpeg.stdin.write(buffer);
         }
-        await client.send('Page.screencastFrameAck', { sessionId: event.sessionId });
       } catch (e) {
         // stream closing or pipe full
       }
