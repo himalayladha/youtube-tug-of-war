@@ -210,79 +210,153 @@
     registerChatParticipant(user, team, pts);
   }
 
-  // 15-member benchmark rosters for instant initial display and continuous marquee
+  // 15-member benchmark rosters initialized with 0 round score & active timestamps
+  const nowInit = Date.now();
   const MOCK_BLACK_ROSTER = [
-    { user_name: 'ShadowKing', score: 1420 },
-    { user_name: 'DarkKnight', score: 980 },
-    { user_name: 'Viper99', score: 750 },
-    { user_name: 'GhostOps', score: 620 },
-    { user_name: 'Raven', score: 510 },
-    { user_name: 'OnyxClaw', score: 430 },
-    { user_name: 'Eclipse', score: 370 },
-    { user_name: 'VoidWalker', score: 290 },
-    { user_name: 'PhantomX', score: 210 },
-    { user_name: 'Obsidian', score: 160 },
-    { user_name: 'NightStalker', score: 140 },
-    { user_name: 'Dreadnought', score: 120 },
-    { user_name: 'DoomBringer', score: 105 },
-    { user_name: 'IronFang', score: 90 },
-    { user_name: 'HellRider', score: 75 }
+    { user_name: 'ShadowKing', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'DarkKnight', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'Viper99', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'GhostOps', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'Raven', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'OnyxClaw', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'Eclipse', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'VoidWalker', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'PhantomX', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'Obsidian', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'NightStalker', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'Dreadnought', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'DoomBringer', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'IronFang', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'HellRider', score: 0, roundComments: 0, lastCommentAt: nowInit }
   ];
 
   const MOCK_WHITE_ROSTER = [
-    { user_name: 'Solaris', score: 1540 },
-    { user_name: 'HyperNova', score: 1040 },
-    { user_name: 'FrostBite', score: 790 },
-    { user_name: 'BlazeCore', score: 680 },
-    { user_name: 'AuraMaster', score: 560 },
-    { user_name: 'Starlight', score: 470 },
-    { user_name: 'Zenith', score: 380 },
-    { user_name: 'Apollo', score: 320 },
-    { user_name: 'CrystalPaladin', score: 240 },
-    { user_name: 'Polaris', score: 190 },
-    { user_name: 'Valkyrie', score: 150 },
-    { user_name: 'SunBurst', score: 130 },
-    { user_name: 'RadiantKnight', score: 115 },
-    { user_name: 'LightBringer', score: 95 },
-    { user_name: 'Celestial', score: 80 }
+    { user_name: 'Solaris', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'HyperNova', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'FrostBite', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'BlazeCore', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'AuraMaster', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'Starlight', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'Zenith', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'Apollo', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'CrystalPaladin', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'Polaris', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'Valkyrie', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'SunBurst', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'RadiantKnight', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'LightBringer', score: 0, roundComments: 0, lastCommentAt: nowInit },
+    { user_name: 'Celestial', score: 0, roundComments: 0, lastCommentAt: nowInit }
   ];
 
-  // Active roster state initialized with full rosters so marquee never starts empty
-  let currentBlackRoster = [...MOCK_BLACK_ROSTER];
-  let currentWhiteRoster = [...MOCK_WHITE_ROSTER];
+  // Active roster state initialized with full rosters
+  let currentBlackRoster = MOCK_BLACK_ROSTER.map(item => ({ ...item }));
+  let currentWhiteRoster = MOCK_WHITE_ROSTER.map(item => ({ ...item }));
   const liveChatters = [];
 
-  // Register Live Chat Participant for Bottom Marquee Scroller
-  function registerChatParticipant(user, team, pts) {
-    if (!user) return;
-    let existing = liveChatters.find(c => c.user_name === user && c.team === team);
-    if (!existing) {
-      existing = { user_name: user, team: team, score: pts || 10 };
-      liveChatters.unshift(existing);
-      if (liveChatters.length > 25) liveChatters.pop();
-    } else {
-      existing.score += (pts || 10);
-    }
+  // Reset round scores for captain and participants (starts at 0 in each round)
+  function resetRoundCaptainScores() {
+    currentBlackRoster.forEach(p => {
+      p.score = 0;
+      p.roundComments = 0;
+    });
+    currentWhiteRoster.forEach(p => {
+      p.score = 0;
+      p.roundComments = 0;
+    });
+    liveChatters.forEach(c => {
+      c.score = 0;
+      c.roundComments = 0;
+    });
+
+    const capBlackScore = document.getElementById('captain-black-score');
+    const capWhiteScore = document.getElementById('captain-white-score');
+    if (capBlackScore) capBlackScore.textContent = '0 pts';
+    if (capWhiteScore) capWhiteScore.textContent = '0 pts';
+
+    updateLeaderboardDOM('lb-list-black', currentBlackRoster.slice(0, 5), 'BLACK');
+    updateLeaderboardDOM('lb-list-white', currentWhiteRoster.slice(0, 5), 'WHITE');
     refreshHorizontalScroller();
   }
 
-  // Refresh Horizontal Marquee Ribbon (Rank 6+ & Live Chat Voters)
+  // Register Live Chat Participant: track comment count & 5-minute activity
+  function registerChatParticipant(user, team, pts = 10) {
+    if (!user) return;
+    const now = Date.now();
+    const roster = team === 'BLACK' ? currentBlackRoster : currentWhiteRoster;
+
+    let p = roster.find(item => item.user_name === user);
+    if (!p) {
+      p = {
+        user_name: user,
+        team: team,
+        score: pts,
+        roundComments: 1,
+        lastCommentAt: now
+      };
+      roster.push(p);
+    } else {
+      p.team = team;
+      p.score = (p.score || 0) + pts;
+      p.roundComments = (p.roundComments || 0) + 1;
+      p.lastCommentAt = now;
+    }
+
+    // Sort roster: player with most comments becomes captain (Rank #1), score breaks tie
+    roster.sort((a, b) => {
+      const diffComments = (b.roundComments || 0) - (a.roundComments || 0);
+      if (diffComments !== 0) return diffComments;
+      return (b.score || 0) - (a.score || 0);
+    });
+
+    // Update Captain Card immediately
+    const capCardName = document.getElementById(team === 'BLACK' ? 'captain-black-name' : 'captain-white-name');
+    const capCardScore = document.getElementById(team === 'BLACK' ? 'captain-black-score' : 'captain-white-score');
+    if (capCardName) capCardName.textContent = `@${roster[0].user_name}`;
+    if (capCardScore) capCardScore.textContent = `${roster[0].score || 0} pts`;
+
+    // Also update live chatters list
+    let chatter = liveChatters.find(c => c.user_name === user && c.team === team);
+    if (!chatter) {
+      chatter = { user_name: user, team: team, score: pts, roundComments: 1, lastCommentAt: now };
+      liveChatters.unshift(chatter);
+      if (liveChatters.length > 50) liveChatters.pop();
+    } else {
+      chatter.score += pts;
+      chatter.roundComments = (chatter.roundComments || 0) + 1;
+      chatter.lastCommentAt = now;
+    }
+
+    // In-place leaderboard update without wiping/blinking
+    updateLeaderboardDOM(team === 'BLACK' ? 'lb-list-black' : 'lb-list-white', roster.slice(0, 5), team);
+    refreshHorizontalScroller();
+  }
+
+  // Refresh Horizontal Marquee Ribbon: strictly excludes inactive users (> 5 min)
+  let lastMarqueeSig = '';
   function refreshHorizontalScroller() {
     const track = document.getElementById('roster-marquee-track');
     if (!track) return;
 
-    // Use current roster if it has items beyond rank 5, else fallback to baseline
-    const blackSource = (currentBlackRoster && currentBlackRoster.length > 5) ? currentBlackRoster : MOCK_BLACK_ROSTER;
-    const whiteSource = (currentWhiteRoster && currentWhiteRoster.length > 5) ? currentWhiteRoster : MOCK_WHITE_ROSTER;
+    const now = Date.now();
+    const FIVE_MIN_MS = 5 * 60 * 1000; // 300,000 ms
 
-    const blackRest = blackSource.slice(5).map((item, idx) => ({
+    // Filter participants active within 5 minutes
+    const isRecentlyActive = (item) => {
+      if (!item || !item.lastCommentAt) return false;
+      return (now - item.lastCommentAt) <= FIVE_MIN_MS;
+    };
+
+    const activeBlack = currentBlackRoster.filter(isRecentlyActive);
+    const activeWhite = currentWhiteRoster.filter(isRecentlyActive);
+
+    const blackRest = activeBlack.slice(5).map((item, idx) => ({
       team: 'BLACK',
       rank: idx + 6,
       user_name: item.user_name,
       score: item.score
     }));
 
-    const whiteRest = whiteSource.slice(5).map((item, idx) => ({
+    const whiteRest = activeWhite.slice(5).map((item, idx) => ({
       team: 'WHITE',
       rank: idx + 6,
       user_name: item.user_name,
@@ -297,10 +371,11 @@
       if (i < whiteRest.length) combined.push(whiteRest[i]);
     }
 
-    // Include recent chatters who are not in Top 5 of either team
+    // Include recent chatters active within 5 minutes who are not in Top 5 of either team
     for (const chatter of liveChatters) {
-      const inTop5Black = blackSource.slice(0, 5).some(u => u.user_name === chatter.user_name);
-      const inTop5White = whiteSource.slice(0, 5).some(u => u.user_name === chatter.user_name);
+      if (!isRecentlyActive(chatter)) continue;
+      const inTop5Black = activeBlack.slice(0, 5).some(u => u.user_name === chatter.user_name);
+      const inTop5White = activeWhite.slice(0, 5).some(u => u.user_name === chatter.user_name);
       const alreadyInCombined = combined.some(u => u.user_name === chatter.user_name);
       if (!inTop5Black && !inTop5White && !alreadyInCombined) {
         combined.push({
@@ -310,6 +385,21 @@
           score: chatter.score
         });
       }
+    }
+
+    // Generate signature to detect real changes and prevent CSS marquee re-trigger / blink
+    const currentSig = combined.map(item => `${item.team}:${item.user_name}:${item.score}:${item.rank}`).join('|');
+    if (currentSig === lastMarqueeSig) return;
+    lastMarqueeSig = currentSig;
+
+    if (combined.length === 0) {
+      track.innerHTML = `
+        <div class="roster-chip black"><span class="chip-rank">JOIN</span><span class="chip-name">Chat 1 for Black</span><span class="chip-score">+10 pts</span></div>
+        <span class="roster-chip-sep">•</span>
+        <div class="roster-chip white"><span class="chip-rank">JOIN</span><span class="chip-name">Chat 2 for White</span><span class="chip-score">+10 pts</span></div>
+        <span class="roster-chip-sep">•</span>
+      `;
+      return;
     }
 
     const chipsHtml = combined.map(item => `
@@ -336,6 +426,8 @@
     gameState.isRoundOver = false;
     gameState.roundWinner = null;
     gameState.winnerAnnounceTimer = 0;
+    // Captain & scores must start from zero in each round
+    resetRoundCaptainScores();
     updateTopicHUD();
   }
 
@@ -1124,19 +1216,94 @@
     if (barWhite) barWhite.style.width = `${whiteShare}%`;
   }
 
-  // Update Dual Captains & Top 5 Leaderboards & Marquee
+  // In-place DOM update for Top 5 leaderboard: zero blinking, zero reflow flashing
+  function updateLeaderboardDOM(containerId, top5List, team) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (!top5List || top5List.length === 0) {
+      if (container.dataset.state !== 'empty') {
+        container.innerHTML = `<div class="lb-empty">Type ${team === 'BLACK' ? '1 or BLACK' : '2 or WHITE'} to claim #1!</div>`;
+        container.dataset.state = 'empty';
+      }
+      return;
+    }
+
+    if (container.dataset.state === 'empty') {
+      container.innerHTML = '';
+      container.dataset.state = 'list';
+    }
+
+    const crownSvg = `<svg style="width:13px;height:13px;fill:#F59E0B;filter:drop-shadow(0 0 4px rgba(245,158,11,0.8));margin-right:2px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
+
+    // Remove excess children if list has shrunk
+    while (container.children.length > top5List.length) {
+      container.removeChild(container.lastElementChild);
+    }
+
+    top5List.forEach((dataItem, idx) => {
+      let row = container.children[idx];
+      if (!row || !row.classList.contains('lb-item')) {
+        row = document.createElement('div');
+        row.className = 'lb-item';
+        row.innerHTML = `<span class="lb-rank"></span><span class="lb-name"></span><span class="lb-score"></span>`;
+        container.appendChild(row);
+      }
+
+      if (idx === 0) {
+        if (!row.classList.contains('captain-highlight')) row.classList.add('captain-highlight');
+      } else {
+        if (row.classList.contains('captain-highlight')) row.classList.remove('captain-highlight');
+      }
+
+      const rankSpan = row.children[0];
+      const nameSpan = row.children[1];
+      const scoreSpan = row.children[2];
+
+      const rankClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : '';
+      const desiredRankClass = `lb-rank ${rankClass}`.trim();
+      if (rankSpan.className !== desiredRankClass) rankSpan.className = desiredRankClass;
+
+      if (idx === 0) {
+        if (rankSpan.dataset.isCrown !== 'true') {
+          rankSpan.innerHTML = crownSvg;
+          rankSpan.dataset.isCrown = 'true';
+        }
+      } else {
+        const rankText = `#${idx + 1}`;
+        if (rankSpan.textContent !== rankText) {
+          rankSpan.textContent = rankText;
+          rankSpan.dataset.isCrown = 'false';
+        }
+      }
+
+      const nameText = `@${dataItem.user_name || 'Player'}`;
+      if (nameSpan.textContent !== nameText) {
+        nameSpan.textContent = nameText;
+      }
+
+      const scoreText = `${dataItem.score || 0}`;
+      if (scoreSpan.textContent !== scoreText) {
+        scoreSpan.textContent = scoreText;
+      }
+    });
+  }
+
+  // Update Dual Captains & Top 5 Leaderboards & Marquee without blinking
   function updateCaptainsAndLeaderboards(data) {
     if (!data) return;
 
-    // 1. Dual Captains
-    const capBlack = data.captains?.black;
-    const capWhite = data.captains?.white;
+    // 1. Dual Captains (Most comments = Captain)
+    const capBlack = data.captains?.black || (currentBlackRoster.length > 0 ? currentBlackRoster[0] : null);
+    const capWhite = data.captains?.white || (currentWhiteRoster.length > 0 ? currentWhiteRoster[0] : null);
 
     const capBlackName = document.getElementById('captain-black-name');
     const capBlackScore = document.getElementById('captain-black-score');
     if (capBlack && capBlackName && capBlackScore) {
-      capBlackName.textContent = `@${capBlack.user_name}`;
-      capBlackScore.textContent = `${capBlack.score} pts`;
+      const bName = `@${capBlack.user_name}`;
+      const bScore = `${capBlack.score || 0} pts`;
+      if (capBlackName.textContent !== bName) capBlackName.textContent = bName;
+      if (capBlackScore.textContent !== bScore) capBlackScore.textContent = bScore;
       if (gameState.lastCaptainBlackName && gameState.lastCaptainBlackName !== capBlack.user_name) {
         sound.playCrown();
       }
@@ -1146,8 +1313,10 @@
     const capWhiteName = document.getElementById('captain-white-name');
     const capWhiteScore = document.getElementById('captain-white-score');
     if (capWhite && capWhiteName && capWhiteScore) {
-      capWhiteName.textContent = `@${capWhite.user_name}`;
-      capWhiteScore.textContent = `${capWhite.score} pts`;
+      const wName = `@${capWhite.user_name}`;
+      const wScore = `${capWhite.score || 0} pts`;
+      if (capWhiteName.textContent !== wName) capWhiteName.textContent = wName;
+      if (capWhiteScore.textContent !== wScore) capWhiteScore.textContent = wScore;
       if (gameState.lastCaptainWhiteName && gameState.lastCaptainWhiteName !== capWhite.user_name) {
         sound.playCrown();
       }
@@ -1162,46 +1331,14 @@
       currentWhiteRoster = data.leaderboards.white;
     }
 
-    const crownSvg = `<svg style="width:13px;height:13px;fill:#F59E0B;filter:drop-shadow(0 0 4px rgba(245,158,11,0.8));margin-right:2px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
+    // 2. Dual Top 5 Leaderboards without blinking
+    const top5Black = currentBlackRoster.slice(0, 5);
+    updateLeaderboardDOM('lb-list-black', top5Black, 'BLACK');
 
-    // 2. Dual Top 5 Leaderboards (Ranks 1 to 5 Only)
-    const lbBlack = document.getElementById('lb-list-black');
-    if (lbBlack && currentBlackRoster) {
-      lbBlack.innerHTML = '';
-      const top5Black = currentBlackRoster.slice(0, 5);
-      if (top5Black.length === 0) {
-        lbBlack.innerHTML = '<div class="lb-empty">Type 1 or BLACK to claim #1!</div>';
-      } else {
-        top5Black.forEach((item, idx) => {
-          const row = document.createElement('div');
-          row.className = `lb-item ${idx === 0 ? 'captain-highlight' : ''}`;
-          const rankDisplay = idx === 0 ? crownSvg : `#${idx + 1}`;
-          const rankClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : '';
-          row.innerHTML = `<span class="lb-rank ${rankClass}">${rankDisplay}</span><span class="lb-name">@${item.user_name}</span><span class="lb-score">${item.score}</span>`;
-          lbBlack.appendChild(row);
-        });
-      }
-    }
+    const top5White = currentWhiteRoster.slice(0, 5);
+    updateLeaderboardDOM('lb-list-white', top5White, 'WHITE');
 
-    const lbWhite = document.getElementById('lb-list-white');
-    if (lbWhite && currentWhiteRoster) {
-      lbWhite.innerHTML = '';
-      const top5White = currentWhiteRoster.slice(0, 5);
-      if (top5White.length === 0) {
-        lbWhite.innerHTML = '<div class="lb-empty">Type 2 or WHITE to claim #1!</div>';
-      } else {
-        top5White.forEach((item, idx) => {
-          const row = document.createElement('div');
-          row.className = `lb-item ${idx === 0 ? 'captain-highlight' : ''}`;
-          const rankDisplay = idx === 0 ? crownSvg : `#${idx + 1}`;
-          const rankClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : '';
-          row.innerHTML = `<span class="lb-rank ${rankClass}">${rankDisplay}</span><span class="lb-name">@${item.user_name}</span><span class="lb-score">${item.score}</span>`;
-          lbWhite.appendChild(row);
-        });
-      }
-    }
-
-    // 3. Refresh Rank 6+ & Live Chat Marquee Scroller
+    // 3. Refresh Rank 6+ & Live Chat Marquee Scroller (filtered by 5-min activity)
     refreshHorizontalScroller();
 
     // 4. Velocity & Round Stats
@@ -1249,20 +1386,12 @@
   // ----------------------------------------------------
   const isPreviewMode = window.location.search.includes('preview=1') || window.location.search.includes('test=1');
 
-  // Immediately render initial topic, Top 5 leaderboards, and bottom marquee ribbon
+  // Periodically check and prune inactive participants from the scroll bar (5-minute inactivity rule)
+  setInterval(refreshHorizontalScroller, 5000);
+
+  // Immediately render initial topic, Top 5 leaderboards, and bottom marquee ribbon at 0 pts
   updateTopicHUD();
-  updateCaptainsAndLeaderboards({
-    captains: {
-      black: MOCK_BLACK_ROSTER[0],
-      white: MOCK_WHITE_ROSTER[0]
-    },
-    leaderboards: {
-      black: MOCK_BLACK_ROSTER,
-      white: MOCK_WHITE_ROSTER
-    },
-    velocity: 5.4
-  });
-  refreshHorizontalScroller();
+  resetRoundCaptainScores();
 
   if (isPreviewMode) {
     gameState.winsBlack = 12;
@@ -1272,27 +1401,25 @@
     physics.x = -45;
     physics.vx = -3;
 
-    // Simulate vibrant live chat activity
+    // Simulate vibrant live chat activity starting from 0 pts
     setInterval(() => {
       if (gameState.isRoundOver) return;
 
       const isBlack = Math.random() < 0.5;
       const team = isBlack ? 'BLACK' : 'WHITE';
-      const roster = isBlack ? MOCK_BLACK_ROSTER : MOCK_WHITE_ROSTER;
+      const roster = isBlack ? currentBlackRoster : currentWhiteRoster;
       const userObj = roster[Math.floor(Math.random() * roster.length)];
-      userObj.score += 10;
-      roster.sort((a, b) => b.score - a.score);
 
       applyPull(team, userObj.user_name, 10);
 
       updateCaptainsAndLeaderboards({
         captains: {
-          black: MOCK_BLACK_ROSTER[0],
-          white: MOCK_WHITE_ROSTER[0]
+          black: currentBlackRoster[0],
+          white: currentWhiteRoster[0]
         },
         leaderboards: {
-          black: MOCK_BLACK_ROSTER,
-          white: MOCK_WHITE_ROSTER
+          black: currentBlackRoster,
+          white: currentWhiteRoster
         },
         velocity: (4.0 + Math.random() * 3.5).toFixed(1)
       });

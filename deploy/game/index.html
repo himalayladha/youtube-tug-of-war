@@ -111,7 +111,6 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       position: relative;
       overflow: hidden;
     }
@@ -481,7 +480,7 @@
       font-size: 13px;
       padding: 4px 8px;
       border-radius: 6px;
-      transition: background 0.15s ease;
+      transition: none;
     }
 
     .leaderboard-panel.black .lb-item {
@@ -799,7 +798,7 @@
             </div>
             <div class="captain-body">
               <span id="captain-black-name" class="captain-name">@ShadowKing</span>
-              <span id="captain-black-score" class="captain-score">1,240 pts</span>
+              <span id="captain-black-score" class="captain-score">0 pts</span>
             </div>
             <div class="team-score-tally">
               <span>ROUND VICTORIES</span>
@@ -839,7 +838,7 @@
             </div>
             <div class="captain-body">
               <span id="captain-white-name" class="captain-name">@Solaris</span>
-              <span id="captain-white-score" class="captain-score">1,540 pts</span>
+              <span id="captain-white-score" class="captain-score">0 pts</span>
             </div>
             <div class="team-score-tally">
               <span>ROUND VICTORIES</span>
@@ -860,27 +859,27 @@
               <div class="lb-item captain-highlight">
                 <span class="lb-rank gold"><svg style="width:13px;height:13px;fill:#F59E0B;filter:drop-shadow(0 0 4px rgba(245,158,11,0.8));margin-right:2px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg></span>
                 <span class="lb-name">@ShadowKing</span>
-                <span class="lb-score">1,420</span>
+                <span class="lb-score">0</span>
               </div>
               <div class="lb-item">
                 <span class="lb-rank silver">#2</span>
                 <span class="lb-name">@DarkKnight</span>
-                <span class="lb-score">980</span>
+                <span class="lb-score">0</span>
               </div>
               <div class="lb-item">
                 <span class="lb-rank bronze">#3</span>
                 <span class="lb-name">@Viper99</span>
-                <span class="lb-score">750</span>
+                <span class="lb-score">0</span>
               </div>
               <div class="lb-item">
                 <span class="lb-rank">#4</span>
                 <span class="lb-name">@GhostOps</span>
-                <span class="lb-score">620</span>
+                <span class="lb-score">0</span>
               </div>
               <div class="lb-item">
                 <span class="lb-rank">#5</span>
                 <span class="lb-name">@Raven</span>
-                <span class="lb-score">510</span>
+                <span class="lb-score">0</span>
               </div>
             </div>
           </div>
@@ -895,27 +894,27 @@
               <div class="lb-item captain-highlight">
                 <span class="lb-rank gold"><svg style="width:13px;height:13px;fill:#F59E0B;filter:drop-shadow(0 0 4px rgba(245,158,11,0.8));margin-right:2px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg></span>
                 <span class="lb-name">@Solaris</span>
-                <span class="lb-score">1,540</span>
+                <span class="lb-score">0</span>
               </div>
               <div class="lb-item">
                 <span class="lb-rank silver">#2</span>
                 <span class="lb-name">@HyperNova</span>
-                <span class="lb-score">1,040</span>
+                <span class="lb-score">0</span>
               </div>
               <div class="lb-item">
                 <span class="lb-rank bronze">#3</span>
                 <span class="lb-name">@FrostBite</span>
-                <span class="lb-score">790</span>
+                <span class="lb-score">0</span>
               </div>
               <div class="lb-item">
                 <span class="lb-rank">#4</span>
                 <span class="lb-name">@BlazeCore</span>
-                <span class="lb-score">680</span>
+                <span class="lb-score">0</span>
               </div>
               <div class="lb-item">
                 <span class="lb-rank">#5</span>
                 <span class="lb-name">@AuraMaster</span>
-                <span class="lb-score">560</span>
+                <span class="lb-score">0</span>
               </div>
             </div>
           </div>
@@ -1009,6 +1008,6 @@
     window.addEventListener('load', fitGameViewport);
     fitGameViewport();
   </script>
-  <script src="./js/game.js?v=20261021_v9_instant"></script>
+  <script src="./js/game.js?v=20261021_v10_noblink"></script>
 </body>
 </html>
