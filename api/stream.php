@@ -112,6 +112,14 @@ if ($action === 'start') {
         exit;
     }
 
+    // Resolve node executable path
+    $nodeBin = trim(shell_exec('which node 2>/dev/null') ?: '');
+    if (empty($nodeBin)) {
+        if (file_exists('/usr/bin/node')) $nodeBin = '/usr/bin/node';
+        else if (file_exists('/usr/local/bin/node')) $nodeBin = '/usr/local/bin/node';
+        else $nodeBin = 'node';
+    }
+
     // Launch background daemon
     $pid = 0;
     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
@@ -120,7 +128,7 @@ if ($action === 'start') {
         pclose($p);
         $pid = 9999; // Windows background popen stub
     } else {
-        $cmd = "nohup node \"{$daemonScript}\" --stream-key=\"{$streamKey}\" --url=\"{$gameUrl}\" --resolution={$res} --fps={$fps} --bitrate={$bitrate} > \"{$logFile}\" 2>&1 & echo $!";
+        $cmd = "nohup {$nodeBin} \"{$daemonScript}\" --stream-key=\"{$streamKey}\" --url=\"{$gameUrl}\" --resolution={$res} --fps={$fps} --bitrate={$bitrate} > \"{$logFile}\" 2>&1 & echo $!";
         $pid = (int)shell_exec($cmd);
     }
 

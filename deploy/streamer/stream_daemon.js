@@ -34,25 +34,44 @@ console.log(`[Streamer] Destination: rtmp://a.rtmp.youtube.com/live2/****`);
 console.log(`[Streamer] Target URL: ${GAME_URL}`);
 console.log(`[Streamer] Resolution: ${WIDTH}x${HEIGHT} @ ${FPS}fps (Bitrate: ${BITRATE})`);
 
+// Input & Output framerate configuration
+// Chrome renders at ~15fps on cloud 2-vCPU instances; FFmpeg smoothly duplicates to standard 30fps
+const INPUT_FPS = Math.min(FPS, 15);
+const OUTPUT_FPS = 30;
+
+console.log(`[Streamer] Framerate: In=${INPUT_FPS}fps -> Out=${OUTPUT_FPS}fps | Bitrate: ${BITRATE}`);
+
 // Spawn FFmpeg RTMP encoder
 const ffmpegArgs = [
   '-y',
+  '-thread_queue_size', '1024',
+  '-fflags', 'nobuffer',
+  '-flags', 'low_delay',
   '-f', 'image2pipe',
-  '-vcodec', 'png',
-  '-r', String(FPS),
+  '-vcodec', 'mjpeg',
+  '-r', String(INPUT_FPS),
   '-i', 'pipe:0',
   '-f', 'lavfi',
   '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+  '-map', '0:v:0',
+  '-map', '1:a:0',
   '-c:v', 'libx264',
-  '-preset', 'veryfast',
-  '-b:v', BITRATE,
-  '-maxrate', String(parseInt(BITRATE, 10) * 1.2) + 'k',
-  '-bufsize', String(parseInt(BITRATE, 10) * 2) + 'k',
+  '-preset', 'ultrafast',
+  '-tune', 'zerolatency',
+  '-r', String(OUTPUT_FPS),
   '-pix_fmt', 'yuv420p',
-  '-g', String(FPS * 2),
+  '-g', String(OUTPUT_FPS), // 1-second keyframe (enables YouTube Ultra Low Latency)
+  '-b:v', BITRATE,
+  '-minrate', BITRATE,
+  '-maxrate', BITRATE,
+  '-bufsize', String(parseInt(BITRATE, 10) * 1.2) + 'k',
+  '-flush_packets', '1',
   '-c:a', 'aac',
   '-b:a', '128k',
+  '-ar', '44100',
+  '-ac', '2',
   '-f', 'flv',
+  '-flvflags', 'no_duration_filesize',
   RTMP_DESTINATION,
 ];
 
@@ -71,17 +90,44 @@ let browser = null;
 async function launchBrowserStreamer() {
   try {
     const puppeteer = await import('puppeteer');
-    browser = await puppeteer.default.launch({
+
+    // Detect system Chrome or Chromium if available
+    const candidatePaths = [
+      process.env.PUPPETEER_EXECUTABLE_PATH,
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
+      '/snap/bin/chromium',
+    ].filter(Boolean);
+
+    const executablePath = candidatePaths.find((p) => {
+      try {
+        return fs.existsSync(p);
+      } catch (e) {
+        return false;
+      }
+    });
+
+    const launchOptions = {
       headless: 'new',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
+        '--disable-gpu',
         `--window-size=${WIDTH},${HEIGHT}`,
         '--autoplay-policy=no-user-gesture-required',
       ],
       defaultViewport: { width: WIDTH, height: HEIGHT },
-    });
+    };
+
+    if (executablePath) {
+      console.log(`[Streamer] Using detected system browser binary: ${executablePath}`);
+      launchOptions.executablePath = executablePath;
+    }
+
+    browser = await puppeteer.default.launch(launchOptions);
 
     const page = await browser.newPage();
     await page.goto(GAME_URL, { waitUntil: 'domcontentloaded' });
@@ -90,17 +136,19 @@ async function launchBrowserStreamer() {
 
     const client = await page.target().createCDPSession();
     await client.send('Page.startScreencast', {
-      format: 'png',
+      format: 'jpeg',
+      quality: 80,
       everyNthFrame: 1,
     });
 
-    client.on('Page.screencastFrame', async (event) => {
+    client.on('Page.screencastFrame', (event) => {
+      // Immediately acknowledge frame so Chrome compositor does not throttle output
+      client.send('Page.screencastFrameAck', { sessionId: event.sessionId }).catch(() => {});
       try {
         const buffer = Buffer.from(event.data, 'base64');
         if (ffmpeg.stdin.writable) {
           ffmpeg.stdin.write(buffer);
         }
-        await client.send('Page.screencastFrameAck', { sessionId: event.sessionId });
       } catch (e) {
         // stream closing or pipe full
       }

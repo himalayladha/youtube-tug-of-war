@@ -40,11 +40,11 @@ function recordVote(PDO $pdo, bool $isSqlite, string $userId, string $userName, 
     $stmt->execute([':uid' => $userId, ':name' => $userName, ':team' => $team, ':team2' => $team]);
 }
 
-// Parse Chat Command for Team Black vs Team White
-function parseTeamVote(string $text): ?string {
+// Parse Chat Command for Team 1 (Left) vs Team 2 (Right)
+function parseTeamVote(string $text, string $topicLeft = '', string $topicRight = ''): ?string {
     $clean = strtolower(trim($text));
     
-    // Numeric shortcuts
+    // Numeric shortcuts (1 = Team 1 / Left / Android, 2 = Team 2 / Right / iPhone)
     if ($clean === '1' || $clean === 'lane1' || $clean === 'left') return 'BLACK';
     if ($clean === '2' || $clean === 'lane2' || $clean === 'right') return 'WHITE';
 
@@ -52,8 +52,16 @@ function parseTeamVote(string $text): ?string {
     if (str_starts_with($clean, 'black') || str_starts_with($clean, 'with')) return 'BLACK';
     if (str_starts_with($clean, 'white') || str_starts_with($clean, 'against')) return 'WHITE';
 
+    // Dynamic Debate Topic Triggers
+    if (!empty($topicLeft) && (str_contains($clean, strtolower($topicLeft)))) return 'BLACK';
+    if (!empty($topicRight) && (str_contains($clean, strtolower($topicRight)))) return 'WHITE';
+
     return null;
 }
+
+$settings = getAllSettings($pdo);
+$topicLeft = $settings['topic_left'] ?? 'ANDROID';
+$topicRight = $settings['topic_right'] ?? 'IPHONE';
 
 // 1. Simulation POST endpoint (e.g. from in-game Dev dock or Host input)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -79,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $user = trim($json['user'] ?? 'Viewer');
     $rawText = trim($json['text'] ?? '');
-    $team = parseTeamVote($rawText);
+    $team = parseTeamVote($rawText, $topicLeft, $topicRight);
 
     if ($team) {
         $userId = 'sim-' . md5($user);
@@ -93,12 +101,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
+// Fast non-blocking HTTP fetcher with strict timeout
+function fetchApiUrl(string $url, int $timeout = 2): ?string {
+    if (function_exists('curl_init')) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'YouTube-Live-TugOfWar/1.0');
+        $res = curl_exec($ch);
+        curl_close($ch);
+        return ($res !== false) ? $res : null;
+    }
+    $ctx = stream_context_create(['http' => ['timeout' => $timeout]]);
+    return @file_get_contents($url, false, $ctx) ?: null;
+}
+
 // 2. Poll Active YouTube Live Stream
-$settings = getAllSettings($pdo);
 $apiKey = $settings['yt_api_key'] ?? '';
 $videoId = $settings['yt_video_id'] ?? '';
 $liveChatId = $settings['yt_live_chat_id'] ?? '';
 $pageToken = $settings['yt_page_token'] ?? '';
+
+// Allow setting/updating video_id dynamically via query param (supports full URLs or video IDs)
+if (!empty($_GET['set_video_id'])) {
+    $rawVid = trim($_GET['set_video_id']);
+    if (preg_match('/(?:live\/|v=|youtu\.be\/|^)([a-zA-Z0-9_-]{11})/', $rawVid, $m)) {
+        $rawVid = $m[1];
+    }
+    setSetting($pdo, 'yt_video_id', $rawVid);
+    setSetting($pdo, 'yt_live_chat_id', '');
+    setSetting($pdo, 'yt_page_token', '');
+    $videoId = $rawVid;
+    $liveChatId = '';
+    $pageToken = '';
+}
+
+// Auto-discover active live stream if videoId is missing
+if (empty($videoId) && !empty($apiKey)) {
+    $searchUrl = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&eventType=live&q=Digital+Himalay&maxResults=1&key=" . urlencode($apiKey);
+    $searchRes = fetchApiUrl($searchUrl, 3);
+    if ($searchRes) {
+        $searchJson = json_decode($searchRes, true);
+        if (!empty($searchJson['items'][0]['id']['videoId'])) {
+            $videoId = $searchJson['items'][0]['id']['videoId'];
+            setSetting($pdo, 'yt_video_id', $videoId);
+            setSetting($pdo, 'yt_live_chat_id', '');
+            setSetting($pdo, 'yt_page_token', '');
+        }
+    }
+}
 
 $incomingPulls = [];
 
@@ -106,7 +160,7 @@ if (!empty($apiKey) && !empty($videoId)) {
     // Resolve LiveChatId if missing
     if (empty($liveChatId)) {
         $videoApiUrl = "https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=" . urlencode($videoId) . "&key=" . urlencode($apiKey);
-        $videoRes = @file_get_contents($videoApiUrl);
+        $videoRes = fetchApiUrl($videoApiUrl, 3);
         if ($videoRes) {
             $videoData = json_decode($videoRes, true);
             $chatId = $videoData['items'][0]['liveStreamingDetails']['activeLiveChatId'] ?? null;
@@ -124,7 +178,7 @@ if (!empty($apiKey) && !empty($videoId)) {
             $chatApiUrl .= "&pageToken=" . urlencode($pageToken);
         }
 
-        $chatRes = @file_get_contents($chatApiUrl);
+        $chatRes = fetchApiUrl($chatApiUrl, 2);
         if ($chatRes) {
             $chatJson = json_decode($chatRes, true);
             if (!empty($chatJson['nextPageToken'])) {
@@ -137,7 +191,7 @@ if (!empty($apiKey) && !empty($videoId)) {
                     $author = $item['authorDetails']['displayName'] ?? 'Viewer';
                     $authorId = $item['authorDetails']['channelId'] ?? md5($author);
 
-                    $team = parseTeamVote($rawMsg);
+                    $team = parseTeamVote($rawMsg, $topicLeft, $topicRight);
                     if ($team) {
                         $incomingPulls[] = [
                             'team' => $team,
@@ -172,12 +226,12 @@ $velTimeQuery = $isSqlite ? "datetime('now', '-2 seconds')" : "NOW() - INTERVAL 
 $stmt = $pdo->query("SELECT COUNT(*) FROM chat_logs WHERE created_at >= {$velTimeQuery}");
 $velocity = (float)round(($stmt->fetchColumn() / 2), 1);
 
-// Fetch Dual Leaderboards (only active within last 5 minutes, ordered by comments then score)
-$fiveMinAgo = $isSqlite ? "datetime('now', '-5 minutes')" : "NOW() - INTERVAL 5 MINUTE";
-$stmt = $pdo->query("SELECT user_name, score, total_votes FROM leaderboard WHERE team = 'BLACK' AND last_active >= {$fiveMinAgo} ORDER BY total_votes DESC, score DESC LIMIT 50");
+// Fetch Dual Leaderboards (strictly active within the last 10 seconds)
+$tenSecAgo = $isSqlite ? "datetime('now', '-10 seconds')" : "NOW() - INTERVAL 10 SECOND";
+$stmt = $pdo->query("SELECT user_name, score, total_votes FROM leaderboard WHERE team = 'BLACK' AND last_active >= {$tenSecAgo} ORDER BY total_votes DESC, score DESC LIMIT 50");
 $blackTop = $stmt->fetchAll();
 
-$stmt = $pdo->query("SELECT user_name, score, total_votes FROM leaderboard WHERE team = 'WHITE' AND last_active >= {$fiveMinAgo} ORDER BY total_votes DESC, score DESC LIMIT 50");
+$stmt = $pdo->query("SELECT user_name, score, total_votes FROM leaderboard WHERE team = 'WHITE' AND last_active >= {$tenSecAgo} ORDER BY total_votes DESC, score DESC LIMIT 50");
 $whiteTop = $stmt->fetchAll();
 
 // Crown Captains (#1 on each team)

@@ -12,10 +12,26 @@
   window.addEventListener('resize', resizeCanvas);
 
   // High-Resolution AI Arena Background Loader
+  // Master Background Plate
   const arenaBgImg = new Image();
   let arenaBgLoaded = false;
   arenaBgImg.onload = () => { arenaBgLoaded = true; };
   arenaBgImg.src = './assets/images/arena_background.png';
+
+  // Authentic User-Supplied Stickman Images (media_1792576999153_bdefe6a6.png)
+  const stickmanBlackImg = new Image();
+  let stickmanBlackLoaded = false;
+  stickmanBlackImg.onload = () => { stickmanBlackLoaded = true; };
+  stickmanBlackImg.src = window.STICKMAN_BLACK_DATA || './assets/images/stickman_black.png';
+
+  const stickmanWhiteImg = new Image();
+  let stickmanWhiteLoaded = false;
+  stickmanWhiteImg.onload = () => { stickmanWhiteLoaded = true; };
+  stickmanWhiteImg.src = window.STICKMAN_WHITE_DATA || './assets/images/stickman_white.png';
+
+  function isImgReady(img) {
+    return Boolean(img && img.complete && img.naturalWidth > 0);
+  }
 
   // ----------------------------------------------------
   // PROCEDURAL WEB AUDIO SYNTHESIZER
@@ -89,9 +105,8 @@
 
   const sound = new SoundManager();
 
-  // Curated Debate Topics
+  // Curated Debate Topics (Changes Every 3 Rounds)
   const DEBATE_TOPICS = [
-    { left: 'BLACK', right: 'WHITE' },
     { left: 'ANDROID', right: 'IPHONE' },
     { left: 'INTROVERT', right: 'EXTROVERT' },
     { left: 'DOGS', right: 'CATS' },
@@ -100,7 +115,8 @@
     { left: 'PIZZA', right: 'BURGERS' },
     { left: 'WORK FROM HOME', right: 'OFFICE' },
     { left: 'SUMMER', right: 'WINTER' },
-    { left: 'CHESS', right: 'VIDEO GAMES' }
+    { left: 'CHESS', right: 'VIDEO GAMES' },
+    { left: 'MAC', right: 'WINDOWS' }
   ];
 
   // Game State
@@ -140,21 +156,21 @@
     whiteImpulse: 0,
   };
 
-  // 5 Stick-figure pullers per side
+  // 5 Stick-figure pullers per side (offsets matching arena spacing)
   const pullers = {
     black: [
-      { xOffset: -125, phase: 0.0, isLeader: true },
-      { xOffset: -215, phase: 0.7, isLeader: false },
-      { xOffset: -305, phase: 1.4, isLeader: false },
-      { xOffset: -395, phase: 2.1, isLeader: false },
-      { xOffset: -485, phase: 2.8, isLeader: false },
+      { xOffset: -135, phase: 0.0, extraImpulse: 0, isLeader: true },
+      { xOffset: -260, phase: 0.45, extraImpulse: 0, isLeader: false },
+      { xOffset: -395, phase: 0.90, extraImpulse: 0, isLeader: false },
+      { xOffset: -535, phase: 1.35, extraImpulse: 0, isLeader: false },
+      { xOffset: -680, phase: 1.80, extraImpulse: 0, isLeader: false },
     ],
     white: [
-      { xOffset: 125, phase: 0.0, isLeader: true },
-      { xOffset: 215, phase: 0.7, isLeader: false },
-      { xOffset: 305, phase: 1.4, isLeader: false },
-      { xOffset: 395, phase: 2.1, isLeader: false },
-      { xOffset: 485, phase: 2.8, isLeader: false },
+      { xOffset: 135, phase: 0.0, extraImpulse: 0, isLeader: true },
+      { xOffset: 260, phase: 0.45, extraImpulse: 0, isLeader: false },
+      { xOffset: 395, phase: 0.90, extraImpulse: 0, isLeader: false },
+      { xOffset: 535, phase: 1.35, extraImpulse: 0, isLeader: false },
+      { xOffset: 680, phase: 1.80, extraImpulse: 0, isLeader: false },
     ],
   };
 
@@ -182,30 +198,113 @@
     floatingTexts.push({ text, x, y, color, life: 1.2, maxLife: 1.2 });
   }
 
-  // Add Row to Live Chat Activity Terminal Feed
-  function appendLiveChatActivity(user, team) {
-    const feed = document.getElementById('live-chat-activity-feed');
-    if (!feed) return;
+  // Dual Horizontal Scroller Animation State (moving in opposing directions)
+  const tickerState = {
+    blackScroll: 0,
+    whiteScroll: 0,
+    speed: 55, // px per second
+  };
 
-    const d = new Date();
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    const timeStr = `${hh}:${mm}`;
+  let lastBlackTickerUserListSig = '';
+  let lastWhiteTickerUserListSig = '';
 
-    const isBlack = team === 'BLACK';
-    const row = document.createElement('div');
-    row.className = 'terminal-log-row';
-    row.innerHTML = `
-      <span class="log-time">${timeStr}</span>
-      <span>👤</span>
-      <span class="log-user">@${user}</span>
-      <span class="log-action">➔ ${isBlack ? '1' : '2'}</span>
-      <span class="log-team ${isBlack ? 'black-team' : 'white-team'}">(${isBlack ? 'Team Black' : 'Team White'})</span>
-    `;
+  // Dual Horizontal Scroller: Big Font Tickers Moving in Opposing Directions
+  // Row 1: Team Black moving towards Team Black side (LEFT)
+  // Row 2: Team White moving towards Team White side (RIGHT)
+  // Prunes any user who has not commented in the last 5 minutes
+  function updateDualTickerDOM(activeBlack, activeWhite) {
+    const trackBlack = document.getElementById('ticker-track-black');
+    const trackWhite = document.getElementById('ticker-track-white');
+    if (!trackBlack || !trackWhite) return;
 
-    feed.insertBefore(row, feed.firstChild);
-    while (feed.children.length > 5) {
-      feed.removeChild(feed.lastChild);
+    const now = Date.now();
+    const blackList = activeBlack || currentBlackRoster.filter(u => u.activeUntil && u.activeUntil > now);
+    const whiteList = activeWhite || currentWhiteRoster.filter(u => u.activeUntil && u.activeUntil > now);
+
+    const blackUserSig = blackList.map(u => `${u.user_name}:${u.score}`).join('|');
+    const whiteUserSig = whiteList.map(u => `${u.user_name}:${u.score}`).join('|');
+
+    function buildPillHTML(u, team) {
+      const isBlack = (team === 'BLACK');
+      return `
+        <div class="ticker-item ${isBlack ? 'black' : 'white'}" data-user="${u.user_name}">
+          <span class="user-handle">@${u.user_name}</span>
+          <span class="action-tag">${isBlack ? '◄ 1' : '2 ►'}</span>
+          <span class="pts-tag">${u.score || 0} PTS</span>
+        </div>
+      `;
+    }
+
+    // Only recreate DOM if roster members changed (joined / pruned)
+    if (blackUserSig !== lastBlackTickerUserListSig || !trackBlack.firstElementChild) {
+      lastBlackTickerUserListSig = blackUserSig;
+      const single = blackList.length > 0 
+        ? blackList.map(u => buildPillHTML(u, 'BLACK')).join('')
+        : `<div class="ticker-item black"><span class="user-handle">TYPE 1 IN CHAT TO PULL (10s)</span><span class="pts-tag">+10 PTS</span></div>`;
+      trackBlack.innerHTML = single + single;
+    }
+
+    if (whiteUserSig !== lastWhiteTickerUserListSig || !trackWhite.firstElementChild) {
+      lastWhiteTickerUserListSig = whiteUserSig;
+      const single = whiteList.length > 0
+        ? whiteList.map(u => buildPillHTML(u, 'WHITE')).join('')
+        : `<div class="ticker-item white"><span class="user-handle">TYPE 2 IN CHAT TO PULL (10s)</span><span class="pts-tag">+10 PTS</span></div>`;
+      trackWhite.innerHTML = single + single;
+    }
+
+    updateTickerPills(trackBlack, blackList);
+    updateTickerPills(trackWhite, whiteList);
+  }
+
+  function updateTickerPills(track, roster) {
+    if (!track) return;
+    const topScorer = roster.length > 0 ? roster[0] : null;
+    const maxScore = topScorer ? topScorer.score : 0;
+
+    roster.forEach(u => {
+      const isCaptain = (maxScore > 0 && u.user_name === topScorer.user_name);
+      const pills = track.querySelectorAll(`.ticker-item[data-user="${u.user_name}"]`);
+      pills.forEach(pill => {
+        const ptsEl = pill.querySelector('.pts-tag');
+        if (ptsEl && ptsEl.textContent !== `${u.score || 0} PTS`) {
+          ptsEl.textContent = `${u.score || 0} PTS`;
+        }
+        let captEl = pill.querySelector('.captain-badge');
+        if (isCaptain && !captEl) {
+          captEl = document.createElement('span');
+          captEl.className = 'captain-badge';
+          captEl.textContent = '👑 CAPT';
+          pill.insertBefore(captEl, pill.firstChild);
+        } else if (!isCaptain && captEl) {
+          captEl.remove();
+        }
+      });
+    });
+  }
+
+  function tickDualScrollers(dt) {
+    tickerState.blackScroll += dt * tickerState.speed;
+    tickerState.whiteScroll += dt * tickerState.speed;
+
+    const trackBlack = document.getElementById('ticker-track-black');
+    const trackWhite = document.getElementById('ticker-track-white');
+
+    if (trackBlack && trackBlack.firstElementChild) {
+      const halfWidth = trackBlack.scrollWidth / 2;
+      if (halfWidth > 0) {
+        // Team Black moves towards Team Black side (LEFT: 0 -> -halfWidth)
+        const offset = -(tickerState.blackScroll % halfWidth);
+        trackBlack.style.transform = `translateX(${offset}px)`;
+      }
+    }
+
+    if (trackWhite && trackWhite.firstElementChild) {
+      const halfWidth = trackWhite.scrollWidth / 2;
+      if (halfWidth > 0) {
+        // Team White moves towards Team White side (RIGHT: -halfWidth -> 0)
+        const offset = -halfWidth + (tickerState.whiteScroll % halfWidth);
+        trackWhite.style.transform = `translateX(${offset}px)`;
+      }
     }
   }
 
@@ -215,55 +314,37 @@
     sound.playPull();
 
     const impulseAmount = 14;
-    if (team === 'BLACK') {
+    const isBlack = (team === 'BLACK');
+    const teamPullers = isBlack ? pullers.black : pullers.white;
+    const pullDir = isBlack ? -1.0 : 1.0;
+
+    if (isBlack) {
       physics.blackImpulse += impulseAmount;
-      for (let i = 0; i < 5; i++) {
-        addParticle(960 + physics.x - 125 + Math.random() * 30, 750, -80 - Math.random() * 70, -10 - Math.random() * 50, '#FFFFFF', 3, 0.4);
-      }
       addFloatingText(`◄ ${user} +${pts}`, 740, 560 + (Math.random() - 0.5) * 50, '#FFFFFF');
     } else {
       physics.whiteImpulse += impulseAmount;
-      for (let i = 0; i < 5; i++) {
-        addParticle(960 + physics.x + 125 + Math.random() * 30, 750, 80 + Math.random() * 70, -10 - Math.random() * 50, '#FFFFFF', 3, 0.4);
-      }
       addFloatingText(`${user} +${pts} ►`, 1180, 560 + (Math.random() - 0.5) * 50, '#FFFFFF');
     }
 
+    // Dynamic exertion surge & ground friction sparks on all 5 pullers
+    teamPullers.forEach((p) => {
+      p.extraImpulse = Math.min(1.4, p.extraImpulse + 0.7);
+      const baseX = 960 + physics.x + p.xOffset;
+      const foot1X = baseX + pullDir * (-20.0 * 0.237);
+      const foot2X = baseX + pullDir * (410.0 * 0.237);
+      // Floor friction sparks spraying backward
+      for (let s = 0; s < 2; s++) {
+        addParticle(foot1X + (Math.random() - 0.5) * 8, 755, pullDir * (-40 - Math.random() * 50), -15 - Math.random() * 35, '#FFFFFF', Math.random() * 3 + 1.5, 0.35);
+        addParticle(foot2X + (Math.random() - 0.5) * 8, 755, pullDir * (-40 - Math.random() * 50), -15 - Math.random() * 35, '#FFFFFF', Math.random() * 3 + 1.5, 0.35);
+      }
+    });
+
     gameState.screenShake = Math.min(6, gameState.screenShake + 1.0);
     registerChatParticipant(user, team, pts);
-    appendLiveChatActivity(user, team);
   }
 
-  // 15-member rosters initialized matching the blueprint
-  const nowInit = Date.now();
-  const MOCK_BLACK_ROSTER = [
-    { user_name: 'ShadowKing', score: 1420, roundComments: 142, lastCommentAt: nowInit },
-    { user_name: 'DarkKnight', score: 980, roundComments: 98, lastCommentAt: nowInit },
-    { user_name: 'Viper09', score: 750, roundComments: 75, lastCommentAt: nowInit },
-    { user_name: 'GhostOps', score: 620, roundComments: 62, lastCommentAt: nowInit },
-    { user_name: 'Raven', score: 510, roundComments: 51, lastCommentAt: nowInit },
-    { user_name: 'OnyxClaw', score: 430, roundComments: 43, lastCommentAt: nowInit },
-    { user_name: 'Eclipse', score: 380, roundComments: 38, lastCommentAt: nowInit },
-    { user_name: 'VoidWalker', score: 310, roundComments: 31, lastCommentAt: nowInit },
-    { user_name: 'PhantomX', score: 260, roundComments: 26, lastCommentAt: nowInit },
-    { user_name: 'Obsidian', score: 210, roundComments: 21, lastCommentAt: nowInit },
-  ];
-
-  const MOCK_WHITE_ROSTER = [
-    { user_name: 'Solaris', score: 1540, roundComments: 154, lastCommentAt: nowInit },
-    { user_name: 'HyperNova', score: 1040, roundComments: 104, lastCommentAt: nowInit },
-    { user_name: 'FrostBite', score: 790, roundComments: 79, lastCommentAt: nowInit },
-    { user_name: 'BlazeCore', score: 680, roundComments: 68, lastCommentAt: nowInit },
-    { user_name: 'AuraMaster', score: 560, roundComments: 56, lastCommentAt: nowInit },
-    { user_name: 'Starlight', score: 490, roundComments: 49, lastCommentAt: nowInit },
-    { user_name: 'Zenith', score: 410, roundComments: 41, lastCommentAt: nowInit },
-    { user_name: 'Apollo', score: 350, roundComments: 35, lastCommentAt: nowInit },
-    { user_name: 'Polaris', score: 290, roundComments: 29, lastCommentAt: nowInit },
-    { user_name: 'Valkyrie', score: 240, roundComments: 24, lastCommentAt: nowInit },
-  ];
-
-  let currentBlackRoster = MOCK_BLACK_ROSTER.map(item => ({ ...item }));
-  let currentWhiteRoster = MOCK_WHITE_ROSTER.map(item => ({ ...item }));
+  let currentBlackRoster = [];
+  let currentWhiteRoster = [];
   const liveChatters = [];
 
   // Reset round scores for captain and participants at start of each round
@@ -271,14 +352,17 @@
     currentBlackRoster.forEach(p => {
       p.score = 0;
       p.roundComments = 0;
+      p.activeUntil = 0;
     });
     currentWhiteRoster.forEach(p => {
       p.score = 0;
       p.roundComments = 0;
+      p.activeUntil = 0;
     });
     liveChatters.forEach(c => {
       c.score = 0;
       c.roundComments = 0;
+      c.activeUntil = 0;
     });
 
     const capBlackScore = document.getElementById('captain-black-score');
@@ -286,15 +370,21 @@
     if (capBlackScore) capBlackScore.textContent = '0';
     if (capWhiteScore) capWhiteScore.textContent = '0';
 
-    updateLeaderboardDOM('lb-list-black', currentBlackRoster.slice(0, 5), 'BLACK');
-    updateLeaderboardDOM('lb-list-white', currentWhiteRoster.slice(0, 5), 'WHITE');
+    updateLeaderboardsAndTickers(true);
   }
 
-  // Register Live Chat Participant: track comment count & 5-minute activity
+  // Register Live Chat Participant: strictly 10-second active hold & +10 score per comment
   function registerChatParticipant(user, team, pts = 10) {
     if (!user) return;
     const now = Date.now();
     const roster = team === 'BLACK' ? currentBlackRoster : currentWhiteRoster;
+    const otherRoster = team === 'BLACK' ? currentWhiteRoster : currentBlackRoster;
+
+    // If player switched teams, remove them from opposite team
+    const otherIdx = otherRoster.findIndex(item => item.user_name === user);
+    if (otherIdx !== -1) {
+      otherRoster.splice(otherIdx, 1);
+    }
 
     let p = roster.find(item => item.user_name === user);
     if (!p) {
@@ -303,7 +393,8 @@
         team: team,
         score: pts,
         roundComments: 1,
-        lastCommentAt: now
+        lastCommentAt: now,
+        activeUntil: now + 10000 // Holds rope power for exactly 10 seconds
       };
       roster.push(p);
     } else {
@@ -311,21 +402,106 @@
       p.score = (p.score || 0) + pts;
       p.roundComments = (p.roundComments || 0) + 1;
       p.lastCommentAt = now;
+      p.activeUntil = now + 10000; // Reset 10-second timer on new comment!
     }
 
-    // Sort roster: player with most comments becomes captain (Rank #1)
+    // Sort roster: player with highest score becomes captain (Rank #1)
     roster.sort((a, b) => {
-      const diffComments = (b.roundComments || 0) - (a.roundComments || 0);
-      if (diffComments !== 0) return diffComments;
-      return (b.score || 0) - (a.score || 0);
+      const diffScore = (b.score || 0) - (a.score || 0);
+      if (diffScore !== 0) return diffScore;
+      return (b.roundComments || 0) - (a.roundComments || 0);
     });
 
-    // Update Captain display
-    const capScoreEl = document.getElementById(team === 'BLACK' ? 'captain-black-score' : 'captain-white-score');
-    if (capScoreEl) capScoreEl.textContent = `${roster[0].score || 0}`;
+    updateLeaderboardsAndTickers(true);
+  }
 
-    // Update Top 5 in-place without blinking
-    updateLeaderboardDOM(team === 'BLACK' ? 'lb-list-black' : 'lb-list-white', roster.slice(0, 5), team);
+  let lastLeaderboardUpdate = 0;
+  let lastActiveBlackSig = '';
+  let lastActiveWhiteSig = '';
+
+  function updateLeaderboardsAndTickers(force = false) {
+    const now = Date.now();
+    if (!force && now - lastLeaderboardUpdate < 100) return;
+    lastLeaderboardUpdate = now;
+
+    // Only participants actively within their 10-second window
+    const activeBlack = currentBlackRoster.filter(p => p.activeUntil && p.activeUntil > now);
+    const activeWhite = currentWhiteRoster.filter(p => p.activeUntil && p.activeUntil > now);
+
+    const activeBlackSig = activeBlack.map(p => `${p.user_name}:${p.score}`).join('|');
+    const activeWhiteSig = activeWhite.map(p => `${p.user_name}:${p.score}`).join('|');
+
+    // Update Captain display in Top HUD
+    const capBlackScoreEl = document.getElementById('captain-black-score');
+    const capWhiteScoreEl = document.getElementById('captain-white-score');
+    if (capBlackScoreEl) {
+      const topScore = activeBlack.length > 0 ? (activeBlack[0].score || 0) : 0;
+      if (capBlackScoreEl.textContent !== `${topScore}`) {
+        capBlackScoreEl.textContent = `${topScore}`;
+      }
+    }
+    if (capWhiteScoreEl) {
+      const topScore = activeWhite.length > 0 ? (activeWhite[0].score || 0) : 0;
+      if (capWhiteScoreEl.textContent !== `${topScore}`) {
+        capWhiteScoreEl.textContent = `${topScore}`;
+      }
+    }
+
+    if (activeBlackSig !== lastActiveBlackSig || force) {
+      lastActiveBlackSig = activeBlackSig;
+      updateLeaderboardDOM('lb-list-black', activeBlack.slice(0, 5), 'BLACK');
+    }
+    if (activeWhiteSig !== lastActiveWhiteSig || force) {
+      lastActiveWhiteSig = activeWhiteSig;
+      updateLeaderboardDOM('lb-list-white', activeWhite.slice(0, 5), 'WHITE');
+    }
+
+    updateDualTickerDOM(activeBlack, activeWhite);
+  }
+
+  // Synchronize server leaderboard data into local roster
+  function syncServerLeaderboard(serverList, team) {
+    if (!Array.isArray(serverList)) return;
+    const roster = (team === 'BLACK') ? currentBlackRoster : currentWhiteRoster;
+    const otherRoster = (team === 'BLACK') ? currentWhiteRoster : currentBlackRoster;
+    const now = Date.now();
+
+    serverList.forEach(item => {
+      if (!item || !item.user_name) return;
+
+      const otherIdx = otherRoster.findIndex(u => u.user_name === item.user_name);
+      if (otherIdx !== -1) {
+        otherRoster.splice(otherIdx, 1);
+      }
+
+      let p = roster.find(u => u.user_name === item.user_name);
+      const sScore = parseInt(item.score, 10) || 10;
+      const sVotes = parseInt(item.total_votes, 10) || 1;
+
+      if (!p) {
+        p = {
+          user_name: item.user_name,
+          team: team,
+          score: sScore,
+          roundComments: sVotes,
+          lastCommentAt: now,
+          activeUntil: now + 10000
+        };
+        roster.push(p);
+      } else {
+        p.score = Math.max(p.score || 0, sScore);
+        p.roundComments = Math.max(p.roundComments || 0, sVotes);
+        if (!p.activeUntil || p.activeUntil < now) {
+          p.activeUntil = now + 10000;
+        }
+      }
+    });
+
+    roster.sort((a, b) => {
+      const diffScore = (b.score || 0) - (a.score || 0);
+      if (diffScore !== 0) return diffScore;
+      return (b.roundComments || 0) - (a.roundComments || 0);
+    });
   }
 
   // In-place DOM update for Top 5 leaderboard: zero blinking
@@ -333,7 +509,19 @@
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    const crownSvg = `<svg style="width:12px;height:12px;fill:#000000;margin-left:4px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
+    if (!top5List || top5List.length === 0) {
+      container.innerHTML = `
+        <div class="top5-empty-hint" style="padding: 45px 12px; text-align: center; font-family: 'Chakra Petch', sans-serif; font-weight: 700; font-size: 15px; color: ${team === 'BLACK' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)'}; letter-spacing: 1px;">
+          TYPE ${team === 'BLACK' ? '1' : '2'} TO HOLD ROPE (10s)
+        </div>
+      `;
+      return;
+    }
+
+    const hint = container.querySelector('.top5-empty-hint');
+    if (hint) hint.remove();
+
+    const crownSvg = `<svg style="width:17px;height:17px;fill:#FFFFFF;margin-left:5px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
 
     while (container.children.length > top5List.length) {
       container.removeChild(container.lastElementChild);
@@ -372,10 +560,19 @@
     });
   }
 
-  // Next Round / Topic Cycle
+  // Next Round / Topic Cycle (Debate Topic changes every 3 rounds)
   function nextTopic() {
-    gameState.roundNumber = (gameState.roundNumber % gameState.totalRounds) + 1;
-    gameState.currentTopicIdx = (gameState.currentTopicIdx + 1) % DEBATE_TOPICS.length;
+    if (gameState.roundNumber >= gameState.totalRounds) {
+      // 3 rounds completed! Advance debate topic and reset match scores
+      gameState.roundNumber = 1;
+      gameState.currentTopicIdx = (gameState.currentTopicIdx + 1) % DEBATE_TOPICS.length;
+      gameState.winsBlack = 0;
+      gameState.winsWhite = 0;
+    } else {
+      // Advance to next round within current 3-round debate
+      gameState.roundNumber++;
+    }
+
     physics.x = 0;
     physics.vx = 0;
     physics.blackImpulse = 0;
@@ -420,6 +617,8 @@
   }
 
   // Keyboard Dev Controls
+  window.nextTopic = nextTopic;
+  window.gameState = gameState;
   window.addEventListener('keydown', (e) => {
     const k = e.key.toLowerCase();
     if (e.key === 'ArrowLeft' || e.key === '1' || k === 'a') {
@@ -461,14 +660,24 @@
       }
     }
 
-    // Physics
-    const netForce = (physics.whiteImpulse - physics.blackImpulse) - (physics.x * physics.centeringSpring);
+    // Physics with continuous 10-second holding power
+    const now = Date.now();
+    const activeBlack = currentBlackRoster.filter(p => p.activeUntil && p.activeUntil > now);
+    const activeWhite = currentWhiteRoster.filter(p => p.activeUntil && p.activeUntil > now);
+
+    // Continuous holding force: each active commenter contributes 2.5 units of steady pull force
+    const holdForce = (activeWhite.length - activeBlack.length) * 2.5;
+
+    const netForce = holdForce + (physics.whiteImpulse - physics.blackImpulse) - (physics.x * physics.centeringSpring);
     physics.blackImpulse *= 0.84;
     physics.whiteImpulse *= 0.84;
 
     const ax = netForce / physics.mass;
     physics.vx = (physics.vx + ax) * physics.damping;
     physics.x += physics.vx * dt * 60;
+
+    // Refresh active leaderboards as 10-second timers expire
+    updateLeaderboardsAndTickers();
 
     if (!gameState.isRoundOver) {
       if (physics.x <= -physics.winThreshold) triggerRoundWin('BLACK');
@@ -493,12 +702,22 @@
       if (ft.life <= 0) floatingTexts.splice(i, 1);
     }
 
-    // Animate stick figure pull cadence
-    const effortSpeed = 3.6 + Math.abs(physics.vx) * 0.08;
-    pullers.black.forEach(p => { p.phase += dt * effortSpeed; });
-    pullers.white.forEach(p => { p.phase += dt * effortSpeed; });
+    // Decay pull impulse exertion smoothly
+    pullers.black.forEach(p => {
+      if (p.extraImpulse > 0) p.extraImpulse = Math.max(0, p.extraImpulse - dt * 3.2);
+    });
+    pullers.white.forEach(p => {
+      if (p.extraImpulse > 0) p.extraImpulse = Math.max(0, p.extraImpulse - dt * 3.2);
+    });
+
+    // Animate stick figure pull cadence with realistic muscular heave
+    const effortBlack = (activeBlack.length > 0 ? 3.8 : 1.2) + Math.abs(physics.vx) * 0.08 + physics.blackImpulse * 0.05;
+    const effortWhite = (activeWhite.length > 0 ? 3.8 : 1.2) + Math.abs(physics.vx) * 0.08 + physics.whiteImpulse * 0.05;
+    pullers.black.forEach(p => { p.phase += dt * effortBlack; });
+    pullers.white.forEach(p => { p.phase += dt * effortWhite; });
 
     updateHUDGauges();
+    tickDualScrollers(dt);
   }
 
   // ----------------------------------------------------
@@ -516,7 +735,7 @@
     ctx.clearRect(0, 0, 1920, 1080);
 
     // 1. Arena Background (AI Generated Plate or Procedural Fallback)
-    if (arenaBgLoaded) {
+    if (isImgReady(arenaBgImg)) {
       ctx.drawImage(arenaBgImg, 0, 0, 1920, 1080);
     } else {
       drawStadiumBackground();
@@ -527,10 +746,10 @@
     // 2. Center Vertical Glowing Laser Beam (demarcation layer)
     drawCenterLaserBeam();
 
-    // 3. Heavy Braided Rope with Center Circular Reticle
+    // 3. Heavy Braided Rope with Dynamic Strain & Tension
     drawBraidedRope();
 
-    // 4. Black & White Stick-Figure Teams
+    // 4. Black & White Stick-Figure Teams (100% Procedural Vector with Dynamic Motion)
     drawStickmanTeams();
 
     // 5. Particles & Sparks
@@ -769,22 +988,23 @@
     ctx.fill();
   }
 
-  // 5. Heavy Braided Rope with Center Reticle
+  // 5. Heavy Braided Rope with Dynamic Strain & Tension
   function drawBraidedRope() {
     const ropeY = 675;
+    const floorY = 755;
     const centerKnotX = 960 + physics.x;
-    const leftAnchorX = centerKnotX - 490;
-    const rightAnchorX = centerKnotX + 490;
+    const leftAnchorX = centerKnotX - 680;
+    const rightAnchorX = centerKnotX + 680;
 
     const tension = Math.min(1, Math.abs(physics.vx) / 8 + Math.abs(physics.x) / physics.winThreshold);
-    const sag = 6 - tension * 5;
+    const sag = 5 - tension * 4.5;
 
-    // Floor shadow under rope
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+    // Floor shadow under rope on the polished arena floor
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.65)';
     ctx.lineWidth = 14;
     ctx.beginPath();
-    ctx.moveTo(leftAnchorX, ropeY + 74);
-    ctx.quadraticCurveTo(centerKnotX, ropeY + 74 + sag, rightAnchorX, ropeY + 74);
+    ctx.moveTo(leftAnchorX - 160, floorY);
+    ctx.lineTo(rightAnchorX + 160, floorY);
     ctx.stroke();
 
     // Braided Rope Core
@@ -798,37 +1018,37 @@
 
     // Braided white and dark twisted strands
     ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 5;
-    ctx.setLineDash([14, 12]);
+    ctx.lineWidth = 4.5;
+    ctx.setLineDash([12, 10]);
     ctx.beginPath();
     ctx.moveTo(leftAnchorX, ropeY - 2);
     ctx.quadraticCurveTo(centerKnotX, ropeY - 2 + sag, rightAnchorX, ropeY - 2);
     ctx.stroke();
 
     ctx.strokeStyle = '#050505';
-    ctx.lineWidth = 5;
-    ctx.lineDashOffset = 13;
+    ctx.lineWidth = 4.5;
+    ctx.lineDashOffset = 11;
     ctx.beginPath();
     ctx.moveTo(leftAnchorX, ropeY + 2);
     ctx.quadraticCurveTo(centerKnotX, ropeY + 2 + sag, rightAnchorX, ropeY + 2);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Rope tail curling off behind 5th pullers onto the floor
+    // Rope tails curling gracefully onto the arena floor behind the anchor pullers
     ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 10;
+    ctx.lineWidth = 9;
     ctx.lineCap = 'round';
 
-    // Left trail (Team Black)
+    // Left trail (Team Black anchor tail)
     ctx.beginPath();
     ctx.moveTo(leftAnchorX, ropeY);
-    ctx.bezierCurveTo(leftAnchorX - 80, ropeY + 15, leftAnchorX - 160, ropeY + 70, leftAnchorX - 260, ropeY + 75);
+    ctx.bezierCurveTo(leftAnchorX - 80, ropeY + 20, leftAnchorX - 120, floorY - 5, leftAnchorX - 180, floorY);
     ctx.stroke();
 
-    // Right trail (Team White)
+    // Right trail (Team White anchor tail)
     ctx.beginPath();
     ctx.moveTo(rightAnchorX, ropeY);
-    ctx.bezierCurveTo(rightAnchorX + 80, ropeY + 15, rightAnchorX + 160, ropeY + 70, rightAnchorX + 260, ropeY + 75);
+    ctx.bezierCurveTo(rightAnchorX + 80, ropeY + 20, rightAnchorX + 120, floorY - 5, rightAnchorX + 180, floorY);
     ctx.stroke();
 
     // Center Circular Reticle Marker
@@ -839,10 +1059,10 @@
     ctx.strokeStyle = '#FFFFFF';
     ctx.lineWidth = 2.5;
     for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
-      const rx1 = Math.cos(angle) * 38;
-      const ry1 = Math.sin(angle) * 38;
-      const rx2 = Math.cos(angle) * 54;
-      const ry2 = Math.sin(angle) * 54;
+      const rx1 = Math.cos(angle) * 36;
+      const ry1 = Math.sin(angle) * 36;
+      const rx2 = Math.cos(angle) * 52;
+      const ry2 = Math.sin(angle) * 52;
       ctx.beginPath();
       ctx.moveTo(rx1, ry1);
       ctx.lineTo(rx2, ry2);
@@ -852,7 +1072,7 @@
     // Outer white ring
     ctx.fillStyle = '#080808';
     ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 3.5;
     ctx.beginPath();
     ctx.arc(0, 0, 32, 0, Math.PI * 2);
     ctx.fill();
@@ -883,223 +1103,304 @@
     ctx.restore();
   }
 
-  // 6. Black & White Stick-Figure Teams (100% Match to Blueprint Anatomy)
+  // 6. Black & White Stick-Figure Teams (100% Procedural Vector with Dynamic Motion)
   function drawStickmanTeams() {
-    const ropeY = 675;
     const centerKnotX = 960 + physics.x;
+    const ropeY = 675;
 
     // Black Team (Left side: 5 Pullers pulling Left)
     pullers.black.forEach((p) => {
       const baseX = centerKnotX + p.xOffset;
-      drawStickmanPuller(baseX, ropeY, 'BLACK', p.phase);
+      drawStickmanPuller(baseX, ropeY, 'BLACK', p.phase, p.extraImpulse);
     });
 
     // White Team (Right side: 5 Pullers pulling Right)
     pullers.white.forEach((p) => {
       const baseX = centerKnotX + p.xOffset;
-      drawStickmanPuller(baseX, ropeY, 'WHITE', p.phase);
+      drawStickmanPuller(baseX, ropeY, 'WHITE', p.phase, p.extraImpulse);
     });
   }
 
-  function drawStickmanPuller(x, y, team, phase) {
+  function drawStickmanPuller(cx, cy, team, phase, extraImpulse = 0) {
+    const isBlack = (team === 'BLACK');
+    const pullDir = isBlack ? -1.0 : 1.0;
+    const img = isBlack ? stickmanBlackImg : stickmanWhiteImg;
+    const imgReady = isImgReady(img);
+
+    // Primary: Render using User-Attached PNG (media_1792576999153_bdefe6a6.png) with dynamic motion
+    if (imgReady) {
+      ctx.save();
+
+      const floorY = 755;
+      const scale = 80.0 / 368.0; // Hand to foot distance = 80px (matching rope to floor)
+      const w = 612.0 * scale;
+      const h = 628.0 * scale;
+
+      const handX = isBlack ? (612.0 - 84.0) * scale : 84.0 * scale;
+      const handY = 258.0 * scale;
+
+      // Dynamic heave and muscular strain
+      const heave = Math.sin(phase);
+      const strainX = pullDir * (heave * 4.0 + extraImpulse * 12.0);
+      const bounceY = Math.abs(heave) * 2.0;
+
+      // Pivot point at planted feet
+      const pivotX = cx + pullDir * 30 + strainX;
+      const pivotY = floorY;
+      const leanAngle = pullDir * (heave * 0.035 + extraImpulse * 0.07);
+
+      const relDrawX = (cx - handX) - (cx + pullDir * 30);
+      const relDrawY = (cy - handY) - floorY;
+
+      // 1. Glossy Floor Mirror Reflection
+      ctx.save();
+      ctx.translate(pivotX, pivotY);
+      ctx.scale(1, -0.65);
+      ctx.rotate(-leanAngle * 0.5);
+      ctx.globalAlpha = isBlack ? 0.20 : 0.25;
+      ctx.drawImage(img, relDrawX, relDrawY, w, h);
+      ctx.restore();
+
+      // 2. Main Stick Figure Image with dynamic lean & heave
+      ctx.save();
+      ctx.translate(pivotX, pivotY);
+      ctx.rotate(leanAngle);
+      ctx.globalAlpha = 1.0;
+      ctx.drawImage(img, relDrawX, relDrawY + bounceY, w, h);
+
+      // 3. Exertion Sweat Spray Radiating Behind Head
+      if (extraImpulse > 0.05 || Math.sin(phase) > 0.3) {
+        const headSprX = isBlack ? (612.0 - 430.0) * scale : 430.0 * scale;
+        const headSprY = 108.0 * scale;
+        const hx = relDrawX + headSprX;
+        const hy = relDrawY + headSprY + bounceY;
+        const sprayDir = -pullDir;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'round';
+        for (let s = 0; s < 3; s++) {
+          const sx = hx + sprayDir * (18 + s * 6);
+          const sy = hy + (s * 8 - 6);
+          const len = 10 + s * 3 + extraImpulse * 8;
+          const ex = sx + sprayDir * len;
+          const ey = sy - 4;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(ex, ey, 2.0, 0, Math.PI * 2);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fill();
+        }
+      }
+
+      ctx.restore();
+      ctx.restore();
+      return;
+    }
+
     ctx.save();
-    const isBlack = team === 'BLACK';
+    const outerStroke = isBlack ? '#FFFFFF' : '#000000';
+    const innerFill = isBlack ? '#000000' : '#FFFFFF';
 
-    // Athletic pull lean oscillation
+    const floorY = 755;
+    const scale = 0.237;
+
+    // Dynamic heave motion
     const heave = Math.sin(phase);
-    const leanPull = isBlack ? (-0.50 + heave * 0.08) : (0.50 - heave * 0.08);
-
-    // Coordinate calculation: hands grip rope at (x, y)
-    const hand1X = x + (isBlack ? 14 : -14);
-    const hand1Y = y;
-    const hand2X = x + (isBlack ? -16 : 16);
-    const hand2Y = y;
-
-    // Shoulders leaning back
-    const shoulderX = x + (isBlack ? -42 : 42) + (isBlack ? -heave * 6 : heave * 6);
-    const shoulderY = y - 50;
+    const leanPx = (heave * 12.0 + extraImpulse * 18.0) * scale;
+    const leanPy = (Math.abs(heave) * 5.0) * scale;
 
     // Head
-    const headX = shoulderX + (isBlack ? -20 : 20);
-    const headY = shoulderY - 34;
+    const headX = cx + pullDir * (220.0 * scale + leanPx * 1.2);
+    const headY = cy + (-167.5 * scale + leanPy);
+    const headR = 85.0 * scale;
+
+    // Shoulders
+    const shoulderX = cx + pullDir * (200.0 * scale + leanPx);
+    const shoulderY = cy + (-62.0 * scale + leanPy * 0.8);
 
     // Hips
-    const hipX = shoulderX + (isBlack ? -48 : 48);
-    const hipY = y + 26;
+    const hipX = cx + pullDir * (300.0 * scale + leanPx * 0.6);
+    const hipY = cy + (98.0 * scale + leanPy * 0.4);
+
+    // Dual ball fists gripping the rope
+    const fist1X = cx + pullDir * (-55.0 * scale - leanPx * 0.3);
+    const fist1Y = cy + (-7.5 * scale);
+    const fist1R = 34.0 * scale;
+
+    const fist2X = cx + pullDir * (+55.0 * scale - leanPx * 0.3);
+    const fist2Y = cy + (+7.5 * scale);
+    const fist2R = 34.0 * scale;
+
+    // Bent elbow for near arm
+    const elbowX = cx + pullDir * (180.0 * scale + leanPx * 0.5);
+    const elbowY = cy + (10.0 * scale + leanPy * 0.5);
 
     // Front leg (braced lunging forward with bent knee)
-    const knee1X = hipX + (isBlack ? 36 : -36);
-    const knee1Y = y + 52;
-    const foot1X = hipX + (isBlack ? 52 : -52);
-    const foot1Y = y + 78;
+    const knee1X = cx + pullDir * (90.0 * scale);
+    const knee1Y = cy + (168.0 * scale - leanPy * 0.3);
+    const foot1X = cx + pullDir * (-20.0 * scale);
+    const foot1Y = floorY;
 
     // Rear leg (digging backward with bent knee)
-    const knee2X = hipX + (isBlack ? -22 : 22);
-    const knee2Y = y + 50;
-    const foot2X = hipX + (isBlack ? -58 : 58);
-    const foot2Y = y + 78;
+    const knee2X = cx + pullDir * (350.0 * scale + leanPx * 0.3);
+    const knee2Y = cy + (198.0 * scale - leanPy * 0.2);
+    const foot2X = cx + pullDir * (410.0 * scale);
+    const foot2Y = floorY;
 
-    // Athletic bent elbows gripping rope
-    const elbow1X = (shoulderX + hand1X) / 2 + (isBlack ? -10 : 10);
-    const elbow1Y = (shoulderY + hand1Y) / 2 + 12;
-    const elbow2X = (shoulderX + hand2X) / 2 + (isBlack ? -12 : 12);
-    const elbow2Y = (shoulderY + hand2Y) / 2 + 15;
+    // Shoe sole dimensions
+    const soleW1 = 180.0 * scale;
+    const soleW2 = 160.0 * scale;
+    const soleH = 36.0 * scale;
+
+    const contourThick = 5.0;
+    const limbW = 24.0 * scale;
 
     // ----------------------------------------------------
-    // FLOOR REFLECTION ON GLOSSY TILES
+    // 1. FLOOR REFLECTION (Polished tile mirror reflection)
     // ----------------------------------------------------
     ctx.save();
-    ctx.globalAlpha = 0.16;
-    ctx.translate(0, foot1Y * 2);
-    ctx.scale(1, -0.65);
-
-    ctx.strokeStyle = isBlack ? '#383838' : '#FFFFFF';
-    ctx.lineWidth = 16;
+    ctx.globalAlpha = isBlack ? 0.20 : 0.25;
+    ctx.strokeStyle = isBlack ? '#404040' : '#FFFFFF';
+    ctx.fillStyle = isBlack ? '#404040' : '#FFFFFF';
+    ctx.lineWidth = limbW * 1.2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
     // Reflected torso
     ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(hipX, hipY);
+    ctx.moveTo(shoulderX, floorY * 2 - shoulderY);
+    ctx.lineTo(hipX, floorY * 2 - hipY);
     ctx.stroke();
 
-    // Reflected legs
+    // Reflected front leg
     ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(knee1X, knee1Y);
-    ctx.lineTo(foot1X, foot1Y);
+    ctx.moveTo(hipX, floorY * 2 - hipY);
+    ctx.lineTo(knee1X, floorY * 2 - knee1Y);
+    ctx.lineTo(foot1X, floorY);
     ctx.stroke();
 
+    // Reflected rear leg
     ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(knee2X, knee2Y);
-    ctx.lineTo(foot2X, foot2Y);
+    ctx.moveTo(hipX, floorY * 2 - hipY);
+    ctx.lineTo(knee2X, floorY * 2 - knee2Y);
+    ctx.lineTo(foot2X, floorY);
     ctx.stroke();
 
     // Reflected head
-    ctx.fillStyle = isBlack ? '#383838' : '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(headX, headY, 21, 0, Math.PI * 2);
+    ctx.arc(headX, floorY * 2 - headY, headR, 0, Math.PI * 2);
     ctx.fill();
-
     ctx.restore();
 
-    // ----------------------------------------------------
-    // SOLID STICKMAN SILHOUETTE WITH CRISP CONTOUR
-    // ----------------------------------------------------
-    const outerStroke = isBlack ? '#FFFFFF' : '#000000';
-    const innerFill = isBlack ? '#000000' : '#FFFFFF';
-
-    // 1. Outer contour stroke (thick border)
-    ctx.strokeStyle = outerStroke;
-    ctx.lineWidth = 24;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    // Front leg
-    ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(knee1X, knee1Y);
-    ctx.lineTo(foot1X, foot1Y);
-    ctx.lineTo(foot1X + (isBlack ? 14 : -14), foot1Y);
-    ctx.stroke();
-
-    // Rear leg
-    ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(knee2X, knee2Y);
-    ctx.lineTo(foot2X, foot2Y);
-    ctx.lineTo(foot2X + (isBlack ? -14 : 14), foot2Y);
-    ctx.stroke();
-
-    // Torso
-    ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(hipX, hipY);
-    ctx.stroke();
-
-    // Arms reaching to rope with bent elbows
-    ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(elbow1X, elbow1Y);
-    ctx.lineTo(hand1X, hand1Y);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(elbow2X, elbow2Y);
-    ctx.lineTo(hand2X, hand2Y);
-    ctx.stroke();
-
-    // Head outer border
-    ctx.fillStyle = outerStroke;
-    ctx.beginPath();
-    ctx.arc(headX, headY, 24, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 2. Inner core (solid black or solid white fill)
-    ctx.strokeStyle = innerFill;
-    ctx.lineWidth = 16;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    // Front leg core
-    ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(knee1X, knee1Y);
-    ctx.lineTo(foot1X, foot1Y);
-    ctx.lineTo(foot1X + (isBlack ? 14 : -14), foot1Y);
-    ctx.stroke();
-
-    // Rear leg core
-    ctx.beginPath();
-    ctx.moveTo(hipX, hipY);
-    ctx.lineTo(knee2X, knee2Y);
-    ctx.lineTo(foot2X, foot2Y);
-    ctx.lineTo(foot2X + (isBlack ? -14 : 14), foot2Y);
-    ctx.stroke();
-
-    // Torso core
-    ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(hipX, hipY);
-    ctx.stroke();
-
-    // Arms core
-    ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(elbow1X, elbow1Y);
-    ctx.lineTo(hand1X, hand1Y);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(shoulderX, shoulderY);
-    ctx.lineTo(elbow2X, elbow2Y);
-    ctx.lineTo(hand2X, hand2Y);
-    ctx.stroke();
-
-    // Head inner core
-    ctx.fillStyle = innerFill;
-    ctx.beginPath();
-    ctx.arc(headX, headY, 19, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 3. Sweat / Effort marks radiating from behind head (3 crisp white dashes)
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    const sweatDir = isBlack ? -1 : 1;
-    for (let s = 0; s < 3; s++) {
-      const sx1 = headX + sweatDir * 28;
-      const sy1 = headY + s * 9 - 10;
-      const sx2 = sx1 + sweatDir * 14;
-      const sy2 = sy1 - 8;
+    // Helper for double-contoured segments
+    function drawSegment(x1, y1, x2, y2, width) {
+      // Outer stroke
+      ctx.strokeStyle = outerStroke;
+      ctx.lineWidth = width + contourThick * 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.beginPath();
-      ctx.moveTo(sx1, sy1);
-      ctx.lineTo(sx2, sy2);
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+
+      // Inner core
+      ctx.strokeStyle = innerFill;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
       ctx.stroke();
     }
+
+    // Helper for rounded shoe soles
+    function drawShoeSole(x, y, w, h, facingDir) {
+      const rx = Math.min(x - facingDir * w * 0.5, x + facingDir * w * 0.5);
+      const r = h * 0.5;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(rx, y - h, Math.abs(w), h, r);
+      } else {
+        ctx.rect(rx, y - h, Math.abs(w), h);
+      }
+      ctx.fillStyle = innerFill;
+      ctx.strokeStyle = outerStroke;
+      ctx.lineWidth = contourThick;
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // 2. Draw Rear Leg (Hip -> Knee 2 -> Foot 2)
+    drawSegment(hipX, hipY, knee2X, knee2Y, limbW * 1.1);
+    drawSegment(knee2X, knee2Y, foot2X, foot2Y, limbW * 1.0);
+    drawShoeSole(foot2X, foot2Y, soleW2, soleH, pullDir);
+
+    // 3. Draw Far Arm (Shoulder -> Fist 1)
+    drawSegment(shoulderX, shoulderY, fist1X, fist1Y, limbW * 0.85);
+
+    // 4. Draw Torso (Shoulder -> Hip)
+    drawSegment(shoulderX, shoulderY, hipX, hipY, limbW * 1.45);
+
+    // 5. Draw Front Leg (Hip -> Knee 1 -> Foot 1)
+    drawSegment(hipX, hipY, knee1X, knee1Y, limbW * 1.15);
+    drawSegment(knee1X, knee1Y, foot1X, foot1Y, limbW * 1.0);
+    drawShoeSole(foot1X, foot1Y, soleW1, soleH, -pullDir);
+
+    // 6. Draw Near Arm (Shoulder -> Elbow -> Fist 2)
+    drawSegment(shoulderX, shoulderY, elbowX, elbowY, limbW * 0.95);
+    drawSegment(elbowX, elbowY, fist2X, fist2Y, limbW * 0.95);
+
+    // 7. Draw Ball Fists gripping rope
+    function drawBallFist(fx, fy, fr) {
+      ctx.beginPath();
+      ctx.arc(fx, fy, fr, 0, Math.PI * 2);
+      ctx.fillStyle = innerFill;
+      ctx.strokeStyle = outerStroke;
+      ctx.lineWidth = contourThick;
+      ctx.fill();
+      ctx.stroke();
+    }
+    drawBallFist(fist1X, fist1Y, fist1R);
+    drawBallFist(fist2X, fist2Y, fist2R);
+
+    // 8. Draw Head
+    ctx.beginPath();
+    ctx.arc(headX, headY, headR, 0, Math.PI * 2);
+    ctx.fillStyle = innerFill;
+    ctx.strokeStyle = outerStroke;
+    ctx.lineWidth = contourThick;
+    ctx.fill();
+    ctx.stroke();
+
+    // 9. Effort Sweat Spray radiating behind head
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    const sprayDir = -pullDir;
+    const sweatOffsets = [
+      { dx: 18, dy: -6, len: 12 },
+      { dx: 24, dy: 4, len: 10 },
+      { dx: 14, dy: 14, len: 8 },
+    ];
+    sweatOffsets.forEach(s => {
+      const sx = headX + sprayDir * s.dx;
+      const sy = headY + s.dy;
+      const ex = sx + sprayDir * (s.len + (extraImpulse || 0) * 8);
+      const ey = sy - 4;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(ex, ey, 2.0, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+    });
 
     ctx.restore();
   }
@@ -1151,7 +1452,9 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = '#FFFFFF';
 
-    const winText = isBlack ? '👑 TEAM BLACK VICTORIOUS 👑' : '👑 TEAM WHITE VICTORIOUS 👑';
+    const curTopic = DEBATE_TOPICS[gameState.currentTopicIdx] || { left: 'ANDROID', right: 'IPHONE' };
+    const winnerTopic = isBlack ? curTopic.left : curTopic.right;
+    const winText = `👑 TEAM ${winnerTopic} VICTORIOUS 👑`;
     ctx.fillText(winText, 960, 475);
 
     ctx.font = '800 22px "Chakra Petch", sans-serif';
@@ -1166,6 +1469,64 @@
   // HUD UPDATER
   // ----------------------------------------------------
   function updateTopicHUD() {
+    const curTopic = DEBATE_TOPICS[gameState.currentTopicIdx] || { left: 'ANDROID', right: 'IPHONE' };
+
+    // 1. Top Header Team Identity Blocks
+    const teamNameBlack = document.getElementById('team-name-black');
+    const teamNameWhite = document.getElementById('team-name-white');
+    if (teamNameBlack) teamNameBlack.textContent = curTopic.left;
+    if (teamNameWhite) teamNameWhite.textContent = curTopic.right;
+
+    // 2. Control Bar Percent Sublabels
+    const controlLabelBlack = document.getElementById('control-label-black');
+    const controlLabelWhite = document.getElementById('control-label-white');
+    if (controlLabelBlack) controlLabelBlack.textContent = `TEAM ${curTopic.left} CONTROL`;
+    if (controlLabelWhite) controlLabelWhite.textContent = `TEAM ${curTopic.right} CONTROL`;
+
+    // 3. Flanking Top 5 Leaderboards
+    const top5HeaderBlack = document.getElementById('top5-header-black');
+    const top5HeaderWhite = document.getElementById('top5-header-white');
+    if (top5HeaderBlack) top5HeaderBlack.textContent = `TOP 5 - ${curTopic.left}`;
+    if (top5HeaderWhite) top5HeaderWhite.textContent = `TOP 5 - ${curTopic.right}`;
+
+    // 4. Center Above-Middle Debate Widget
+    const topicLeft = document.getElementById('topic-left-text');
+    const topicRight = document.getElementById('topic-right-text');
+    if (topicLeft) topicLeft.textContent = curTopic.left;
+    if (topicRight) topicRight.textContent = curTopic.right;
+
+    const sideTagBlack = document.getElementById('side-tag-black');
+    const sideTagWhite = document.getElementById('side-tag-white');
+    if (sideTagBlack) sideTagBlack.textContent = `TEAM ${curTopic.left}`;
+    if (sideTagWhite) sideTagWhite.textContent = `TEAM ${curTopic.right}`;
+
+    const footerBlack = document.getElementById('footer-topic-black');
+    const footerWhite = document.getElementById('footer-topic-white');
+    if (footerBlack) footerBlack.textContent = curTopic.left;
+    if (footerWhite) footerWhite.textContent = curTopic.right;
+
+    const debateRoundInd = document.getElementById('debate-round-indicator');
+    if (debateRoundInd) {
+      debateRoundInd.textContent = `ROUND ${gameState.roundNumber} OF ${gameState.totalRounds}`;
+    }
+
+    // 5. Command Deck Headers & Action Subtexts
+    const cmdHeaderBlack = document.getElementById('cmd-header-black');
+    const cmdHeaderWhite = document.getElementById('cmd-header-white');
+    if (cmdHeaderBlack) cmdHeaderBlack.textContent = `JOIN TEAM ${curTopic.left}`;
+    if (cmdHeaderWhite) cmdHeaderWhite.textContent = `JOIN TEAM ${curTopic.right}`;
+
+    const cmdSubBlack = document.querySelector('.cmd-box.black .cmd-subtext');
+    const cmdSubWhite = document.querySelector('.cmd-box.white .cmd-subtext');
+    if (cmdSubBlack) cmdSubBlack.textContent = `FOR ${curTopic.left}`;
+    if (cmdSubWhite) cmdSubWhite.textContent = `FOR ${curTopic.right}`;
+
+    // 6. Live Chat Terminal Stream Tags
+    const streamTagBlack = document.getElementById('stream-tag-black');
+    const streamTagWhite = document.getElementById('stream-tag-white');
+    if (streamTagBlack) streamTagBlack.textContent = `◄ TEAM ${curTopic.left}`;
+    if (streamTagWhite) streamTagWhite.textContent = `TEAM ${curTopic.right} ►`;
+
     const winsBlackEl = document.getElementById('wins-black-count');
     const winsWhiteEl = document.getElementById('wins-white-count');
     if (winsBlackEl) winsBlackEl.textContent = gameState.winsBlack;
@@ -1199,14 +1560,7 @@
       roundCycleEl.textContent = `ROUND 0${gameState.roundNumber} / 0${gameState.totalRounds}`;
     }
 
-    const capBlackScore = document.getElementById('captain-black-score');
-    const capWhiteScore = document.getElementById('captain-white-score');
-    if (capBlackScore && currentBlackRoster.length > 0) {
-      capBlackScore.textContent = `${currentBlackRoster[0].score || 0}`;
-    }
-    if (capWhiteScore && currentWhiteRoster.length > 0) {
-      capWhiteScore.textContent = `${currentWhiteRoster[0].score || 0}`;
-    }
+    updateLeaderboardsAndTickers(true);
   }
 
   function updateHUDGauges() {
@@ -1248,17 +1602,16 @@
       if (data.success) {
         if (Array.isArray(data.incoming_pulls)) {
           for (const item of data.incoming_pulls) {
-            applyPull(item.team, item.user);
+            applyPull(item.team, item.user, 10);
           }
         }
         if (Array.isArray(data.leaderboards?.black)) {
-          currentBlackRoster = data.leaderboards.black;
-          updateLeaderboardDOM('lb-list-black', currentBlackRoster.slice(0, 5), 'BLACK');
+          syncServerLeaderboard(data.leaderboards.black, 'BLACK');
         }
         if (Array.isArray(data.leaderboards?.white)) {
-          currentWhiteRoster = data.leaderboards.white;
-          updateLeaderboardDOM('lb-list-white', currentWhiteRoster.slice(0, 5), 'WHITE');
+          syncServerLeaderboard(data.leaderboards.white, 'WHITE');
         }
+        updateLeaderboardsAndTickers();
       }
     } catch (e) {}
   }
@@ -1266,41 +1619,30 @@
   // ----------------------------------------------------
   // INITIALIZATION & SIMULATED AUTOPLAY
   // ----------------------------------------------------
-  const isPreviewMode = window.location.search.includes('preview=1') || window.location.search.includes('test=1') || true;
+  const isPreviewMode = (window.location.search.includes('preview=1') || window.location.search.includes('test=1')) && !window.location.search.includes('stream=1');
 
   updateTopicHUD();
-  updateLeaderboardDOM('lb-list-black', currentBlackRoster.slice(0, 5), 'BLACK');
-  updateLeaderboardDOM('lb-list-white', currentWhiteRoster.slice(0, 5), 'WHITE');
+  updateLeaderboardsAndTickers(true);
 
-  const capBlackScore = document.getElementById('captain-black-score');
-  const capWhiteScore = document.getElementById('captain-white-score');
-  if (capBlackScore) capBlackScore.textContent = `${currentBlackRoster[0].score}`;
-  if (capWhiteScore) capWhiteScore.textContent = `${currentWhiteRoster[0].score}`;
-
-  // Periodic pruning of participants inactive > 5 minutes
-  setInterval(() => {
-    const now = Date.now();
-    const FIVE_MIN = 5 * 60 * 1000;
-    currentBlackRoster = currentBlackRoster.filter(p => !p.lastCommentAt || (now - p.lastCommentAt <= FIVE_MIN));
-    currentWhiteRoster = currentWhiteRoster.filter(p => !p.lastCommentAt || (now - p.lastCommentAt <= FIVE_MIN));
-    updateLeaderboardDOM('lb-list-black', currentBlackRoster.slice(0, 5), 'BLACK');
-    updateLeaderboardDOM('lb-list-white', currentWhiteRoster.slice(0, 5), 'WHITE');
-  }, 10000);
-
-  // Active vote simulation for realistic broadcast motion
+  // Active vote simulation for realistic test preview (disabled during live stream)
   if (isPreviewMode) {
     setInterval(() => {
       if (gameState.isRoundOver) return;
 
       const isBlack = Math.random() < 0.5;
       const team = isBlack ? 'BLACK' : 'WHITE';
-      const roster = isBlack ? currentBlackRoster : currentWhiteRoster;
-      const userObj = roster[Math.floor(Math.random() * Math.min(5, roster.length))];
+      const simNamesBlack = ['PixelWarrior', 'ShadowBlade', 'ApexRider', 'Vortex99', 'TitanGrip'];
+      const simNamesWhite = ['SolarFlare', 'NovaStrike', 'HyperFrost', 'LightSpeed', 'ZenithGrip'];
+      const userList = isBlack ? simNamesBlack : simNamesWhite;
+      const userName = userList[Math.floor(Math.random() * userList.length)];
 
-      applyPull(team, userObj.user_name, 10);
-    }, 1200);
+      applyPull(team, userName, 10);
+    }, 1800);
   }
 
-  setInterval(pollServerChat, 1000);
+  // Sub-second chat polling (500ms) for instant responsiveness
+  setInterval(pollServerChat, 500);
+
+  render();
   requestAnimationFrame(loop);
 })();
