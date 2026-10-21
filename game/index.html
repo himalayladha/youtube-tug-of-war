@@ -219,47 +219,37 @@
             </div>
           </div>
 
-          <!-- Center Panel: Live Chat Activity Feed -->
+          <!-- Center Panel: Live Chat Dual Horizontal Scroller -->
           <div class="live-chat-terminal">
             <div class="terminal-header">
-              <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
-              <span>LIVE CHAT ACTIVITY</span>
+              <div class="terminal-title">
+                <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+                <span>LIVE CHAT ACTIVITY</span>
+              </div>
+              <div class="stream-directions">
+                <span class="stream-tag black-tag">◄ TEAM BLACK</span>
+                <span class="stream-sep">//</span>
+                <span class="stream-tag white-tag">TEAM WHITE ►</span>
+              </div>
             </div>
-            <div id="live-chat-activity-feed" class="terminal-feed-list">
-              <div class="terminal-log-row">
-                <span class="log-time">12:41</span>
-                <span>👤</span>
-                <span class="log-user">@Rohit_07</span>
-                <span class="log-action">➔ 1</span>
-                <span class="log-team black-team">(Team Black)</span>
+            <div class="dual-horizontal-scroller">
+              <!-- Row 1: Team Black moving towards Team Black side (LEFT) -->
+              <div class="scroller-row black-row">
+                <div class="row-indicator black">◄ 1</div>
+                <div class="ticker-viewport">
+                  <div id="ticker-track-black" class="ticker-track scroll-left">
+                    <!-- Populated dynamically via JS -->
+                  </div>
+                </div>
               </div>
-              <div class="terminal-log-row">
-                <span class="log-time">12:41</span>
-                <span>👤</span>
-                <span class="log-user">@NehaPlayz</span>
-                <span class="log-action">➔ 2</span>
-                <span class="log-team white-team">(Team White)</span>
-              </div>
-              <div class="terminal-log-row">
-                <span class="log-time">12:41</span>
-                <span>👤</span>
-                <span class="log-user">@KaranG</span>
-                <span class="log-action">➔ 2</span>
-                <span class="log-team white-team">(Team White)</span>
-              </div>
-              <div class="terminal-log-row">
-                <span class="log-time">12:40</span>
-                <span>👤</span>
-                <span class="log-user">@Mysterio</span>
-                <span class="log-action">➔ 1</span>
-                <span class="log-team black-team">(Team Black)</span>
-              </div>
-              <div class="terminal-log-row">
-                <span class="log-time">12:40</span>
-                <span>👤</span>
-                <span class="log-user">@Devilx</span>
-                <span class="log-action">➔ 2</span>
-                <span class="log-team white-team">(Team White)</span>
+              <!-- Row 2: Team White moving towards Team White side (RIGHT) -->
+              <div class="scroller-row white-row">
+                <div class="row-indicator white">2 ►</div>
+                <div class="ticker-viewport">
+                  <div id="ticker-track-white" class="ticker-track scroll-right">
+                    <!-- Populated dynamically via JS -->
+                  </div>
+                </div>
               </div>
             </div>
           </div>

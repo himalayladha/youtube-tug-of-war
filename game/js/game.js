@@ -198,30 +198,116 @@
     floatingTexts.push({ text, x, y, color, life: 1.2, maxLife: 1.2 });
   }
 
-  // Add Row to Live Chat Activity Terminal Feed
-  function appendLiveChatActivity(user, team) {
-    const feed = document.getElementById('live-chat-activity-feed');
-    if (!feed) return;
+  // Dual Horizontal Scroller Animation State (moving in opposing directions)
+  const tickerState = {
+    blackScroll: 0,
+    whiteScroll: 0,
+    speed: 55, // px per second
+  };
 
-    const d = new Date();
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    const timeStr = `${hh}:${mm}`;
+  let lastBlackTickerUserListSig = '';
+  let lastWhiteTickerUserListSig = '';
 
-    const isBlack = team === 'BLACK';
-    const row = document.createElement('div');
-    row.className = 'terminal-log-row';
-    row.innerHTML = `
-      <span class="log-time">${timeStr}</span>
-      <span>👤</span>
-      <span class="log-user">@${user}</span>
-      <span class="log-action">➔ ${isBlack ? '1' : '2'}</span>
-      <span class="log-team ${isBlack ? 'black-team' : 'white-team'}">(${isBlack ? 'Team Black' : 'Team White'})</span>
-    `;
+  // Dual Horizontal Scroller: Big Font Tickers Moving in Opposing Directions
+  // Row 1: Team Black moving towards Team Black side (LEFT)
+  // Row 2: Team White moving towards Team White side (RIGHT)
+  // Prunes any user who has not commented in the last 5 minutes
+  function updateDualTickerDOM() {
+    const trackBlack = document.getElementById('ticker-track-black');
+    const trackWhite = document.getElementById('ticker-track-white');
+    if (!trackBlack || !trackWhite) return;
 
-    feed.insertBefore(row, feed.firstChild);
-    while (feed.children.length > 5) {
-      feed.removeChild(feed.lastChild);
+    const now = Date.now();
+    const FIVE_MINUTES = 5 * 60 * 1000;
+
+    // Filter active commenters from the last 5 minutes
+    const activeBlack = currentBlackRoster.filter(u => (now - (u.lastCommentAt || 0)) <= FIVE_MINUTES);
+    const activeWhite = currentWhiteRoster.filter(u => (now - (u.lastCommentAt || 0)) <= FIVE_MINUTES);
+
+    const blackList = activeBlack.length > 0 ? activeBlack : currentBlackRoster.slice(0, 8);
+    const whiteList = activeWhite.length > 0 ? activeWhite : currentWhiteRoster.slice(0, 8);
+
+    const blackUserSig = blackList.map(u => u.user_name).join('|');
+    const whiteUserSig = whiteList.map(u => u.user_name).join('|');
+
+    function buildPillHTML(u, team) {
+      const isBlack = (team === 'BLACK');
+      return `
+        <div class="ticker-item ${isBlack ? 'black' : 'white'}" data-user="${u.user_name}">
+          <span class="user-handle">@${u.user_name}</span>
+          <span class="action-tag">${isBlack ? '◄ 1' : '2 ►'}</span>
+          <span class="pts-tag">${u.score || 0} PTS</span>
+        </div>
+      `;
+    }
+
+    // Only recreate DOM if roster members changed (joined / pruned)
+    if (blackUserSig !== lastBlackTickerUserListSig || !trackBlack.firstElementChild) {
+      lastBlackTickerUserListSig = blackUserSig;
+      const single = blackList.map(u => buildPillHTML(u, 'BLACK')).join('');
+      trackBlack.innerHTML = single + single;
+    }
+
+    if (whiteUserSig !== lastWhiteTickerUserListSig || !trackWhite.firstElementChild) {
+      lastWhiteTickerUserListSig = whiteUserSig;
+      const single = whiteList.map(u => buildPillHTML(u, 'WHITE')).join('');
+      trackWhite.innerHTML = single + single;
+    }
+
+    // In-place score and captain update (zero flicker, zero DOM destruction during animation)
+    updateTickerPills(trackBlack, blackList);
+    updateTickerPills(trackWhite, whiteList);
+  }
+
+  function updateTickerPills(track, roster) {
+    if (!track) return;
+    const topScorer = roster.length > 0 ? roster[0] : null;
+    const maxScore = topScorer ? topScorer.score : 0;
+
+    roster.forEach(u => {
+      const isCaptain = (maxScore > 0 && u.user_name === topScorer.user_name);
+      const pills = track.querySelectorAll(`.ticker-item[data-user="${u.user_name}"]`);
+      pills.forEach(pill => {
+        const ptsEl = pill.querySelector('.pts-tag');
+        if (ptsEl && ptsEl.textContent !== `${u.score || 0} PTS`) {
+          ptsEl.textContent = `${u.score || 0} PTS`;
+        }
+        let captEl = pill.querySelector('.captain-badge');
+        if (isCaptain && !captEl) {
+          captEl = document.createElement('span');
+          captEl.className = 'captain-badge';
+          captEl.textContent = '👑 CAPT';
+          pill.insertBefore(captEl, pill.firstChild);
+        } else if (!isCaptain && captEl) {
+          captEl.remove();
+        }
+      });
+    });
+  }
+
+  function tickDualScrollers(dt) {
+    tickerState.blackScroll += dt * tickerState.speed;
+    tickerState.whiteScroll += dt * tickerState.speed;
+
+    const trackBlack = document.getElementById('ticker-track-black');
+    const trackWhite = document.getElementById('ticker-track-white');
+
+    if (trackBlack && trackBlack.firstElementChild) {
+      const halfWidth = trackBlack.scrollWidth / 2;
+      if (halfWidth > 0) {
+        // Team Black moves towards Team Black side (LEFT: 0 -> -halfWidth)
+        const offset = -(tickerState.blackScroll % halfWidth);
+        trackBlack.style.transform = `translateX(${offset}px)`;
+      }
+    }
+
+    if (trackWhite && trackWhite.firstElementChild) {
+      const halfWidth = trackWhite.scrollWidth / 2;
+      if (halfWidth > 0) {
+        // Team White moves towards Team White side (RIGHT: -halfWidth -> 0)
+        const offset = -halfWidth + (tickerState.whiteScroll % halfWidth);
+        trackWhite.style.transform = `translateX(${offset}px)`;
+      }
     }
   }
 
@@ -258,7 +344,6 @@
 
     gameState.screenShake = Math.min(6, gameState.screenShake + 1.0);
     registerChatParticipant(user, team, pts);
-    appendLiveChatActivity(user, team);
   }
 
   // 15-member rosters initialized matching the blueprint
@@ -315,6 +400,7 @@
 
     updateLeaderboardDOM('lb-list-black', currentBlackRoster.slice(0, 5), 'BLACK');
     updateLeaderboardDOM('lb-list-white', currentWhiteRoster.slice(0, 5), 'WHITE');
+    updateDualTickerDOM();
   }
 
   // Register Live Chat Participant: track comment count & 5-minute activity
@@ -353,6 +439,7 @@
 
     // Update Top 5 in-place without blinking
     updateLeaderboardDOM(team === 'BLACK' ? 'lb-list-black' : 'lb-list-white', roster.slice(0, 5), team);
+    updateDualTickerDOM();
   }
 
   // In-place DOM update for Top 5 leaderboard: zero blinking
@@ -535,6 +622,7 @@
     pullers.white.forEach(p => { p.phase += dt * effortWhite; });
 
     updateHUDGauges();
+    tickDualScrollers(dt);
   }
 
   // ----------------------------------------------------
@@ -1389,6 +1477,7 @@
   updateTopicHUD();
   updateLeaderboardDOM('lb-list-black', currentBlackRoster.slice(0, 5), 'BLACK');
   updateLeaderboardDOM('lb-list-white', currentWhiteRoster.slice(0, 5), 'WHITE');
+  updateDualTickerDOM();
 
   const capBlackScore = document.getElementById('captain-black-score');
   const capWhiteScore = document.getElementById('captain-white-score');
@@ -1403,6 +1492,7 @@
     currentWhiteRoster = currentWhiteRoster.filter(p => !p.lastCommentAt || (now - p.lastCommentAt <= FIVE_MIN));
     updateLeaderboardDOM('lb-list-black', currentBlackRoster.slice(0, 5), 'BLACK');
     updateLeaderboardDOM('lb-list-white', currentWhiteRoster.slice(0, 5), 'WHITE');
+    updateDualTickerDOM();
   }, 10000);
 
   // Active vote simulation for realistic broadcast motion
