@@ -6,24 +6,43 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>The Great Tug-of-War: Black vs White - Live Interactive Arena</title>
+  <title>The Great Tug-of-War: Black vs White - Tactical Chess Arena</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700;800;900&family=Inter:wght@400;600;700;800;900&family=Russo+One&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./css/styles.css?v=20261021_v9_instant" />
+  <link rel="stylesheet" href="./css/styles.css?v=20261021_v11_tactical" />
   <style>
-    /* Inlined CSS to guarantee instantaneous rendering without browser cache delay */
+    /* Inlined Tactical Monochrome CSS for instantaneous zero-latency render */
     :root {
-      --bg-dark: #0A0F1D;
-      --bg-stadium: #020617;
-      --accent-gold: #F59E0B;
-      --accent-gold-glow: rgba(245, 158, 11, 0.45);
-      --accent-cyan: #06B6D4;
-      --accent-cyan-glow: rgba(6, 182, 212, 0.4);
-      --accent-crimson: #EF4444;
-      --accent-crimson-glow: rgba(239, 68, 68, 0.4);
-      --team-black-glow: rgba(239, 68, 68, 0.25);
-      --team-white-glow: rgba(6, 182, 212, 0.25);
+      --bg-void: #030712;
+      --bg-surface-0: #080C14;
+      --bg-surface-1: #0F141E;
+      --bg-surface-2: #161D2A;
+      --bg-surface-3: #222B3D;
+
+      --obsidian-bg: #0A0D14;
+      --obsidian-surface: #111722;
+      --obsidian-border: #333D4F;
+      --obsidian-text: #FFFFFF;
+      --obsidian-muted: #94A3B8;
+
+      --alabaster-bg: #FFFFFF;
+      --alabaster-surface: #F8FAFC;
+      --alabaster-border: #94A3B8;
+      --alabaster-text: #050810;
+      --alabaster-muted: #475569;
+
+      --tactical-gray-1: #1B212D;
+      --tactical-gray-2: #283344;
+      --tactical-gray-3: #4A5870;
+      --tactical-gray-4: #8B99AF;
+      --tactical-gray-5: #CBD5E1;
+
+      --tactical-gold: #F59E0B;
+      --tactical-gold-dim: rgba(245, 158, 11, 0.2);
+      --tactical-gold-glow: rgba(245, 158, 11, 0.5);
+      --tactical-amber: #D97706;
+
       --font-display: 'Russo One', sans-serif;
       --font-tech: 'Chakra Petch', sans-serif;
       --font-body: 'Inter', system-ui, -apple-system, sans-serif;
@@ -42,7 +61,7 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #020617;
+      background-color: var(--bg-void);
       font-family: var(--font-body);
       color: #F8FAFC;
     }
@@ -55,7 +74,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #020617;
+      background: var(--bg-void);
     }
 
     #game-viewport {
@@ -67,8 +86,8 @@
       transform: translate(-50%, -50%);
       transform-origin: center center;
       overflow: hidden;
-      background: #050B14;
-      box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
+      background: #04060A;
+      box-shadow: 0 0 120px rgba(0, 0, 0, 0.95);
       flex-shrink: 0;
     }
 
@@ -78,7 +97,6 @@
       display: block;
     }
 
-    /* Broadcast Stream Overlay HUD */
     #hud-overlay {
       position: absolute;
       inset: 0;
@@ -93,7 +111,6 @@
       box-sizing: border-box;
     }
 
-    /* Top Dual Captain Header & Central Jumbotron */
     .hud-header {
       display: flex;
       justify-content: space-between;
@@ -102,50 +119,53 @@
       gap: 20px;
     }
 
-    /* Captain Cards - Esports Trophy Glass */
     .captain-card {
       width: 340px;
-      padding: 16px 22px;
-      border-radius: 18px;
+      padding: 16px 20px;
+      border-radius: 6px;
       backdrop-filter: blur(20px);
       display: flex;
       flex-direction: column;
       gap: 8px;
       position: relative;
       overflow: hidden;
+      transition: none;
     }
 
     .captain-card::before {
       content: '';
       position: absolute;
-      top: 0; left: 0; right: 0;
+      top: 0;
+      left: 0;
+      right: 0;
       height: 3px;
     }
 
     .captain-card.black {
-      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.88));
-      border: 1.5px solid rgba(239, 68, 68, 0.5);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px var(--team-black-glow);
+      background: linear-gradient(180deg, rgba(10, 13, 20, 0.96) 0%, rgba(5, 7, 12, 0.94) 100%);
+      border: 1.5px solid var(--obsidian-border);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      color: var(--obsidian-text);
     }
     .captain-card.black::before {
-      background: linear-gradient(90deg, #EF4444, #F59E0B);
+      background: linear-gradient(90deg, #FFFFFF, var(--tactical-gold));
     }
 
     .captain-card.white {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(241, 245, 249, 0.9));
-      border: 1.5px solid rgba(6, 182, 212, 0.6);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 25px var(--team-white-glow);
-      color: #0F172A;
+      background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
+      border: 1.5px solid var(--alabaster-border);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      color: var(--alabaster-text);
     }
     .captain-card.white::before {
-      background: linear-gradient(90deg, #06B6D4, #F59E0B);
+      background: linear-gradient(90deg, #0A0D14, var(--tactical-gold));
     }
 
     .captain-badge {
       font-family: var(--font-tech);
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: 1.5px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 1.8px;
       text-transform: uppercase;
       display: flex;
       align-items: center;
@@ -153,18 +173,17 @@
     }
 
     .captain-card.black .captain-badge {
-      color: #F59E0B;
-      text-shadow: 0 0 12px var(--accent-gold-glow);
+      color: var(--tactical-gold);
     }
     .captain-card.white .captain-badge {
-      color: #D97706;
+      color: #0A0D14;
     }
 
     .crown-icon {
-      width: 18px;
-      height: 18px;
-      fill: #F59E0B;
-      filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8));
+      width: 17px;
+      height: 17px;
+      fill: var(--tactical-gold);
+      filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.6));
     }
 
     .captain-body {
@@ -185,18 +204,16 @@
 
     .captain-card.black .captain-name {
       color: #FFFFFF;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
     }
     .captain-card.white .captain-name {
-      color: #0F172A;
+      color: #050810;
     }
 
     .captain-score {
       font-family: var(--font-tech);
       font-size: 20px;
       font-weight: 800;
-      color: #F59E0B;
-      text-shadow: 0 0 10px var(--accent-gold-glow);
+      color: var(--tactical-gold);
     }
 
     .team-score-tally {
@@ -204,62 +221,75 @@
       align-items: center;
       justify-content: space-between;
       font-family: var(--font-tech);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      opacity: 0.9;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
       padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
     .captain-card.white .team-score-tally {
-      border-top: 1px solid rgba(15, 23, 42, 0.1);
+      border-top: 1px solid rgba(0, 0, 0, 0.12);
       color: #475569;
     }
 
     .tally-score {
       font-weight: 900;
-      font-size: 15px;
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
     }
-    .captain-card.black .tally-score { color: #EF4444; }
-    .captain-card.white .tally-score { color: #0284C7; }
+    .captain-card.black .tally-score { color: #FFFFFF; }
+    .captain-card.white .tally-score { color: #0A0D14; }
 
-    /* Central Arena Jumbotron Debate Banner */
     .topic-container {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 6px;
-      background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(3, 7, 18, 0.94) 100%);
-      border: 2px solid rgba(245, 158, 11, 0.5);
-      border-top: 3px solid #F59E0B;
+      background: linear-gradient(180deg, rgba(14, 18, 27, 0.98) 0%, rgba(7, 9, 15, 0.96) 100%);
+      border: 1.5px solid var(--tactical-gray-2);
+      border-top: 3px solid #FFFFFF;
       backdrop-filter: blur(24px);
-      padding: 12px 36px;
-      border-radius: 20px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 35px rgba(245, 158, 11, 0.2);
+      padding: 10px 34px;
+      border-radius: 8px;
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.12);
       text-align: center;
-      min-width: 520px;
+      min-width: 540px;
     }
 
     .topic-tag-row {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
     }
 
     .flame-icon {
       width: 14px;
       height: 14px;
-      fill: #EF4444;
-      filter: drop-shadow(0 0 6px #EF4444);
+      fill: var(--tactical-gold);
     }
 
     .topic-tag {
       font-family: var(--font-tech);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 900;
       letter-spacing: 2px;
       text-transform: uppercase;
-      color: #F59E0B;
+      color: var(--tactical-gray-5);
+    }
+
+    .scoreboard-strip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-tech);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: var(--tactical-gold);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 2px 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .topic-title {
@@ -274,81 +304,83 @@
     }
 
     .topic-title .team-left-name {
-      color: #EF4444;
-      text-shadow: 0 0 18px rgba(239, 68, 68, 0.6);
+      color: #FFFFFF;
+      background: #11151F;
+      border: 1px solid var(--obsidian-border);
+      padding: 2px 14px;
+      border-radius: 4px;
     }
 
     .topic-title .team-right-name {
-      color: #38BDF8;
-      text-shadow: 0 0 18px rgba(56, 189, 248, 0.6);
+      color: #0A0D14;
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      padding: 2px 14px;
+      border-radius: 4px;
     }
 
     .topic-title .vs-badge {
       font-family: var(--font-tech);
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 900;
-      color: #F59E0B;
-      background: rgba(245, 158, 11, 0.15);
-      padding: 2px 10px;
-      border-radius: 8px;
-      border: 1px solid rgba(245, 158, 11, 0.4);
-      box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+      color: var(--tactical-gold);
+      background: rgba(245, 158, 11, 0.12);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(245, 158, 11, 0.35);
     }
 
-    /* Quick-Play CTA Banner */
     .topic-cta-banner {
       display: flex;
       align-items: center;
       gap: 10px;
-      background: rgba(2, 6, 23, 0.75);
-      border: 1.5px solid rgba(245, 158, 11, 0.45);
-      padding: 5px 18px;
-      border-radius: 20px;
-      margin-top: 3px;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      background: rgba(6, 9, 14, 0.9);
+      border: 1px solid var(--tactical-gray-2);
+      padding: 4px 16px;
+      border-radius: 6px;
+      margin-top: 2px;
     }
 
     .cta-pulse-badge {
       font-family: var(--font-tech);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 900;
-      letter-spacing: 1.2px;
-      background: #F59E0B;
-      color: #0F172A;
-      padding: 2px 8px;
-      border-radius: 6px;
+      letter-spacing: 1.5px;
+      background: #FFFFFF;
+      color: #050810;
+      padding: 2px 7px;
+      border-radius: 4px;
       text-transform: uppercase;
-      box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
     }
 
     .cta-guide-text {
-      font-family: var(--font-body);
-      font-size: 13px;
+      font-family: var(--font-tech);
+      font-size: 12px;
       font-weight: 700;
-      color: #F1F5F9;
-      letter-spacing: 0.3px;
+      color: #E2E8F0;
+      letter-spacing: 0.5px;
     }
 
     .cmd-pill {
       font-family: var(--font-tech);
       font-weight: 900;
-      font-size: 12px;
-      padding: 2px 8px;
-      border-radius: 5px;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 4px;
       margin: 0 3px;
       display: inline-block;
     }
 
     .cmd-pill.black {
-      background: #EF4444;
+      background: #11151F;
       color: #FFFFFF;
-      box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+      border: 1px solid #4B5565;
     }
 
     .cmd-pill.white {
-      background: #0284C7;
-      color: #FFFFFF;
-      box-shadow: 0 0 10px rgba(2, 132, 199, 0.7);
+      background: #FFFFFF;
+      color: #050810;
+      border: 1px solid #CBD5E1;
     }
 
     .round-timer-row {
@@ -360,41 +392,35 @@
 
     #round-timer-text {
       font-family: var(--font-tech);
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       color: #94A3B8;
       letter-spacing: 1px;
+      font-variant-numeric: tabular-nums;
     }
 
     .velocity-pill {
       font-family: var(--font-tech);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 800;
-      padding: 2px 12px;
-      border-radius: 12px;
-      background: rgba(6, 182, 212, 0.15);
-      color: #38BDF8;
-      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 2px 10px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #E2E8F0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
       display: flex;
       align-items: center;
       gap: 6px;
     }
 
     .live-dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: #10B981;
-      box-shadow: 0 0 8px #10B981;
-      animation: pulse 1.5s infinite;
+      background: #FFFFFF;
+      box-shadow: 0 0 6px #FFFFFF;
     }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.8); }
-    }
-
-    /* Middle Arena: Dual Top 5 Leaderboards Flanking Arena */
     .hud-middle {
       display: flex;
       justify-content: space-between;
@@ -407,29 +433,26 @@
     .leaderboard-panel {
       width: 240px;
       padding: 12px 14px;
-      border-radius: 16px;
+      border-radius: 6px;
       backdrop-filter: blur(20px);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
       display: flex;
       flex-direction: column;
       gap: 8px;
-      border-top: 3px solid transparent;
     }
 
     .leaderboard-panel.black {
-      background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(10, 15, 29, 0.92) 100%);
-      border: 1.5px solid rgba(239, 68, 68, 0.4);
-      border-top: 3px solid #EF4444;
+      background: linear-gradient(180deg, rgba(12, 16, 24, 0.96) 0%, rgba(6, 8, 13, 0.94) 100%);
+      border: 1.5px solid var(--obsidian-border);
+      border-top: 3px solid #FFFFFF;
       color: #FFFFFF;
-      box-shadow: 0 12px 32px rgba(0,0,0,0.6), 0 0 20px var(--team-black-glow);
     }
 
     .leaderboard-panel.white {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(241, 245, 249, 0.94) 100%);
-      border: 1.5px solid rgba(6, 182, 212, 0.5);
-      border-top: 3px solid #06B6D4;
-      color: #0F172A;
-      box-shadow: 0 12px 32px rgba(0,0,0,0.35), 0 0 20px var(--team-white-glow);
+      background: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
+      border: 1.5px solid var(--alabaster-border);
+      border-top: 3px solid #050810;
+      color: #050810;
     }
 
     .lb-header {
@@ -437,24 +460,23 @@
       align-items: center;
       gap: 8px;
       font-family: var(--font-tech);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 900;
-      letter-spacing: 1.2px;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
       padding-bottom: 6px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     .leaderboard-panel.white .lb-header {
-      border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.12);
     }
 
     .header-icon {
-      width: 16px;
-      height: 16px;
-      flex-shrink: 0;
+      width: 15px;
+      height: 15px;
     }
-    .header-icon.black-icon { fill: #EF4444; }
-    .header-icon.white-icon { fill: #06B6D4; }
+    .header-icon.black-icon { fill: #FFFFFF; }
+    .header-icon.white-icon { fill: #050810; }
 
     .lb-title {
       flex: 1;
@@ -468,7 +490,6 @@
       overflow: hidden;
     }
 
-    /* Hard-enforce strictly 5 items max at CSS level */
     .lb-list .lb-item:nth-child(n+6) {
       display: none !important;
     }
@@ -479,7 +500,7 @@
       justify-content: space-between;
       font-size: 13px;
       padding: 4px 8px;
-      border-radius: 6px;
+      border-radius: 4px;
       transition: none;
     }
 
@@ -487,11 +508,11 @@
       background: rgba(255, 255, 255, 0.04);
     }
     .leaderboard-panel.white .lb-item {
-      background: rgba(15, 23, 42, 0.04);
+      background: rgba(0, 0, 0, 0.05);
     }
 
     .lb-item.captain-highlight {
-      background: rgba(245, 158, 11, 0.2) !important;
+      background: rgba(245, 158, 11, 0.18) !important;
       border: 1px solid rgba(245, 158, 11, 0.5);
     }
 
@@ -500,14 +521,14 @@
       font-weight: 800;
       width: 24px;
       color: #94A3B8;
-      font-size: 12px;
+      font-size: 11px;
       display: flex;
       align-items: center;
     }
 
-    .lb-rank.gold { color: #F59E0B; font-weight: 900; }
+    .lb-rank.gold { color: var(--tactical-gold); font-weight: 900; }
     .lb-rank.silver { color: #CBD5E1; }
-    .lb-rank.bronze { color: #D97706; }
+    .lb-rank.bronze { color: #94A3B8; }
 
     .lb-name {
       flex: 1;
@@ -526,8 +547,8 @@
       font-size: 13px;
     }
 
-    .leaderboard-panel.black .lb-score { color: #F59E0B; }
-    .leaderboard-panel.white .lb-score { color: #0284C7; }
+    .leaderboard-panel.black .lb-score { color: var(--tactical-gold); }
+    .leaderboard-panel.white .lb-score { color: #050810; }
 
     .lb-empty {
       font-size: 12px;
@@ -539,18 +560,17 @@
       letter-spacing: 0.5px;
     }
 
-    /* Continuous Horizontal Supporter Scroller (Rank 6+ & Live Chat Voters) */
     .roster-scroller-container {
       display: flex;
       align-items: center;
-      background: linear-gradient(90deg, rgba(15, 23, 42, 0.94) 0%, rgba(10, 15, 29, 0.92) 100%);
-      border: 1.5px solid rgba(255, 255, 255, 0.12);
-      border-radius: 14px;
+      background: linear-gradient(90deg, rgba(12, 16, 24, 0.96) 0%, rgba(6, 8, 13, 0.94) 100%);
+      border: 1.5px solid var(--tactical-gray-2);
+      border-radius: 6px;
       backdrop-filter: blur(16px);
       padding: 6px 14px;
       margin-bottom: 10px;
       overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
       gap: 12px;
       height: 42px;
     }
@@ -560,9 +580,9 @@
       align-items: center;
       gap: 8px;
       padding: 3px 10px;
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(245, 158, 11, 0.4);
-      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
       flex-shrink: 0;
       z-index: 2;
     }
@@ -571,18 +591,17 @@
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #10B981;
-      box-shadow: 0 0 8px #10B981;
-      animation: pulse 1.5s infinite;
+      background: #FFFFFF;
+      box-shadow: 0 0 6px #FFFFFF;
     }
 
     .roster-badge-text {
       font-family: var(--font-tech);
       font-size: 11px;
       font-weight: 900;
-      letter-spacing: 1.2px;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: #F59E0B;
+      color: #FFFFFF;
       white-space: nowrap;
     }
 
@@ -616,80 +635,76 @@
       font-size: 12px;
       font-weight: 700;
       padding: 3px 10px;
-      border-radius: 20px;
+      border-radius: 4px;
       white-space: nowrap;
     }
 
     .roster-chip.black {
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      color: #F8FAFC;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--obsidian-border);
+      color: #FFFFFF;
     }
 
     .roster-chip.white {
-      background: rgba(6, 182, 212, 0.12);
-      border: 1px solid rgba(6, 182, 212, 0.4);
-      color: #F8FAFC;
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      color: #050810;
     }
 
     .roster-chip .chip-rank {
       font-weight: 900;
-      font-size: 11px;
+      font-size: 10px;
       padding: 1px 5px;
-      border-radius: 4px;
+      border-radius: 3px;
     }
 
     .roster-chip.black .chip-rank {
-      background: rgba(239, 68, 68, 0.35);
-      color: #FCA5A5;
+      background: rgba(255, 255, 255, 0.15);
+      color: #FFFFFF;
     }
 
     .roster-chip.white .chip-rank {
-      background: rgba(6, 182, 212, 0.35);
-      color: #BAE6FD;
+      background: #050810;
+      color: #FFFFFF;
     }
 
     .roster-chip .chip-name {
       font-family: var(--font-body);
       font-weight: 700;
-      color: #FFFFFF;
     }
+
+    .roster-chip.black .chip-name { color: #FFFFFF; }
+    .roster-chip.white .chip-name { color: #050810; }
 
     .roster-chip .chip-score {
       font-weight: 800;
       font-size: 11px;
-      opacity: 0.85;
+      opacity: 0.9;
     }
 
-    .roster-chip.black .chip-score {
-      color: #F87171;
-    }
-
-    .roster-chip.white .chip-score {
-      color: #38BDF8;
-    }
+    .roster-chip.black .chip-score { color: var(--tactical-gold); }
+    .roster-chip.white .chip-score { color: #050810; }
 
     .roster-chip-sep {
       color: rgba(255, 255, 255, 0.2);
       font-weight: 900;
     }
 
-    /* Bottom High-Voltage Tug Gauge & Chat Instructions */
     .hud-footer {
       width: 100%;
     }
 
     .tug-gauge-card {
-      background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(2, 6, 23, 0.98) 100%);
-      border: 2px solid rgba(255, 255, 255, 0.15);
-      border-top: 3px solid #F59E0B;
+      background: linear-gradient(180deg, rgba(14, 18, 27, 0.98) 0%, rgba(7, 9, 15, 0.96) 100%);
+      border: 1.5px solid var(--tactical-gray-2);
+      border-top: 3px solid #FFFFFF;
       backdrop-filter: blur(24px);
-      border-radius: 22px;
-      padding: 16px 32px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(245, 158, 11, 0.2);
+      border-radius: 8px;
+      padding: 14px 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.12);
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .tug-label-row {
@@ -697,9 +712,9 @@
       justify-content: space-between;
       align-items: center;
       font-family: var(--font-tech);
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 900;
-      letter-spacing: 0.8px;
+      letter-spacing: 1px;
     }
 
     .team-label.black {
@@ -707,63 +722,59 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
     }
 
     .team-label.white {
-      color: #F8FAFC;
+      color: #FFFFFF;
       display: flex;
       align-items: center;
       gap: 8px;
-      text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
     }
 
     .center-callout {
-      color: #FEF08A;
-      font-family: var(--font-body);
-      font-size: 14px;
-      letter-spacing: 0.6px;
+      color: #FFFFFF;
+      font-family: var(--font-tech);
+      font-size: 13px;
+      letter-spacing: 0.8px;
       text-align: center;
-      font-weight: 700;
+      font-weight: 800;
+      text-transform: uppercase;
     }
 
     .center-callout .cmd-badge {
       font-family: var(--font-tech);
       font-weight: 900;
-      color: #0F172A;
-      background: #F59E0B;
-      padding: 3px 10px;
-      border-radius: 6px;
-      box-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
-      margin: 0 2px;
+      color: #050810;
+      background: #FFFFFF;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin: 0 3px;
+      border: 1px solid #CBD5E1;
     }
 
-    /* High-Voltage Dynamic Tug Bar */
     .tug-bar-track {
       position: relative;
       width: 100%;
-      height: 24px;
-      background: #0B1120;
-      border-radius: 12px;
-      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      height: 22px;
+      background: #080C14;
+      border-radius: 4px;
+      border: 1.5px solid var(--tactical-gray-2);
       overflow: visible;
       display: flex;
-      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.9);
     }
 
     .tug-bar-fill.black {
       height: 100%;
-      background: linear-gradient(90deg, #991B1B, #EF4444);
-      border-radius: 10px 0 0 10px;
-      box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+      background: #11151F;
+      border-right: 2px solid #FFFFFF;
       transition: width 0.12s ease-out;
     }
 
     .tug-bar-fill.white {
       height: 100%;
-      background: linear-gradient(90deg, #0284C7, #38BDF8);
-      border-radius: 0 10px 10px 0;
-      box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+      background: #FFFFFF;
+      border-left: 2px solid #050810;
       transition: width 0.12s ease-out;
     }
 
@@ -773,10 +784,10 @@
       bottom: -8px;
       left: 50%;
       width: 8px;
-      background: #F59E0B;
-      border-radius: 4px;
+      background: var(--tactical-gold);
+      border-radius: 2px;
       transform: translateX(-50%);
-      box-shadow: 0 0 16px #F59E0B, 0 0 30px #F59E0B;
+      box-shadow: 0 0 14px var(--tactical-gold), 0 0 24px var(--tactical-gold);
       z-index: 10;
     }
   </style>
@@ -788,29 +799,33 @@
 
       <!-- Broadcast Stream Overlay HUD -->
       <div id="hud-overlay">
-        <!-- Top Dual Captain Header & Central Arena Jumbotron -->
+        <!-- Top Dual Captain Header & Central Sports Broadcast Chyron -->
         <div class="hud-header">
           <!-- Team Black Captain Card -->
           <div id="captain-black-card" class="captain-card black">
             <div class="captain-badge">
               <svg class="crown-icon" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
-              CAPTAIN OF BLACK
+              CAPTAIN // BLACK
             </div>
             <div class="captain-body">
               <span id="captain-black-name" class="captain-name">@ShadowKing</span>
               <span id="captain-black-score" class="captain-score">0 pts</span>
             </div>
             <div class="team-score-tally">
-              <span>ROUND VICTORIES</span>
+              <span>MATCH VICTORIES</span>
               <span id="wins-black-count" class="tally-score">0</span>
             </div>
           </div>
 
-          <!-- Central Arena Jumbotron Debate Topic -->
+          <!-- Central Sports Broadcast Chyron Jumbotron -->
           <div id="topic-container" class="topic-container">
             <div class="topic-tag-row">
               <svg class="flame-icon" viewBox="0 0 24 24"><path d="M12 23c-4.97 0-9-4.03-9-9 0-3.32 1.8-6.19 4.46-7.7.35-.2.8-.07.98.28.18.35.05.78-.3 1-2.14 1.34-3.14 3.79-3.14 6.42 0 3.86 3.14 7 7 7s7-3.14 7-7c0-2.31-.83-4.49-2.32-6.14a.754.754 0 0 1 .1-1.06.75.75 0 0 1 1.06.1C19.16 8.87 20 11.35 20 14c0 4.97-4.03 9-9 9z"/><path d="M12 17c-2.21 0-4-1.79-4-4 0-1.54.89-2.9 2.22-3.56.36-.18.8-.02.97.34.17.36.02.8-.34.98-.82.41-1.35 1.25-1.35 2.24 0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5c0-.62-.22-1.22-.64-1.68a.749.749 0 0 1 .09-1.06.75.75 0 0 1 1.06.09c.67.74 1.02 1.7 1.02 2.65 0 2.21-1.79 4-4 4z"/></svg>
-              <span class="topic-tag">CURRENT LIVE DEBATE</span>
+              <span class="topic-tag">LIVE BATTLE ARENA</span>
+              <div class="scoreboard-strip">
+                <span>ROUND SCORE:</span>
+                <span id="scoreboard-live-tally">0 — 0</span>
+              </div>
             </div>
             <div id="topic-title" class="topic-title">
               <span id="topic-left" class="team-left-name">ANDROID</span>
@@ -818,14 +833,14 @@
               <span id="topic-right" class="team-right-name">IPHONE</span>
             </div>
             <div class="topic-cta-banner">
-              <span class="cta-pulse-badge">TYPE IN CHAT</span>
-              <span class="cta-guide-text">Chat <span class="cmd-pill black">1</span> for <b id="cta-left-name">ANDROID</b> &nbsp;•&nbsp; Chat <span class="cmd-pill white">2</span> for <b id="cta-right-name">IPHONE</b></span>
+              <span class="cta-pulse-badge">ARMY C2 COMMAND</span>
+              <span class="cta-guide-text">TRANSMIT <span class="cmd-pill black">1</span> FOR <b id="cta-left-name">ANDROID</b> &nbsp;•&nbsp; TRANSMIT <span class="cmd-pill white">2</span> FOR <b id="cta-right-name">IPHONE</b></span>
             </div>
             <div class="round-timer-row">
-              <span id="round-timer-text">ROUND TIME: 1:30</span>
+              <span id="round-timer-text">PERIOD 1 // 01:30</span>
               <span id="hud-velocity" class="velocity-pill">
                 <span class="live-dot"></span>
-                <span id="velocity-val">0</span> pulls/s
+                <span id="velocity-val">0</span> PULLS/S
               </span>
             </div>
           </div>
@@ -834,26 +849,26 @@
           <div id="captain-white-card" class="captain-card white">
             <div class="captain-badge">
               <svg class="crown-icon" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
-              CAPTAIN OF WHITE
+              CAPTAIN // WHITE
             </div>
             <div class="captain-body">
               <span id="captain-white-name" class="captain-name">@Solaris</span>
               <span id="captain-white-score" class="captain-score">0 pts</span>
             </div>
             <div class="team-score-tally">
-              <span>ROUND VICTORIES</span>
+              <span>MATCH VICTORIES</span>
               <span id="wins-white-count" class="tally-score">0</span>
             </div>
           </div>
         </div>
 
-        <!-- Middle Arena: Dual Top 5 Leaderboards Flanking Arena (Center 100% Unobstructed) -->
+        <!-- Middle Arena: Dual Tactical Squad Depth Charts (Top 5 Ranks) -->
         <div class="hud-middle">
           <!-- Left: Top 5 Black -->
           <div id="leaderboard-black" class="leaderboard-panel black">
             <div class="lb-header">
               <svg class="header-icon black-icon" viewBox="0 0 24 24"><path d="M6.92 5h10.16L12 11.08 6.92 5M3 3l9 11 9-11H3m9 13.5l-3-3.67V19h6v-6.17l-3 3.67M15 21H9v-1h6v1z"/></svg>
-              <span class="lb-title">TOP 5 BLACK</span>
+              <span class="lb-title">DEPTH CHART // BLACK</span>
             </div>
             <div id="lb-list-black" class="lb-list">
               <div class="lb-item captain-highlight">
@@ -888,7 +903,7 @@
           <div id="leaderboard-white" class="leaderboard-panel white">
             <div class="lb-header">
               <svg class="header-icon white-icon" viewBox="0 0 24 24"><path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 2.18l6 2.25v4.66c0 4.09-2.67 7.9-6 8.95-3.33-1.05-6-4.86-6-8.95V6.43l6-2.25z"/></svg>
-              <span class="lb-title">TOP 5 WHITE</span>
+              <span class="lb-title">DEPTH CHART // WHITE</span>
             </div>
             <div id="lb-list-white" class="lb-list">
               <div class="lb-item captain-highlight">
@@ -920,67 +935,47 @@
           </div>
         </div>
 
-        <!-- Bottom High-Voltage Tug Gauge & Chat Instructions -->
+        <!-- Bottom Army Command C2 Deck & Dynamic Displacement Gauge -->
         <div class="hud-footer">
-          <!-- Continuous Horizontal Supporter Scroller (Rank 6+ & Live Chat Voters) -->
+          <!-- Continuous Horizontal Supporter Scroller (Active Reinforcements) -->
           <div id="roster-scroller-container" class="roster-scroller-container">
             <div class="roster-badge-fixed">
               <span class="roster-live-dot"></span>
-              <span class="roster-badge-text">LIVE SUPPORTERS (RANK 6+)</span>
+              <span class="roster-badge-text">// REINFORCEMENTS (RANKS 6+) //</span>
             </div>
             <div class="roster-marquee-viewport">
               <div id="roster-marquee-track" class="roster-marquee-track">
-                <div class="roster-chip black"><span class="chip-rank">#6</span><span class="chip-name">@OnyxClaw</span><span class="chip-score">430 pts</span></div>
+                <div class="roster-chip black"><span class="chip-rank">#6</span><span class="chip-name">@OnyxClaw</span><span class="chip-score">0 pts</span></div>
                 <span class="roster-chip-sep">•</span>
-                <div class="roster-chip white"><span class="chip-rank">#6</span><span class="chip-name">@Starlight</span><span class="chip-score">470 pts</span></div>
+                <div class="roster-chip white"><span class="chip-rank">#6</span><span class="chip-name">@Starlight</span><span class="chip-score">0 pts</span></div>
                 <span class="roster-chip-sep">•</span>
-                <div class="roster-chip black"><span class="chip-rank">#7</span><span class="chip-name">@Eclipse</span><span class="chip-score">370 pts</span></div>
+                <div class="roster-chip black"><span class="chip-rank">#7</span><span class="chip-name">@Eclipse</span><span class="chip-score">0 pts</span></div>
                 <span class="roster-chip-sep">•</span>
-                <div class="roster-chip white"><span class="chip-rank">#7</span><span class="chip-name">@Zenith</span><span class="chip-score">380 pts</span></div>
+                <div class="roster-chip white"><span class="chip-rank">#7</span><span class="chip-name">@Zenith</span><span class="chip-score">0 pts</span></div>
                 <span class="roster-chip-sep">•</span>
-                <div class="roster-chip black"><span class="chip-rank">#8</span><span class="chip-name">@VoidWalker</span><span class="chip-score">290 pts</span></div>
+                <div class="roster-chip black"><span class="chip-rank">#8</span><span class="chip-name">@VoidWalker</span><span class="chip-score">0 pts</span></div>
                 <span class="roster-chip-sep">•</span>
-                <div class="roster-chip white"><span class="chip-rank">#8</span><span class="chip-name">@Apollo</span><span class="chip-score">320 pts</span></div>
+                <div class="roster-chip white"><span class="chip-rank">#8</span><span class="chip-name">@Apollo</span><span class="chip-score">0 pts</span></div>
                 <span class="roster-chip-sep">•</span>
-                <div class="roster-chip black"><span class="chip-rank">#9</span><span class="chip-name">@PhantomX</span><span class="chip-score">210 pts</span></div>
+                <div class="roster-chip black"><span class="chip-rank">#9</span><span class="chip-name">@PhantomX</span><span class="chip-score">0 pts</span></div>
                 <span class="roster-chip-sep">•</span>
-                <div class="roster-chip white"><span class="chip-rank">#9</span><span class="chip-name">@CrystalPaladin</span><span class="chip-score">240 pts</span></div>
+                <div class="roster-chip white"><span class="chip-rank">#9</span><span class="chip-name">@CrystalPaladin</span><span class="chip-score">0 pts</span></div>
                 <span class="roster-chip-sep">•</span>
-                <div class="roster-chip black"><span class="chip-rank">#10</span><span class="chip-name">@Obsidian</span><span class="chip-score">160 pts</span></div>
+                <div class="roster-chip black"><span class="chip-rank">#10</span><span class="chip-name">@Obsidian</span><span class="chip-score">0 pts</span></div>
                 <span class="roster-chip-sep">•</span>
-                <div class="roster-chip white"><span class="chip-rank">#10</span><span class="chip-name">@Polaris</span><span class="chip-score">190 pts</span></div>
-                <span class="roster-chip-sep">•</span>
-                <!-- Loop Track Clone -->
-                <div class="roster-chip black"><span class="chip-rank">#6</span><span class="chip-name">@OnyxClaw</span><span class="chip-score">430 pts</span></div>
-                <span class="roster-chip-sep">•</span>
-                <div class="roster-chip white"><span class="chip-rank">#6</span><span class="chip-name">@Starlight</span><span class="chip-score">470 pts</span></div>
-                <span class="roster-chip-sep">•</span>
-                <div class="roster-chip black"><span class="chip-rank">#7</span><span class="chip-name">@Eclipse</span><span class="chip-score">370 pts</span></div>
-                <span class="roster-chip-sep">•</span>
-                <div class="roster-chip white"><span class="chip-rank">#7</span><span class="chip-name">@Zenith</span><span class="chip-score">380 pts</span></div>
-                <span class="roster-chip-sep">•</span>
-                <div class="roster-chip black"><span class="chip-rank">#8</span><span class="chip-name">@VoidWalker</span><span class="chip-score">290 pts</span></div>
-                <span class="roster-chip-sep">•</span>
-                <div class="roster-chip white"><span class="chip-rank">#8</span><span class="chip-name">@Apollo</span><span class="chip-score">320 pts</span></div>
-                <span class="roster-chip-sep">•</span>
-                <div class="roster-chip black"><span class="chip-rank">#9</span><span class="chip-name">@PhantomX</span><span class="chip-score">210 pts</span></div>
-                <span class="roster-chip-sep">•</span>
-                <div class="roster-chip white"><span class="chip-rank">#9</span><span class="chip-name">@CrystalPaladin</span><span class="chip-score">240 pts</span></div>
-                <span class="roster-chip-sep">•</span>
-                <div class="roster-chip black"><span class="chip-rank">#10</span><span class="chip-name">@Obsidian</span><span class="chip-score">160 pts</span></div>
-                <span class="roster-chip-sep">•</span>
-                <div class="roster-chip white"><span class="chip-rank">#10</span><span class="chip-name">@Polaris</span><span class="chip-score">190 pts</span></div>
+                <div class="roster-chip white"><span class="chip-rank">#10</span><span class="chip-name">@Polaris</span><span class="chip-score">0 pts</span></div>
               </div>
             </div>
           </div>
 
+          <!-- Tactical Displacement C2 Card -->
           <div id="tug-gauge-card" class="tug-gauge-card">
             <div class="tug-label-row">
-              <span class="team-label black">⚫ TEAM BLACK (<span id="pct-black">50%</span>)</span>
+              <span class="team-label black">◼ BLACK BATTALION (<span id="pct-black">50%</span>)</span>
               <span class="center-callout">
-                💬 CHAT TO PULL: Type <span class="cmd-badge">1</span> or <span class="cmd-badge">BLACK</span> &nbsp;|&nbsp; <span class="cmd-badge">2</span> or <span class="cmd-badge">WHITE</span>
+                // ARMY DIRECTIVE // TRANSMIT <span class="cmd-badge">1</span> OR <span class="cmd-badge">BLACK</span> | <span class="cmd-badge">2</span> OR <span class="cmd-badge">WHITE</span>
               </span>
-              <span class="team-label white">(<span id="pct-white">50%</span>) TEAM WHITE ⚪</span>
+              <span class="team-label white">(<span id="pct-white">50%</span>) WHITE PHALANX ◻</span>
             </div>
             <div class="tug-bar-track">
               <div id="tug-bar-black" class="tug-bar-fill black" style="width: 50%;"></div>
@@ -1008,6 +1003,6 @@
     window.addEventListener('load', fitGameViewport);
     fitGameViewport();
   </script>
-  <script src="./js/game.js?v=20261021_v10_noblink"></script>
+  <script src="./js/game.js?v=20261021_v11_tactical"></script>
 </body>
 </html>
