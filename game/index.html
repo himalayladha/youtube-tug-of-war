@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700;800;900&family=Inter:wght@400;600;700;800;900&family=Russo+One&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./css/styles.css?v=20261021_v14_scorecard" />
+  <link rel="stylesheet" href="./css/styles.css?v=20261021_v17_grid" />
 </head>
 <body>
   <div id="app-container">
@@ -21,8 +21,8 @@
       <div id="hud-overlay">
         <!-- 1. Top Esports Broadcast Score Header (100% Match to Blueprint) -->
         <div class="top-broadcast-header">
-          <!-- Team Black Score Group -->
-          <div class="team-score-module left">
+          <!-- 1. Team Black Identity Block -->
+          <div class="team-identity-module left">
             <div class="speed-stripes-crown">
               <span class="speed-stripes">///</span>
               <svg class="team-crown-icon" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
@@ -35,20 +35,22 @@
                 <span id="wins-black-count" class="victories-number">1</span>
               </div>
             </div>
-            <div class="score-pips-column">
-              <div class="team-pts-row">
-                <span id="captain-black-score" class="team-pts-number">1420</span>
-                <span class="team-pts-unit">PTS</span>
-              </div>
-              <div id="wins-black-pips" class="victory-pips-row">
-                <span class="victory-pip filled"></span>
-                <span class="victory-pip"></span>
-                <span class="victory-pip"></span>
-              </div>
+          </div>
+
+          <!-- 2. Team Black Big Score & Centered Victory Pips -->
+          <div class="score-pips-column left">
+            <div class="team-pts-row">
+              <span id="captain-black-score" class="team-pts-number">1420</span>
+              <span class="team-pts-unit">PTS</span>
+            </div>
+            <div id="wins-black-pips" class="victory-pips-row">
+              <span class="victory-pip filled"></span>
+              <span class="victory-pip"></span>
+              <span class="victory-pip"></span>
             </div>
           </div>
 
-          <!-- Center Live Battle Digital Timer -->
+          <!-- 3. Center Live Battle Digital Timer -->
           <div class="center-battle-badge">
             <div class="live-battle-trapezoid-wrapper">
               <span class="bracket-wing left"></span>
@@ -63,19 +65,21 @@
             </div>
           </div>
 
-          <!-- Team White Score Group -->
-          <div class="team-score-module right">
-            <div class="score-pips-column align-right">
-              <div class="team-pts-row">
-                <span id="captain-white-score" class="team-pts-number">1540</span>
-                <span class="team-pts-unit">PTS</span>
-              </div>
-              <div id="wins-white-pips" class="victory-pips-row">
-                <span class="victory-pip filled"></span>
-                <span class="victory-pip filled"></span>
-                <span class="victory-pip"></span>
-              </div>
+          <!-- 4. Team White Big Score & Centered Victory Pips -->
+          <div class="score-pips-column right">
+            <div class="team-pts-row">
+              <span id="captain-white-score" class="team-pts-number">1540</span>
+              <span class="team-pts-unit">PTS</span>
             </div>
+            <div id="wins-white-pips" class="victory-pips-row">
+              <span class="victory-pip filled"></span>
+              <span class="victory-pip filled"></span>
+              <span class="victory-pip"></span>
+            </div>
+          </div>
+
+          <!-- 5. Team White Identity Block -->
+          <div class="team-identity-module right">
             <div class="team-name-block align-right">
               <span class="team-label-tag">TEAM</span>
               <span class="team-name-text">WHITE</span>
@@ -199,6 +203,7 @@
               <div class="cmd-giant-num">1</div>
               <div class="cmd-text-group">
                 <div class="cmd-header-text">JOIN TEAM BLACK</div>
+                <div class="cmd-divider-line"></div>
                 <div class="cmd-sub-row">
                   <span>TYPE 1 IN</span>
                   <div class="yt-logo-badge">
@@ -210,7 +215,7 @@
             </div>
             <div class="cmd-right-col">
               <svg class="cmd-crown-icon" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
-              <span class="cmd-slashes">//</span>
+              <span class="cmd-slashes"><span class="slash-dim">/</span><span class="slash-bright">/</span></span>
             </div>
           </div>
 
@@ -265,6 +270,7 @@
               <div class="cmd-giant-num">2</div>
               <div class="cmd-text-group">
                 <div class="cmd-header-text">JOIN TEAM WHITE</div>
+                <div class="cmd-divider-line"></div>
                 <div class="cmd-sub-row">
                   <span>TYPE 2 IN</span>
                   <div class="yt-logo-badge">
@@ -276,7 +282,7 @@
             </div>
             <div class="cmd-right-col">
               <svg class="cmd-crown-icon" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
-              <span class="cmd-slashes">//</span>
+              <span class="cmd-slashes"><span class="slash-dim">/</span><span class="slash-bright">/</span></span>
             </div>
           </div>
         </div>
@@ -299,6 +305,7 @@
     window.addEventListener('load', fitGameViewport);
     fitGameViewport();
   </script>
-  <script src="./js/game.js?v=20261021_v14_scorecard"></script>
+  <script src="./js/sprites_data.js?v=20261021_master"></script>
+  <script src="./js/game.js?v=20261021_v20_master"></script>
 </body>
 </html>

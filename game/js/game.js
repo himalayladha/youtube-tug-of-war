@@ -12,10 +12,31 @@
   window.addEventListener('resize', resizeCanvas);
 
   // High-Resolution AI Arena Background Loader
+  // Master Background
   const arenaBgImg = new Image();
   let arenaBgLoaded = false;
   arenaBgImg.onload = () => { arenaBgLoaded = true; };
   arenaBgImg.src = './assets/images/arena_background.png';
+
+  // Synchronous Base64 Master Sprites (100% Match to Blueprint Artwork)
+  const spriteBlack = new Image();
+  let spriteBlackLoaded = false;
+  spriteBlack.onload = () => { spriteBlackLoaded = true; };
+  spriteBlack.src = window.SPRITE_BLACK_DATA || './assets/images/sprites/team_black.png';
+
+  const spriteWhite = new Image();
+  let spriteWhiteLoaded = false;
+  spriteWhite.onload = () => { spriteWhiteLoaded = true; };
+  spriteWhite.src = window.SPRITE_WHITE_DATA || './assets/images/sprites/team_white.png';
+
+  const spriteReticle = new Image();
+  let spriteReticleLoaded = false;
+  spriteReticle.onload = () => { spriteReticleLoaded = true; };
+  spriteReticle.src = window.SPRITE_RETICLE_DATA || './assets/images/sprites/center_reticle.png';
+
+  function isImgReady(img) {
+    return Boolean(img && img.complete && img.naturalWidth > 0);
+  }
 
   // ----------------------------------------------------
   // PROCEDURAL WEB AUDIO SYNTHESIZER
@@ -333,7 +354,7 @@
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    const crownSvg = `<svg style="width:12px;height:12px;fill:#000000;margin-left:4px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
+    const crownSvg = `<svg style="width:12px;height:12px;fill:#FFFFFF;margin-left:4px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
 
     while (container.children.length > top5List.length) {
       container.removeChild(container.lastElementChild);
@@ -516,7 +537,7 @@
     ctx.clearRect(0, 0, 1920, 1080);
 
     // 1. Arena Background (AI Generated Plate or Procedural Fallback)
-    if (arenaBgLoaded) {
+    if (isImgReady(arenaBgImg)) {
       ctx.drawImage(arenaBgImg, 0, 0, 1920, 1080);
     } else {
       drawStadiumBackground();
@@ -527,10 +548,13 @@
     // 2. Center Vertical Glowing Laser Beam (demarcation layer)
     drawCenterLaserBeam();
 
-    // 3. Heavy Braided Rope with Center Circular Reticle
-    drawBraidedRope();
+    // 3. Heavy Braided Rope (fallback when sprites loading)
+    const spritesReady = (spriteBlackLoaded || isImgReady(spriteBlack)) && (spriteWhiteLoaded || isImgReady(spriteWhite));
+    if (!spritesReady) {
+      drawBraidedRope();
+    }
 
-    // 4. Black & White Stick-Figure Teams
+    // 4. Black & White Stick-Figure Teams (Sprites or Procedural)
     drawStickmanTeams();
 
     // 5. Particles & Sparks
@@ -885,8 +909,30 @@
 
   // 6. Black & White Stick-Figure Teams (100% Match to Blueprint Anatomy)
   function drawStickmanTeams() {
-    const ropeY = 675;
     const centerKnotX = 960 + physics.x;
+
+    const blackOk = spriteBlackLoaded || isImgReady(spriteBlack);
+    const whiteOk = spriteWhiteLoaded || isImgReady(spriteWhite);
+
+    if (blackOk && whiteOk) {
+      // Athletic breathing & heave oscillation
+      const heaveY = Math.sin(pullers.black[0].phase) * 2.0;
+
+      // Draw Team Black pullers (5 contoured stickmen, rope tail, sweat drops)
+      ctx.drawImage(spriteBlack, 100 + physics.x, 530 + heaveY);
+
+      // Draw Team White pullers (5 contoured stickmen, rope tail, sweat drops)
+      ctx.drawImage(spriteWhite, 960 + physics.x, 530 - heaveY);
+
+      // Draw Center Reticle clamp
+      const retOk = spriteReticleLoaded || isImgReady(spriteReticle);
+      if (retOk) {
+        ctx.drawImage(spriteReticle, 920 + physics.x, 645);
+      }
+      return;
+    }
+
+    const ropeY = 675;
 
     // Black Team (Left side: 5 Pullers pulling Left)
     pullers.black.forEach((p) => {
@@ -1302,5 +1348,7 @@
   }
 
   setInterval(pollServerChat, 1000);
+
+  render();
   requestAnimationFrame(loop);
 })();
