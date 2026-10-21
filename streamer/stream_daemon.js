@@ -34,31 +34,41 @@ console.log(`[Streamer] Destination: rtmp://a.rtmp.youtube.com/live2/****`);
 console.log(`[Streamer] Target URL: ${GAME_URL}`);
 console.log(`[Streamer] Resolution: ${WIDTH}x${HEIGHT} @ ${FPS}fps (Bitrate: ${BITRATE})`);
 
+// Input & Output framerate configuration
+// Chrome renders at ~15fps on cloud 2-vCPU instances; FFmpeg smoothly duplicates to standard 30fps
+const INPUT_FPS = Math.min(FPS, 15);
+const OUTPUT_FPS = 30;
+
+console.log(`[Streamer] Framerate: In=${INPUT_FPS}fps -> Out=${OUTPUT_FPS}fps | Bitrate: ${BITRATE}`);
+
 // Spawn FFmpeg RTMP encoder
 const ffmpegArgs = [
   '-y',
-  '-use_wallclock_as_timestamps', '1',
+  '-thread_queue_size', '1024',
   '-f', 'image2pipe',
   '-vcodec', 'mjpeg',
-  '-r', String(FPS),
+  '-r', String(INPUT_FPS),
   '-i', 'pipe:0',
   '-f', 'lavfi',
   '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+  '-map', '0:v:0',
+  '-map', '1:a:0',
   '-c:v', 'libx264',
   '-preset', 'ultrafast',
   '-tune', 'zerolatency',
-  '-r', String(FPS),
-  '-vsync', 'cfr',
+  '-r', String(OUTPUT_FPS),
+  '-pix_fmt', 'yuv420p',
+  '-g', String(OUTPUT_FPS * 2),
   '-b:v', BITRATE,
   '-minrate', BITRATE,
   '-maxrate', BITRATE,
-  '-bufsize', String(parseInt(BITRATE, 10) * 1.5) + 'k',
-  '-pix_fmt', 'yuv420p',
-  '-g', String(FPS * 2),
+  '-bufsize', String(parseInt(BITRATE, 10) * 2) + 'k',
   '-c:a', 'aac',
   '-b:a', '128k',
   '-ar', '44100',
+  '-ac', '2',
   '-f', 'flv',
+  '-flvflags', 'no_duration_filesize',
   RTMP_DESTINATION,
 ];
 
