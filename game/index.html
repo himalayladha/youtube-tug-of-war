@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>The Great Tug-of-War: Black vs White - Live Interactive Arena</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700;800;900&family=Inter:wght@400;600;700;800;900&family=Russo+One&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./css/styles.css?v=20261019_v4" />
+  <link rel="stylesheet" href="./css/styles.css?v=20261021_v9_instant" />
   <style>
     /* Inlined CSS to guarantee instantaneous rendering without browser cache delay */
     :root {
@@ -231,11 +234,11 @@
       border: 2px solid rgba(245, 158, 11, 0.5);
       border-top: 3px solid #F59E0B;
       backdrop-filter: blur(24px);
-      padding: 14px 42px;
+      padding: 12px 36px;
       border-radius: 20px;
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 35px rgba(245, 158, 11, 0.2);
       text-align: center;
-      min-width: 440px;
+      min-width: 520px;
     }
 
     .topic-tag-row {
@@ -262,24 +265,35 @@
 
     .topic-title {
       font-family: var(--font-display);
-      font-size: 30px;
-      letter-spacing: 1px;
+      font-size: 36px;
+      letter-spacing: 1.5px;
       color: #FFFFFF;
-      text-shadow: 0 0 15px rgba(255, 255, 255, 0.3), 0 4px 12px rgba(0, 0, 0, 0.9);
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 16px;
+      margin: 2px 0;
+    }
+
+    .topic-title .team-left-name {
+      color: #EF4444;
+      text-shadow: 0 0 18px rgba(239, 68, 68, 0.6);
+    }
+
+    .topic-title .team-right-name {
+      color: #38BDF8;
+      text-shadow: 0 0 18px rgba(56, 189, 248, 0.6);
     }
 
     .topic-title .vs-badge {
       font-family: var(--font-tech);
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 900;
-      color: #EF4444;
-      background: rgba(239, 68, 68, 0.15);
+      color: #F59E0B;
+      background: rgba(245, 158, 11, 0.15);
       padding: 2px 10px;
       border-radius: 8px;
-      border: 1px solid rgba(239, 68, 68, 0.35);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
     }
 
     /* Quick-Play CTA Banner */
@@ -287,12 +301,12 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      background: rgba(2, 6, 23, 0.65);
-      border: 1px solid rgba(245, 158, 11, 0.4);
-      padding: 4px 16px;
+      background: rgba(2, 6, 23, 0.75);
+      border: 1.5px solid rgba(245, 158, 11, 0.45);
+      padding: 5px 18px;
       border-radius: 20px;
       margin-top: 3px;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
     }
 
     .cta-pulse-badge {
@@ -451,8 +465,13 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
-      max-height: 220px;
+      max-height: 185px;
       overflow: hidden;
+    }
+
+    /* Hard-enforce strictly 5 items max at CSS level */
+    .lb-list .lb-item:nth-child(n+6) {
+      display: none !important;
     }
 
     .lb-item {
@@ -795,12 +814,12 @@
               <span class="topic-tag">CURRENT LIVE DEBATE</span>
             </div>
             <div id="topic-title" class="topic-title">
-              <span id="topic-left">ANDROID</span>
+              <span id="topic-left" class="team-left-name">ANDROID</span>
               <span class="vs-badge">VS</span>
-              <span id="topic-right">IPHONE</span>
+              <span id="topic-right" class="team-right-name">IPHONE</span>
             </div>
             <div class="topic-cta-banner">
-              <span class="cta-pulse-badge">HOW TO PLAY</span>
+              <span class="cta-pulse-badge">TYPE IN CHAT</span>
               <span class="cta-guide-text">Chat <span class="cmd-pill black">1</span> for <b id="cta-left-name">ANDROID</b> &nbsp;•&nbsp; Chat <span class="cmd-pill white">2</span> for <b id="cta-right-name">IPHONE</b></span>
             </div>
             <div class="round-timer-row">
@@ -820,7 +839,7 @@
             </div>
             <div class="captain-body">
               <span id="captain-white-name" class="captain-name">@Solaris</span>
-              <span id="captain-white-score" class="captain-score">1,410 pts</span>
+              <span id="captain-white-score" class="captain-score">1,540 pts</span>
             </div>
             <div class="team-score-tally">
               <span>ROUND VICTORIES</span>
@@ -838,7 +857,31 @@
               <span class="lb-title">TOP 5 BLACK</span>
             </div>
             <div id="lb-list-black" class="lb-list">
-              <div class="lb-empty">Type 1 or BLACK to claim #1!</div>
+              <div class="lb-item captain-highlight">
+                <span class="lb-rank gold"><svg style="width:13px;height:13px;fill:#F59E0B;filter:drop-shadow(0 0 4px rgba(245,158,11,0.8));margin-right:2px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg></span>
+                <span class="lb-name">@ShadowKing</span>
+                <span class="lb-score">1,420</span>
+              </div>
+              <div class="lb-item">
+                <span class="lb-rank silver">#2</span>
+                <span class="lb-name">@DarkKnight</span>
+                <span class="lb-score">980</span>
+              </div>
+              <div class="lb-item">
+                <span class="lb-rank bronze">#3</span>
+                <span class="lb-name">@Viper99</span>
+                <span class="lb-score">750</span>
+              </div>
+              <div class="lb-item">
+                <span class="lb-rank">#4</span>
+                <span class="lb-name">@GhostOps</span>
+                <span class="lb-score">620</span>
+              </div>
+              <div class="lb-item">
+                <span class="lb-rank">#5</span>
+                <span class="lb-name">@Raven</span>
+                <span class="lb-score">510</span>
+              </div>
             </div>
           </div>
 
@@ -849,7 +892,31 @@
               <span class="lb-title">TOP 5 WHITE</span>
             </div>
             <div id="lb-list-white" class="lb-list">
-              <div class="lb-empty">Type 2 or WHITE to claim #1!</div>
+              <div class="lb-item captain-highlight">
+                <span class="lb-rank gold"><svg style="width:13px;height:13px;fill:#F59E0B;filter:drop-shadow(0 0 4px rgba(245,158,11,0.8));margin-right:2px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg></span>
+                <span class="lb-name">@Solaris</span>
+                <span class="lb-score">1,540</span>
+              </div>
+              <div class="lb-item">
+                <span class="lb-rank silver">#2</span>
+                <span class="lb-name">@HyperNova</span>
+                <span class="lb-score">1,040</span>
+              </div>
+              <div class="lb-item">
+                <span class="lb-rank bronze">#3</span>
+                <span class="lb-name">@FrostBite</span>
+                <span class="lb-score">790</span>
+              </div>
+              <div class="lb-item">
+                <span class="lb-rank">#4</span>
+                <span class="lb-name">@BlazeCore</span>
+                <span class="lb-score">680</span>
+              </div>
+              <div class="lb-item">
+                <span class="lb-rank">#5</span>
+                <span class="lb-name">@AuraMaster</span>
+                <span class="lb-score">560</span>
+              </div>
             </div>
           </div>
         </div>
@@ -864,7 +931,46 @@
             </div>
             <div class="roster-marquee-viewport">
               <div id="roster-marquee-track" class="roster-marquee-track">
-                <!-- Dynamically rendered via JS -->
+                <div class="roster-chip black"><span class="chip-rank">#6</span><span class="chip-name">@OnyxClaw</span><span class="chip-score">430 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip white"><span class="chip-rank">#6</span><span class="chip-name">@Starlight</span><span class="chip-score">470 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip black"><span class="chip-rank">#7</span><span class="chip-name">@Eclipse</span><span class="chip-score">370 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip white"><span class="chip-rank">#7</span><span class="chip-name">@Zenith</span><span class="chip-score">380 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip black"><span class="chip-rank">#8</span><span class="chip-name">@VoidWalker</span><span class="chip-score">290 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip white"><span class="chip-rank">#8</span><span class="chip-name">@Apollo</span><span class="chip-score">320 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip black"><span class="chip-rank">#9</span><span class="chip-name">@PhantomX</span><span class="chip-score">210 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip white"><span class="chip-rank">#9</span><span class="chip-name">@CrystalPaladin</span><span class="chip-score">240 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip black"><span class="chip-rank">#10</span><span class="chip-name">@Obsidian</span><span class="chip-score">160 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip white"><span class="chip-rank">#10</span><span class="chip-name">@Polaris</span><span class="chip-score">190 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <!-- Loop Track Clone -->
+                <div class="roster-chip black"><span class="chip-rank">#6</span><span class="chip-name">@OnyxClaw</span><span class="chip-score">430 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip white"><span class="chip-rank">#6</span><span class="chip-name">@Starlight</span><span class="chip-score">470 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip black"><span class="chip-rank">#7</span><span class="chip-name">@Eclipse</span><span class="chip-score">370 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip white"><span class="chip-rank">#7</span><span class="chip-name">@Zenith</span><span class="chip-score">380 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip black"><span class="chip-rank">#8</span><span class="chip-name">@VoidWalker</span><span class="chip-score">290 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip white"><span class="chip-rank">#8</span><span class="chip-name">@Apollo</span><span class="chip-score">320 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip black"><span class="chip-rank">#9</span><span class="chip-name">@PhantomX</span><span class="chip-score">210 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip white"><span class="chip-rank">#9</span><span class="chip-name">@CrystalPaladin</span><span class="chip-score">240 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip black"><span class="chip-rank">#10</span><span class="chip-name">@Obsidian</span><span class="chip-score">160 pts</span></div>
+                <span class="roster-chip-sep">•</span>
+                <div class="roster-chip white"><span class="chip-rank">#10</span><span class="chip-name">@Polaris</span><span class="chip-score">190 pts</span></div>
               </div>
             </div>
           </div>
@@ -903,6 +1009,6 @@
     window.addEventListener('load', fitGameViewport);
     fitGameViewport();
   </script>
-  <script src="./js/game.js?v=20261019_v5"></script>
+  <script src="./js/game.js?v=20261021_v9_instant"></script>
 </body>
 </html>

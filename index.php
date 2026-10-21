@@ -625,7 +625,7 @@ try {
         </div>
 
         <div class="video-aspect">
-          <iframe id="game-frame" src="game/index.html?preview=1" allow="autoplay; audio"></iframe>
+          <iframe id="game-frame" src="game/index.html?preview=1&v=<?= time() ?>" allow="autoplay; audio"></iframe>
           <?php if ($showVideoEmbed): ?>
             <iframe id="yt-frame" src="https://www.youtube.com/embed/<?= htmlspecialchars($videoId) ?>?autoplay=1&mute=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style="display: none;"></iframe>
           <?php endif; ?>

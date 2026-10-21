@@ -210,9 +210,46 @@
     registerChatParticipant(user, team, pts);
   }
 
-  // Active roster state for marquee scroller
-  let currentBlackRoster = [];
-  let currentWhiteRoster = [];
+  // 15-member benchmark rosters for instant initial display and continuous marquee
+  const MOCK_BLACK_ROSTER = [
+    { user_name: 'ShadowKing', score: 1420 },
+    { user_name: 'DarkKnight', score: 980 },
+    { user_name: 'Viper99', score: 750 },
+    { user_name: 'GhostOps', score: 620 },
+    { user_name: 'Raven', score: 510 },
+    { user_name: 'OnyxClaw', score: 430 },
+    { user_name: 'Eclipse', score: 370 },
+    { user_name: 'VoidWalker', score: 290 },
+    { user_name: 'PhantomX', score: 210 },
+    { user_name: 'Obsidian', score: 160 },
+    { user_name: 'NightStalker', score: 140 },
+    { user_name: 'Dreadnought', score: 120 },
+    { user_name: 'DoomBringer', score: 105 },
+    { user_name: 'IronFang', score: 90 },
+    { user_name: 'HellRider', score: 75 }
+  ];
+
+  const MOCK_WHITE_ROSTER = [
+    { user_name: 'Solaris', score: 1540 },
+    { user_name: 'HyperNova', score: 1040 },
+    { user_name: 'FrostBite', score: 790 },
+    { user_name: 'BlazeCore', score: 680 },
+    { user_name: 'AuraMaster', score: 560 },
+    { user_name: 'Starlight', score: 470 },
+    { user_name: 'Zenith', score: 380 },
+    { user_name: 'Apollo', score: 320 },
+    { user_name: 'CrystalPaladin', score: 240 },
+    { user_name: 'Polaris', score: 190 },
+    { user_name: 'Valkyrie', score: 150 },
+    { user_name: 'SunBurst', score: 130 },
+    { user_name: 'RadiantKnight', score: 115 },
+    { user_name: 'LightBringer', score: 95 },
+    { user_name: 'Celestial', score: 80 }
+  ];
+
+  // Active roster state initialized with full rosters so marquee never starts empty
+  let currentBlackRoster = [...MOCK_BLACK_ROSTER];
+  let currentWhiteRoster = [...MOCK_WHITE_ROSTER];
   const liveChatters = [];
 
   // Register Live Chat Participant for Bottom Marquee Scroller
@@ -234,14 +271,18 @@
     const track = document.getElementById('roster-marquee-track');
     if (!track) return;
 
-    const blackRest = currentBlackRoster.slice(5).map((item, idx) => ({
+    // Use current roster if it has items beyond rank 5, else fallback to baseline
+    const blackSource = (currentBlackRoster && currentBlackRoster.length > 5) ? currentBlackRoster : MOCK_BLACK_ROSTER;
+    const whiteSource = (currentWhiteRoster && currentWhiteRoster.length > 5) ? currentWhiteRoster : MOCK_WHITE_ROSTER;
+
+    const blackRest = blackSource.slice(5).map((item, idx) => ({
       team: 'BLACK',
       rank: idx + 6,
       user_name: item.user_name,
       score: item.score
     }));
 
-    const whiteRest = currentWhiteRoster.slice(5).map((item, idx) => ({
+    const whiteRest = whiteSource.slice(5).map((item, idx) => ({
       team: 'WHITE',
       rank: idx + 6,
       user_name: item.user_name,
@@ -258,27 +299,17 @@
 
     // Include recent chatters who are not in Top 5 of either team
     for (const chatter of liveChatters) {
-      const inTop5Black = currentBlackRoster.slice(0, 5).some(u => u.user_name === chatter.user_name);
-      const inTop5White = currentWhiteRoster.slice(0, 5).some(u => u.user_name === chatter.user_name);
+      const inTop5Black = blackSource.slice(0, 5).some(u => u.user_name === chatter.user_name);
+      const inTop5White = whiteSource.slice(0, 5).some(u => u.user_name === chatter.user_name);
       const alreadyInCombined = combined.some(u => u.user_name === chatter.user_name);
       if (!inTop5Black && !inTop5White && !alreadyInCombined) {
         combined.push({
           team: chatter.team,
-          rank: 'MEMBER',
+          rank: 'LIVE',
           user_name: chatter.user_name,
           score: chatter.score
         });
       }
-    }
-
-    if (combined.length === 0) {
-      track.innerHTML = `
-        <div class="roster-chip black"><span class="chip-rank">JOIN</span><span class="chip-name">Type 1 or BLACK to join!</span></div>
-        <span class="roster-chip-sep">•</span>
-        <div class="roster-chip white"><span class="chip-rank">JOIN</span><span class="chip-name">Type 2 or WHITE to join!</span></div>
-        <span class="roster-chip-sep">•</span>
-      `;
-      return;
     }
 
     const chipsHtml = combined.map(item => `
@@ -290,9 +321,8 @@
       <span class="roster-chip-sep">•</span>
     `).join('');
 
-    // Duplicate content for seamless infinite marquee loop
-    const repeatCount = combined.length < 8 ? 3 : 2;
-    track.innerHTML = chipsHtml.repeat(repeatCount);
+    // Duplicate 3x to guarantee seamless infinite scroll across all screen widths
+    track.innerHTML = chipsHtml + chipsHtml + chipsHtml;
   }
 
   // Next Debate Topic Cycle
@@ -1219,58 +1249,24 @@
   // ----------------------------------------------------
   const isPreviewMode = window.location.search.includes('preview=1') || window.location.search.includes('test=1');
 
-  // Realistic mock roster for high-energy preview demonstrations (15 members per team)
-  const MOCK_BLACK_ROSTER = [
-    { user_name: 'ShadowKing', score: 1420 },
-    { user_name: 'DarkKnight', score: 980 },
-    { user_name: 'Viper99', score: 750 },
-    { user_name: 'GhostOps', score: 620 },
-    { user_name: 'Raven', score: 510 },
-    { user_name: 'OnyxClaw', score: 430 },
-    { user_name: 'Eclipse', score: 370 },
-    { user_name: 'VoidWalker', score: 290 },
-    { user_name: 'PhantomX', score: 210 },
-    { user_name: 'Obsidian', score: 160 },
-    { user_name: 'NightStalker', score: 140 },
-    { user_name: 'Dreadnought', score: 120 },
-    { user_name: 'DoomBringer', score: 105 },
-    { user_name: 'IronFang', score: 90 },
-    { user_name: 'HellRider', score: 75 }
-  ];
-
-  const MOCK_WHITE_ROSTER = [
-    { user_name: 'Solaris', score: 1540 },
-    { user_name: 'HyperNova', score: 1040 },
-    { user_name: 'FrostBite', score: 790 },
-    { user_name: 'BlazeCore', score: 680 },
-    { user_name: 'AuraMaster', score: 560 },
-    { user_name: 'Starlight', score: 470 },
-    { user_name: 'Zenith', score: 380 },
-    { user_name: 'Apollo', score: 320 },
-    { user_name: 'CrystalPaladin', score: 240 },
-    { user_name: 'Polaris', score: 190 },
-    { user_name: 'Valkyrie', score: 150 },
-    { user_name: 'SunBurst', score: 130 },
-    { user_name: 'RadiantKnight', score: 115 },
-    { user_name: 'LightBringer', score: 95 },
-    { user_name: 'Celestial', score: 80 }
-  ];
+  // Immediately render initial topic, Top 5 leaderboards, and bottom marquee ribbon
+  updateTopicHUD();
+  updateCaptainsAndLeaderboards({
+    captains: {
+      black: MOCK_BLACK_ROSTER[0],
+      white: MOCK_WHITE_ROSTER[0]
+    },
+    leaderboards: {
+      black: MOCK_BLACK_ROSTER,
+      white: MOCK_WHITE_ROSTER
+    },
+    velocity: 5.4
+  });
+  refreshHorizontalScroller();
 
   if (isPreviewMode) {
     gameState.winsBlack = 12;
     gameState.winsWhite = 14;
-
-    updateCaptainsAndLeaderboards({
-      captains: {
-        black: MOCK_BLACK_ROSTER[0],
-        white: MOCK_WHITE_ROSTER[0]
-      },
-      leaderboards: {
-        black: MOCK_BLACK_ROSTER,
-        white: MOCK_WHITE_ROSTER
-      },
-      velocity: 5.4
-    });
 
     // Initial slight displacement for drama
     physics.x = -45;
@@ -1303,7 +1299,6 @@
     }, 1100);
   }
 
-  updateTopicHUD();
   setInterval(pollServerChat, 1000);
   requestAnimationFrame(loop);
 })();
