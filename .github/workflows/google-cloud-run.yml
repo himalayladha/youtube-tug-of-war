@@ -48,4 +48,4 @@ jobs:
             --allow-unauthenticated \
             --port 8080 \
             --memory 512Mi \
-            --set-env-vars YOUTUBE_API_KEY=AIzaSyDXaLD3JTFkMIOAW8GbhJoP8Fxpnr0HID0
+            --set-env-vars YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}

@@ -25,6 +25,27 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+# Parse optional CLI flags
+YT_API_KEY=""
+YT_STREAM_KEY=""
+
+for arg in "$@"; do
+  case $arg in
+    --yt-api-key=*)
+      YT_API_KEY="${arg#*=}"
+      shift
+      ;;
+    --stream-key=*)
+      YT_STREAM_KEY="${arg#*=}"
+      shift
+      ;;
+  esac
+done
+
+# Fallback to environment variables if set
+YT_API_KEY="${YT_API_KEY:-$YOUTUBE_API_KEY}"
+YT_STREAM_KEY="${YT_STREAM_KEY:-$YOUTUBE_STREAM_KEY}"
+
 PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 echo -e "${GREEN}[*] Project directory: ${PROJECT_DIR}${NC}"
 
@@ -126,12 +147,23 @@ EOF
     runSchemaMigration(\$pdo, '$TARGET_DIR/db/schema_sqlite.sql');
     setSetting(\$pdo, 'admin_user', 'admin');
     setSetting(\$pdo, 'admin_password_hash', password_hash('admin123', PASSWORD_BCRYPT));
-    setSetting(\$pdo, 'yt_api_key', 'AIzaSyDXaLD3JTFkMIOAW8GbhJoP8Fxpnr0HID0');
+    setSetting(\$pdo, 'yt_api_key', '$YT_API_KEY');
+    setSetting(\$pdo, 'yt_stream_key', '$YT_STREAM_KEY');
     setSetting(\$pdo, 'stream_resolution', '1920x1080');
     setSetting(\$pdo, 'stream_fps', '30');
     setSetting(\$pdo, 'stream_bitrate', '4500k');
     setSetting(\$pdo, 'game_mode', 'auto');
     setSetting(\$pdo, 'db_installed', '1');
+  "
+fi
+
+# Update keys if explicitly passed via flags or environment
+if [ -n "$YT_API_KEY" ] || [ -n "$YT_STREAM_KEY" ]; then
+  php -r "
+    require '$TARGET_DIR/includes/db.php';
+    \$pdo = getDbConnection();
+    if (!empty('$YT_API_KEY')) setSetting(\$pdo, 'yt_api_key', '$YT_API_KEY');
+    if (!empty('$YT_STREAM_KEY')) setSetting(\$pdo, 'yt_stream_key', '$YT_STREAM_KEY');
   "
 fi
 

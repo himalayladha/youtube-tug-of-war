@@ -58,7 +58,7 @@ gcloud run deploy tug-of-war \
   --allow-unauthenticated \
   --port 8080 \
   --memory 512Mi \
-  --set-env-vars YOUTUBE_API_KEY=AIzaSyDXaLD3JTFkMIOAW8GbhJoP8Fxpnr0HID0
+  --set-env-vars YOUTUBE_API_KEY=YOUR_YOUTUBE_API_KEY
 ```
 
 ---

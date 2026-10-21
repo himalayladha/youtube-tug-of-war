@@ -86,7 +86,7 @@ Once the deployment completes, your server is live!
    http://<YOUR_VM_EXTERNAL_IP>/admin/
    ```
 2. Navigate to **Settings**:
-   - **YouTube Data API Key**: Pre-configured as `AIzaSyDXaLD3JTFkMIOAW8GbhJoP8Fxpnr0HID0`
+   - **YouTube Data API Key**: Enter your YouTube Data API v3 key
    - **YouTube Stream Key**: Paste your stream key from [YouTube Studio](https://studio.youtube.com/channel/UC/livestreaming)
    - Click **Save Settings**
 3. Click the green **[Start Live Stream]** button on the dashboard.
