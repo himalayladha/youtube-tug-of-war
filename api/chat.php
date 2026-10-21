@@ -168,16 +168,16 @@ $velTimeQuery = $isSqlite ? "datetime('now', '-2 seconds')" : "NOW() - INTERVAL 
 $stmt = $pdo->query("SELECT COUNT(*) FROM chat_logs WHERE created_at >= {$velTimeQuery}");
 $velocity = (float)round(($stmt->fetchColumn() / 2), 1);
 
-// Fetch Dual Top 10 Leaderboards
-$stmt = $pdo->query("SELECT user_name, score FROM leaderboard WHERE team = 'BLACK' ORDER BY score DESC LIMIT 10");
-$blackTop10 = $stmt->fetchAll();
+// Fetch Dual Leaderboards (Top 5 for MVP panels + Ranks 6-50 for bottom horizontal marquee)
+$stmt = $pdo->query("SELECT user_name, score FROM leaderboard WHERE team = 'BLACK' ORDER BY score DESC LIMIT 50");
+$blackTop = $stmt->fetchAll();
 
-$stmt = $pdo->query("SELECT user_name, score FROM leaderboard WHERE team = 'WHITE' ORDER BY score DESC LIMIT 10");
-$whiteTop10 = $stmt->fetchAll();
+$stmt = $pdo->query("SELECT user_name, score FROM leaderboard WHERE team = 'WHITE' ORDER BY score DESC LIMIT 50");
+$whiteTop = $stmt->fetchAll();
 
 // Crown Captains (#1 on each team)
-$captainBlack = !empty($blackTop10) ? $blackTop10[0] : null;
-$captainWhite = !empty($whiteTop10) ? $whiteTop10[0] : null;
+$captainBlack = !empty($blackTop) ? $blackTop[0] : null;
+$captainWhite = !empty($whiteTop) ? $whiteTop[0] : null;
 
 // Round wins
 $winsBlack = (int)(getSetting($pdo, 'wins_black', '0'));
@@ -201,8 +201,8 @@ echo json_encode([
         'white' => $captainWhite
     ],
     'leaderboards' => [
-        'black' => $blackTop10,
-        'white' => $whiteTop10
+        'black' => $blackTop,
+        'white' => $whiteTop
     ],
     'round' => [
         'wins_black' => $winsBlack,

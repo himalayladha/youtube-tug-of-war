@@ -207,21 +207,92 @@
     // Micro screen shake
     gameState.screenShake = Math.min(8, gameState.screenShake + 1.2);
 
-    addTickerMessage(user, team);
+    registerChatParticipant(user, team, pts);
   }
 
-  // Add Live Ticker Pill to HUD
-  function addTickerMessage(user, team) {
-    const box = document.getElementById('chat-ticker-container');
-    if (!box) return;
-    const pill = document.createElement('div');
-    pill.className = `ticker-pill ${team.toLowerCase()}`;
-    const icon = team === 'BLACK' ? '⚔️' : '🛡️';
-    pill.innerHTML = `<span>${icon}</span> <span><b>@${user}</b> pulled for <b>TEAM ${team}</b>!</span>`;
-    box.prepend(pill);
-    if (box.children.length > 5) {
-      box.removeChild(box.lastChild);
+  // Active roster state for marquee scroller
+  let currentBlackRoster = [];
+  let currentWhiteRoster = [];
+  const liveChatters = [];
+
+  // Register Live Chat Participant for Bottom Marquee Scroller
+  function registerChatParticipant(user, team, pts) {
+    if (!user) return;
+    let existing = liveChatters.find(c => c.user_name === user && c.team === team);
+    if (!existing) {
+      existing = { user_name: user, team: team, score: pts || 10 };
+      liveChatters.unshift(existing);
+      if (liveChatters.length > 25) liveChatters.pop();
+    } else {
+      existing.score += (pts || 10);
     }
+    refreshHorizontalScroller();
+  }
+
+  // Refresh Horizontal Marquee Ribbon (Rank 6+ & Live Chat Voters)
+  function refreshHorizontalScroller() {
+    const track = document.getElementById('roster-marquee-track');
+    if (!track) return;
+
+    const blackRest = currentBlackRoster.slice(5).map((item, idx) => ({
+      team: 'BLACK',
+      rank: idx + 6,
+      user_name: item.user_name,
+      score: item.score
+    }));
+
+    const whiteRest = currentWhiteRoster.slice(5).map((item, idx) => ({
+      team: 'WHITE',
+      rank: idx + 6,
+      user_name: item.user_name,
+      score: item.score
+    }));
+
+    // Interleave black and white rank 6+ supporters
+    const combined = [];
+    const maxLen = Math.max(blackRest.length, whiteRest.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < blackRest.length) combined.push(blackRest[i]);
+      if (i < whiteRest.length) combined.push(whiteRest[i]);
+    }
+
+    // Include recent chatters who are not in Top 5 of either team
+    for (const chatter of liveChatters) {
+      const inTop5Black = currentBlackRoster.slice(0, 5).some(u => u.user_name === chatter.user_name);
+      const inTop5White = currentWhiteRoster.slice(0, 5).some(u => u.user_name === chatter.user_name);
+      const alreadyInCombined = combined.some(u => u.user_name === chatter.user_name);
+      if (!inTop5Black && !inTop5White && !alreadyInCombined) {
+        combined.push({
+          team: chatter.team,
+          rank: 'MEMBER',
+          user_name: chatter.user_name,
+          score: chatter.score
+        });
+      }
+    }
+
+    if (combined.length === 0) {
+      track.innerHTML = `
+        <div class="roster-chip black"><span class="chip-rank">JOIN</span><span class="chip-name">Type 1 or BLACK to join!</span></div>
+        <span class="roster-chip-sep">•</span>
+        <div class="roster-chip white"><span class="chip-rank">JOIN</span><span class="chip-name">Type 2 or WHITE to join!</span></div>
+        <span class="roster-chip-sep">•</span>
+      `;
+      return;
+    }
+
+    const chipsHtml = combined.map(item => `
+      <div class="roster-chip ${item.team.toLowerCase()}">
+        <span class="chip-rank">#${item.rank}</span>
+        <span class="chip-name">@${item.user_name}</span>
+        <span class="chip-score">${item.score} pts</span>
+      </div>
+      <span class="roster-chip-sep">•</span>
+    `).join('');
+
+    // Duplicate content for seamless infinite marquee loop
+    const repeatCount = combined.length < 8 ? 3 : 2;
+    track.innerHTML = chipsHtml.repeat(repeatCount);
   }
 
   // Next Debate Topic Cycle
@@ -988,6 +1059,11 @@
     if (leftEl) leftEl.textContent = leftText;
     if (rightEl) rightEl.textContent = rightText;
 
+    const ctaLeft = document.getElementById('cta-left-name');
+    const ctaRight = document.getElementById('cta-right-name');
+    if (ctaLeft) ctaLeft.textContent = leftText;
+    if (ctaRight) ctaRight.textContent = rightText;
+
     const winsBlackEl = document.getElementById('wins-black-count');
     const winsWhiteEl = document.getElementById('wins-white-count');
     if (winsBlackEl) winsBlackEl.textContent = gameState.winsBlack;
@@ -1018,11 +1094,11 @@
     if (barWhite) barWhite.style.width = `${whiteShare}%`;
   }
 
-  // Update Dual Captains & Leaderboards
+  // Update Dual Captains & Top 5 Leaderboards & Marquee
   function updateCaptainsAndLeaderboards(data) {
     if (!data) return;
 
-    // 1. Captains
+    // 1. Dual Captains
     const capBlack = data.captains?.black;
     const capWhite = data.captains?.white;
 
@@ -1048,17 +1124,28 @@
       gameState.lastCaptainWhiteName = capWhite.user_name;
     }
 
-    // 2. Dual Top 10 Leaderboards
+    // Save roster for Rank 6+ scroller
+    if (Array.isArray(data.leaderboards?.black)) {
+      currentBlackRoster = data.leaderboards.black;
+    }
+    if (Array.isArray(data.leaderboards?.white)) {
+      currentWhiteRoster = data.leaderboards.white;
+    }
+
+    const crownSvg = `<svg style="width:13px;height:13px;fill:#F59E0B;filter:drop-shadow(0 0 4px rgba(245,158,11,0.8));margin-right:2px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
+
+    // 2. Dual Top 5 Leaderboards (Ranks 1 to 5 Only)
     const lbBlack = document.getElementById('lb-list-black');
-    if (lbBlack && Array.isArray(data.leaderboards?.black)) {
+    if (lbBlack && currentBlackRoster) {
       lbBlack.innerHTML = '';
-      if (data.leaderboards.black.length === 0) {
+      const top5Black = currentBlackRoster.slice(0, 5);
+      if (top5Black.length === 0) {
         lbBlack.innerHTML = '<div class="lb-empty">Type 1 or BLACK to claim #1!</div>';
       } else {
-        data.leaderboards.black.forEach((item, idx) => {
+        top5Black.forEach((item, idx) => {
           const row = document.createElement('div');
           row.className = `lb-item ${idx === 0 ? 'captain-highlight' : ''}`;
-          const rankDisplay = idx === 0 ? '👑' : `#${idx + 1}`;
+          const rankDisplay = idx === 0 ? crownSvg : `#${idx + 1}`;
           const rankClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : '';
           row.innerHTML = `<span class="lb-rank ${rankClass}">${rankDisplay}</span><span class="lb-name">@${item.user_name}</span><span class="lb-score">${item.score}</span>`;
           lbBlack.appendChild(row);
@@ -1067,15 +1154,16 @@
     }
 
     const lbWhite = document.getElementById('lb-list-white');
-    if (lbWhite && Array.isArray(data.leaderboards?.white)) {
+    if (lbWhite && currentWhiteRoster) {
       lbWhite.innerHTML = '';
-      if (data.leaderboards.white.length === 0) {
+      const top5White = currentWhiteRoster.slice(0, 5);
+      if (top5White.length === 0) {
         lbWhite.innerHTML = '<div class="lb-empty">Type 2 or WHITE to claim #1!</div>';
       } else {
-        data.leaderboards.white.forEach((item, idx) => {
+        top5White.forEach((item, idx) => {
           const row = document.createElement('div');
           row.className = `lb-item ${idx === 0 ? 'captain-highlight' : ''}`;
-          const rankDisplay = idx === 0 ? '👑' : `#${idx + 1}`;
+          const rankDisplay = idx === 0 ? crownSvg : `#${idx + 1}`;
           const rankClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : '';
           row.innerHTML = `<span class="lb-rank ${rankClass}">${rankDisplay}</span><span class="lb-name">@${item.user_name}</span><span class="lb-score">${item.score}</span>`;
           lbWhite.appendChild(row);
@@ -1083,7 +1171,10 @@
       }
     }
 
-    // 3. Velocity & Round Stats
+    // 3. Refresh Rank 6+ & Live Chat Marquee Scroller
+    refreshHorizontalScroller();
+
+    // 4. Velocity & Round Stats
     const velVal = document.getElementById('velocity-val');
     if (velVal && data.velocity !== undefined) {
       velVal.textContent = data.velocity;
@@ -1128,7 +1219,7 @@
   // ----------------------------------------------------
   const isPreviewMode = window.location.search.includes('preview=1') || window.location.search.includes('test=1');
 
-  // Realistic mock roster for high-energy preview demonstrations
+  // Realistic mock roster for high-energy preview demonstrations (15 members per team)
   const MOCK_BLACK_ROSTER = [
     { user_name: 'ShadowKing', score: 1420 },
     { user_name: 'DarkKnight', score: 980 },
@@ -1139,7 +1230,12 @@
     { user_name: 'Eclipse', score: 370 },
     { user_name: 'VoidWalker', score: 290 },
     { user_name: 'PhantomX', score: 210 },
-    { user_name: 'Obsidian', score: 160 }
+    { user_name: 'Obsidian', score: 160 },
+    { user_name: 'NightStalker', score: 140 },
+    { user_name: 'Dreadnought', score: 120 },
+    { user_name: 'DoomBringer', score: 105 },
+    { user_name: 'IronFang', score: 90 },
+    { user_name: 'HellRider', score: 75 }
   ];
 
   const MOCK_WHITE_ROSTER = [
@@ -1152,7 +1248,12 @@
     { user_name: 'Zenith', score: 380 },
     { user_name: 'Apollo', score: 320 },
     { user_name: 'CrystalPaladin', score: 240 },
-    { user_name: 'Polaris', score: 190 }
+    { user_name: 'Polaris', score: 190 },
+    { user_name: 'Valkyrie', score: 150 },
+    { user_name: 'SunBurst', score: 130 },
+    { user_name: 'RadiantKnight', score: 115 },
+    { user_name: 'LightBringer', score: 95 },
+    { user_name: 'Celestial', score: 80 }
   ];
 
   if (isPreviewMode) {
