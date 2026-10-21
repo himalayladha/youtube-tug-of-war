@@ -127,7 +127,7 @@ if ($action === 'start') {
     file_put_contents($lockFile, (string)$pid);
 
     // Record session in DB
-    $stmt = $pdo->prepare("INSERT INTO stream_sessions (pid, started_at, status, log_file) VALUES (:pid, NOW(), 'running', :log)");
+    $stmt = $pdo->prepare("INSERT INTO stream_sessions (pid, started_at, status, log_file) VALUES (:pid, CURRENT_TIMESTAMP, 'running', :log)");
     $stmt->execute([':pid' => $pid, ':log' => $logFile]);
 
     echo json_encode(['success' => true, 'pid' => $pid, 'message' => 'Stream started successfully']);
@@ -156,7 +156,7 @@ if ($action === 'stop') {
     }
 
     // Update DB session
-    $pdo->exec("UPDATE stream_sessions SET stopped_at = NOW(), status = 'stopped' WHERE status = 'running'");
+    $pdo->exec("UPDATE stream_sessions SET stopped_at = CURRENT_TIMESTAMP, status = 'stopped' WHERE status = 'running'");
 
     echo json_encode(['success' => true, 'message' => 'Stream stopped successfully']);
     exit;
