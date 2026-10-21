@@ -71,17 +71,44 @@ let browser = null;
 async function launchBrowserStreamer() {
   try {
     const puppeteer = await import('puppeteer');
-    browser = await puppeteer.default.launch({
+
+    // Detect system Chrome or Chromium if available
+    const candidatePaths = [
+      process.env.PUPPETEER_EXECUTABLE_PATH,
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
+      '/snap/bin/chromium',
+    ].filter(Boolean);
+
+    const executablePath = candidatePaths.find((p) => {
+      try {
+        return fs.existsSync(p);
+      } catch (e) {
+        return false;
+      }
+    });
+
+    const launchOptions = {
       headless: 'new',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
+        '--disable-gpu',
         `--window-size=${WIDTH},${HEIGHT}`,
         '--autoplay-policy=no-user-gesture-required',
       ],
       defaultViewport: { width: WIDTH, height: HEIGHT },
-    });
+    };
+
+    if (executablePath) {
+      console.log(`[Streamer] Using detected system browser binary: ${executablePath}`);
+      launchOptions.executablePath = executablePath;
+    }
+
+    browser = await puppeteer.default.launch(launchOptions);
 
     const page = await browser.newPage();
     await page.goto(GAME_URL, { waitUntil: 'domcontentloaded' });

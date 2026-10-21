@@ -66,11 +66,15 @@ apt-get install -y \
   libpango-1.0-0 \
   libcairo2
 
-# 5. Install Node dependencies in streamer directory
-echo -e "\n${YELLOW}[4/5] Installing Puppeteer streamer packages...${NC}"
+# 5. Install Node dependencies in streamer directory & browser binary
+echo -e "\n${YELLOW}[4/5] Installing Puppeteer streamer packages & Chrome browser...${NC}"
+mkdir -p /var/www/.cache
+chown -R www-data:www-data /var/www/.cache
+
 if [ -d "$PROJECT_DIR/streamer" ]; then
   cd "$PROJECT_DIR/streamer"
-  npm install --production
+  npm install
+  npx puppeteer browsers install chrome
   cd "$PROJECT_DIR"
 fi
 
@@ -94,6 +98,15 @@ fi
 
 # Ensure data directory and permissions
 mkdir -p "$TARGET_DIR/data" "$TARGET_DIR/streamer"
+mkdir -p /var/www/.cache/puppeteer
+chown -R www-data:www-data /var/www/.cache
+
+# Download Chrome for www-data inside target streamer
+if [ -d "$TARGET_DIR/streamer" ]; then
+  cd "$TARGET_DIR/streamer"
+  sudo -u www-data npx puppeteer browsers install chrome || npx puppeteer browsers install chrome || true
+  cd "$TARGET_DIR"
+fi
 
 # Initialize default config and SQLite database if not already created
 if [ ! -f "$TARGET_DIR/config.php" ]; then
