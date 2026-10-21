@@ -5,3 +5,4 @@ dist/
 config.php
 pid.lock
 streamer/pid.lock
+data/*.sqlite

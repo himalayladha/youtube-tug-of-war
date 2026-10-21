@@ -40,11 +40,11 @@ function recordVote(PDO $pdo, bool $isSqlite, string $userId, string $userName, 
     $stmt->execute([':uid' => $userId, ':name' => $userName, ':team' => $team, ':team2' => $team]);
 }
 
-// Parse Chat Command for Team Black vs Team White
-function parseTeamVote(string $text): ?string {
+// Parse Chat Command for Team 1 (Left) vs Team 2 (Right)
+function parseTeamVote(string $text, string $topicLeft = '', string $topicRight = ''): ?string {
     $clean = strtolower(trim($text));
     
-    // Numeric shortcuts
+    // Numeric shortcuts (1 = Team 1 / Left / Android, 2 = Team 2 / Right / iPhone)
     if ($clean === '1' || $clean === 'lane1' || $clean === 'left') return 'BLACK';
     if ($clean === '2' || $clean === 'lane2' || $clean === 'right') return 'WHITE';
 
@@ -52,8 +52,16 @@ function parseTeamVote(string $text): ?string {
     if (str_starts_with($clean, 'black') || str_starts_with($clean, 'with')) return 'BLACK';
     if (str_starts_with($clean, 'white') || str_starts_with($clean, 'against')) return 'WHITE';
 
+    // Dynamic Debate Topic Triggers
+    if (!empty($topicLeft) && (str_contains($clean, strtolower($topicLeft)))) return 'BLACK';
+    if (!empty($topicRight) && (str_contains($clean, strtolower($topicRight)))) return 'WHITE';
+
     return null;
 }
+
+$settings = getAllSettings($pdo);
+$topicLeft = $settings['topic_left'] ?? 'ANDROID';
+$topicRight = $settings['topic_right'] ?? 'IPHONE';
 
 // 1. Simulation POST endpoint (e.g. from in-game Dev dock or Host input)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -79,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $user = trim($json['user'] ?? 'Viewer');
     $rawText = trim($json['text'] ?? '');
-    $team = parseTeamVote($rawText);
+    $team = parseTeamVote($rawText, $topicLeft, $topicRight);
 
     if ($team) {
         $userId = 'sim-' . md5($user);
@@ -94,7 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // 2. Poll Active YouTube Live Stream
-$settings = getAllSettings($pdo);
 $apiKey = $settings['yt_api_key'] ?? '';
 $videoId = $settings['yt_video_id'] ?? '';
 $liveChatId = $settings['yt_live_chat_id'] ?? '';
@@ -137,7 +144,7 @@ if (!empty($apiKey) && !empty($videoId)) {
                     $author = $item['authorDetails']['displayName'] ?? 'Viewer';
                     $authorId = $item['authorDetails']['channelId'] ?? md5($author);
 
-                    $team = parseTeamVote($rawMsg);
+                    $team = parseTeamVote($rawMsg, $topicLeft, $topicRight);
                     if ($team) {
                         $incomingPulls[] = [
                             'team' => $team,

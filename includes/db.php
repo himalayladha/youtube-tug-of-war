@@ -29,6 +29,16 @@ function getDbConnection(?array $config = null): PDO {
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
         $pdo->exec("PRAGMA journal_mode = WAL;");
+
+        // Auto-initialize SQLite schema if settings table is missing
+        $tableCheck = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'")->fetch();
+        if (!$tableCheck) {
+            $schemaPath = __DIR__ . '/../db/schema_sqlite.sql';
+            if (file_exists($schemaPath)) {
+                runSchemaMigration($pdo, $schemaPath);
+            }
+        }
+
         return $pdo;
     }
 
