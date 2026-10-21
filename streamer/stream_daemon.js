@@ -38,20 +38,23 @@ console.log(`[Streamer] Resolution: ${WIDTH}x${HEIGHT} @ ${FPS}fps (Bitrate: ${B
 const ffmpegArgs = [
   '-y',
   '-f', 'image2pipe',
-  '-vcodec', 'png',
+  '-vcodec', 'mjpeg',
   '-r', String(FPS),
   '-i', 'pipe:0',
   '-f', 'lavfi',
   '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
   '-c:v', 'libx264',
-  '-preset', 'veryfast',
+  '-preset', 'ultrafast',
+  '-tune', 'zerolatency',
   '-b:v', BITRATE,
-  '-maxrate', String(parseInt(BITRATE, 10) * 1.2) + 'k',
-  '-bufsize', String(parseInt(BITRATE, 10) * 2) + 'k',
+  '-minrate', BITRATE,
+  '-maxrate', BITRATE,
+  '-bufsize', String(parseInt(BITRATE, 10) * 1.5) + 'k',
   '-pix_fmt', 'yuv420p',
   '-g', String(FPS * 2),
   '-c:a', 'aac',
   '-b:a', '128k',
+  '-ar', '44100',
   '-f', 'flv',
   RTMP_DESTINATION,
 ];
@@ -117,7 +120,8 @@ async function launchBrowserStreamer() {
 
     const client = await page.target().createCDPSession();
     await client.send('Page.startScreencast', {
-      format: 'png',
+      format: 'jpeg',
+      quality: 90,
       everyNthFrame: 1,
     });
 
