@@ -10,7 +10,17 @@ function getDbConnection(?array $config = null): PDO {
         if (file_exists($configFile)) {
             $config = require $configFile;
         } else {
-            throw new Exception("Configuration file not found. Please run setup.php first.");
+            // Default zero-configuration fallback: SQLite or Environment variables
+            $config = [
+                'db_driver' => getenv('DB_DRIVER') ?: 'sqlite',
+                'db_path'   => getenv('DB_PATH') ?: (__DIR__ . '/../data/database.sqlite'),
+                'db_host'   => getenv('DB_HOST') ?: 'localhost',
+                'db_port'   => getenv('DB_PORT') ?: '3306',
+                'db_name'   => getenv('DB_NAME') ?: 'youtube_runner',
+                'db_user'   => getenv('DB_USER') ?: 'root',
+                'db_pass'   => getenv('DB_PASS') ?: '',
+                'app_url'   => 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost'),
+            ];
         }
     }
 
@@ -29,6 +39,16 @@ function getDbConnection(?array $config = null): PDO {
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
         $pdo->exec("PRAGMA journal_mode = WAL;");
+
+        // Auto-initialize SQLite schema if settings table is missing
+        $tableCheck = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'")->fetch();
+        if (!$tableCheck) {
+            $schemaPath = __DIR__ . '/../db/schema_sqlite.sql';
+            if (file_exists($schemaPath)) {
+                runSchemaMigration($pdo, $schemaPath);
+            }
+        }
+
         return $pdo;
     }
 

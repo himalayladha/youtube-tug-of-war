@@ -25,6 +25,16 @@ function verifyAdminLogin(PDO $pdo, string $username, string $password): bool {
     $storedHash = getSetting($pdo, 'admin_password_hash', '');
 
     if (empty($storedHash)) {
+        // Initial setup default: allow login with admin/admin and auto-provision hash
+        if ($username === 'admin' && ($password === 'admin' || $password === 'admin123')) {
+            $newHash = password_hash($password, PASSWORD_DEFAULT);
+            setSetting($pdo, 'admin_user', 'admin');
+            setSetting($pdo, 'admin_password_hash', $newHash);
+            $_SESSION['admin_logged_in'] = true;
+            $_SESSION['admin_user'] = 'admin';
+            $_SESSION['login_time'] = time();
+            return true;
+        }
         return false;
     }
 

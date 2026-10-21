@@ -50,3 +50,15 @@ CREATE TABLE IF NOT EXISTS round_stats (
 );
 
 INSERT OR IGNORE INTO round_stats (id, wins_black, wins_white, current_topic_idx) VALUES (1, 0, 0, 0);
+
+INSERT OR IGNORE INTO settings (setting_key, setting_value) VALUES 
+('admin_user', 'admin'),
+('yt_stream_key', 'g8fr-0fet-fmdr-98ca-f3mv'),
+('yt_api_key', 'AIzaSyDXaLD3JTFkMIOAW8GbhJoP8Fxpnr0HID0'),
+('yt_video_id', 'np0AdEzgoKE'),
+('topic_left', 'ANDROID'),
+('topic_right', 'IPHONE'),
+('stream_resolution', '1920x1080'),
+('stream_fps', '30'),
+('stream_bitrate', '4500k'),
+('db_installed', '1');
