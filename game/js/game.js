@@ -1368,7 +1368,9 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = '#FFFFFF';
 
-    const winText = isBlack ? '👑 TEAM BLACK VICTORIOUS 👑' : '👑 TEAM WHITE VICTORIOUS 👑';
+    const curTopic = DEBATE_TOPICS[gameState.currentTopicIdx] || { left: 'ANDROID', right: 'IPHONE' };
+    const winnerTopic = isBlack ? curTopic.left : curTopic.right;
+    const winText = `👑 TEAM ${winnerTopic} VICTORIOUS 👑`;
     ctx.fillText(winText, 960, 475);
 
     ctx.font = '800 22px "Chakra Petch", sans-serif';
@@ -1385,11 +1387,34 @@
   function updateTopicHUD() {
     const curTopic = DEBATE_TOPICS[gameState.currentTopicIdx] || { left: 'ANDROID', right: 'IPHONE' };
 
-    // Update Above-Middle Debate Widget
+    // 1. Top Header Team Identity Blocks
+    const teamNameBlack = document.getElementById('team-name-black');
+    const teamNameWhite = document.getElementById('team-name-white');
+    if (teamNameBlack) teamNameBlack.textContent = curTopic.left;
+    if (teamNameWhite) teamNameWhite.textContent = curTopic.right;
+
+    // 2. Control Bar Percent Sublabels
+    const controlLabelBlack = document.getElementById('control-label-black');
+    const controlLabelWhite = document.getElementById('control-label-white');
+    if (controlLabelBlack) controlLabelBlack.textContent = `TEAM ${curTopic.left} CONTROL`;
+    if (controlLabelWhite) controlLabelWhite.textContent = `TEAM ${curTopic.right} CONTROL`;
+
+    // 3. Flanking Top 5 Leaderboards
+    const top5HeaderBlack = document.getElementById('top5-header-black');
+    const top5HeaderWhite = document.getElementById('top5-header-white');
+    if (top5HeaderBlack) top5HeaderBlack.textContent = `TOP 5 - ${curTopic.left}`;
+    if (top5HeaderWhite) top5HeaderWhite.textContent = `TOP 5 - ${curTopic.right}`;
+
+    // 4. Center Above-Middle Debate Widget
     const topicLeft = document.getElementById('topic-left-text');
     const topicRight = document.getElementById('topic-right-text');
     if (topicLeft) topicLeft.textContent = curTopic.left;
     if (topicRight) topicRight.textContent = curTopic.right;
+
+    const sideTagBlack = document.getElementById('side-tag-black');
+    const sideTagWhite = document.getElementById('side-tag-white');
+    if (sideTagBlack) sideTagBlack.textContent = `TEAM ${curTopic.left}`;
+    if (sideTagWhite) sideTagWhite.textContent = `TEAM ${curTopic.right}`;
 
     const footerBlack = document.getElementById('footer-topic-black');
     const footerWhite = document.getElementById('footer-topic-white');
@@ -1401,11 +1426,22 @@
       debateRoundInd.textContent = `ROUND ${gameState.roundNumber} OF ${gameState.totalRounds}`;
     }
 
-    // Dynamic Command Box Action Subtexts
+    // 5. Command Deck Headers & Action Subtexts
+    const cmdHeaderBlack = document.getElementById('cmd-header-black');
+    const cmdHeaderWhite = document.getElementById('cmd-header-white');
+    if (cmdHeaderBlack) cmdHeaderBlack.textContent = `JOIN TEAM ${curTopic.left}`;
+    if (cmdHeaderWhite) cmdHeaderWhite.textContent = `JOIN TEAM ${curTopic.right}`;
+
     const cmdSubBlack = document.querySelector('.cmd-box.black .cmd-subtext');
     const cmdSubWhite = document.querySelector('.cmd-box.white .cmd-subtext');
     if (cmdSubBlack) cmdSubBlack.textContent = `FOR ${curTopic.left}`;
     if (cmdSubWhite) cmdSubWhite.textContent = `FOR ${curTopic.right}`;
+
+    // 6. Live Chat Terminal Stream Tags
+    const streamTagBlack = document.getElementById('stream-tag-black');
+    const streamTagWhite = document.getElementById('stream-tag-white');
+    if (streamTagBlack) streamTagBlack.textContent = `◄ TEAM ${curTopic.left}`;
+    if (streamTagWhite) streamTagWhite.textContent = `TEAM ${curTopic.right} ►`;
 
     const winsBlackEl = document.getElementById('wins-black-count');
     const winsWhiteEl = document.getElementById('wins-white-count');

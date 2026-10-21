@@ -29,7 +29,7 @@
             </div>
             <div class="team-name-block">
               <span class="team-label-tag">TEAM</span>
-              <span class="team-name-text">BLACK</span>
+              <span id="team-name-black" class="team-name-text">ANDROID</span>
               <div class="round-victories-tag">
                 <span>ROUND VICTORIES</span>
                 <span id="wins-black-count" class="victories-number">1</span>
@@ -82,7 +82,7 @@
           <div class="team-identity-module right">
             <div class="team-name-block align-right">
               <span class="team-label-tag">TEAM</span>
-              <span class="team-name-text">WHITE</span>
+              <span id="team-name-white" class="team-name-text">IPHONE</span>
               <div class="round-victories-tag">
                 <span>ROUND VICTORIES</span>
                 <span id="wins-white-count" class="victories-number">2</span>
@@ -102,7 +102,7 @@
               <span class="speed-stripes-small">///</span>
               <span id="pct-black">45%</span>
             </div>
-            <span class="control-pct-sub">TEAM BLACK CONTROL</span>
+            <span id="control-label-black" class="control-pct-sub">TEAM ANDROID CONTROL</span>
           </div>
 
           <div class="control-bar-track-wrap">
@@ -124,7 +124,7 @@
               <span id="pct-white">55%</span>
               <span class="speed-stripes-small">\\\</span>
             </div>
-            <span class="control-pct-sub">TEAM WHITE CONTROL</span>
+            <span id="control-label-white" class="control-pct-sub">TEAM IPHONE CONTROL</span>
           </div>
         </div>
 
@@ -132,7 +132,7 @@
         <div class="middle-arena-hud">
           <!-- Left: Top 5 Black -->
           <div id="leaderboard-black" class="top5-card black-card">
-            <div class="top5-card-header">TOP 5 - BLACK</div>
+            <div id="top5-header-black" class="top5-card-header">TOP 5 - ANDROID</div>
             <div id="lb-list-black" class="top5-list">
               <div class="top5-item captain-rank1">
                 <span class="top5-rank-badge">1 <svg viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg></span>
@@ -171,14 +171,14 @@
             </div>
             <div class="debate-matchup-row">
               <div class="debate-side-col black-side">
-                <span class="side-team-tag">TEAM 1 (BLACK)</span>
+                <span id="side-tag-black" class="side-team-tag">TEAM ANDROID</span>
                 <span id="topic-left-text" class="topic-name">ANDROID</span>
               </div>
               <div class="debate-vs-divider">
                 <span class="vs-glow-text">VS</span>
               </div>
               <div class="debate-side-col white-side">
-                <span class="side-team-tag">TEAM 2 (WHITE)</span>
+                <span id="side-tag-white" class="side-team-tag">TEAM IPHONE</span>
                 <span id="topic-right-text" class="topic-name">IPHONE</span>
               </div>
             </div>
@@ -191,7 +191,7 @@
 
           <!-- Right: Top 5 White (White Background Card) -->
           <div id="leaderboard-white" class="top5-card white-card">
-            <div class="top5-card-header">TOP 5 - WHITE</div>
+            <div id="top5-header-white" class="top5-card-header">TOP 5 - IPHONE</div>
             <div id="lb-list-white" class="top5-list">
               <div class="top5-item captain-rank1">
                 <span class="top5-rank-badge">1 <svg viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg></span>
@@ -229,7 +229,7 @@
             <div class="cmd-left-col">
               <div class="cmd-giant-num">1</div>
               <div class="cmd-text-group">
-                <div class="cmd-header-text">JOIN TEAM BLACK</div>
+                <div id="cmd-header-black" class="cmd-header-text">JOIN TEAM ANDROID</div>
                 <div class="cmd-divider-line"></div>
                 <div class="cmd-sub-row">
                   <span>TYPE 1 IN</span>
@@ -254,9 +254,9 @@
                 <span>LIVE CHAT ACTIVITY</span>
               </div>
               <div class="stream-directions">
-                <span class="stream-tag black-tag">◄ TEAM BLACK</span>
+                <span id="stream-tag-black" class="stream-tag black-tag">◄ TEAM ANDROID</span>
                 <span class="stream-sep">//</span>
-                <span class="stream-tag white-tag">TEAM WHITE ►</span>
+                <span id="stream-tag-white" class="stream-tag white-tag">TEAM IPHONE ►</span>
               </div>
             </div>
             <div class="dual-horizontal-scroller">
@@ -286,7 +286,7 @@
             <div class="cmd-left-col">
               <div class="cmd-giant-num">2</div>
               <div class="cmd-text-group">
-                <div class="cmd-header-text">JOIN TEAM WHITE</div>
+                <div id="cmd-header-white" class="cmd-header-text">JOIN TEAM IPHONE</div>
                 <div class="cmd-divider-line"></div>
                 <div class="cmd-sub-row">
                   <span>TYPE 2 IN</span>
