@@ -1580,7 +1580,8 @@
     }, 1200);
   }
 
-  setInterval(pollServerChat, 1000);
+  // Sub-second chat polling (500ms) for instant responsiveness
+  setInterval(pollServerChat, 500);
 
   render();
   requestAnimationFrame(loop);

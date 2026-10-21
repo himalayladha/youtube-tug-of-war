@@ -45,6 +45,8 @@ console.log(`[Streamer] Framerate: In=${INPUT_FPS}fps -> Out=${OUTPUT_FPS}fps | 
 const ffmpegArgs = [
   '-y',
   '-thread_queue_size', '1024',
+  '-fflags', 'nobuffer',
+  '-flags', 'low_delay',
   '-f', 'image2pipe',
   '-vcodec', 'mjpeg',
   '-r', String(INPUT_FPS),
@@ -58,11 +60,12 @@ const ffmpegArgs = [
   '-tune', 'zerolatency',
   '-r', String(OUTPUT_FPS),
   '-pix_fmt', 'yuv420p',
-  '-g', String(OUTPUT_FPS * 2),
+  '-g', String(OUTPUT_FPS), // 1-second keyframe (enables YouTube Ultra Low Latency)
   '-b:v', BITRATE,
   '-minrate', BITRATE,
   '-maxrate', BITRATE,
-  '-bufsize', String(parseInt(BITRATE, 10) * 2) + 'k',
+  '-bufsize', String(parseInt(BITRATE, 10) * 1.2) + 'k',
+  '-flush_packets', '1',
   '-c:a', 'aac',
   '-b:a', '128k',
   '-ar', '44100',
