@@ -18,6 +18,17 @@
   arenaBgImg.onload = () => { arenaBgLoaded = true; };
   arenaBgImg.src = './assets/images/arena_background.png';
 
+  // Authentic User-Supplied Stickman Images (media_1792576999153_bdefe6a6.png)
+  const stickmanBlackImg = new Image();
+  let stickmanBlackLoaded = false;
+  stickmanBlackImg.onload = () => { stickmanBlackLoaded = true; };
+  stickmanBlackImg.src = window.STICKMAN_BLACK_DATA || './assets/images/stickman_black.png';
+
+  const stickmanWhiteImg = new Image();
+  let stickmanWhiteLoaded = false;
+  stickmanWhiteImg.onload = () => { stickmanWhiteLoaded = true; };
+  stickmanWhiteImg.src = window.STICKMAN_WHITE_DATA || './assets/images/stickman_white.png';
+
   function isImgReady(img) {
     return Boolean(img && img.complete && img.naturalWidth > 0);
   }
@@ -928,10 +939,86 @@
   }
 
   function drawStickmanPuller(cx, cy, team, phase, extraImpulse = 0) {
-    ctx.save();
     const isBlack = (team === 'BLACK');
     const pullDir = isBlack ? -1.0 : 1.0;
+    const img = isBlack ? stickmanBlackImg : stickmanWhiteImg;
+    const imgReady = isImgReady(img);
 
+    // Primary: Render using User-Attached PNG (media_1792576999153_bdefe6a6.png) with dynamic motion
+    if (imgReady) {
+      ctx.save();
+
+      const floorY = 755;
+      const scale = 80.0 / 368.0; // Hand to foot distance = 80px (matching rope to floor)
+      const w = 612.0 * scale;
+      const h = 628.0 * scale;
+
+      const handX = isBlack ? (612.0 - 84.0) * scale : 84.0 * scale;
+      const handY = 258.0 * scale;
+
+      // Dynamic heave and muscular strain
+      const heave = Math.sin(phase);
+      const strainX = pullDir * (heave * 4.0 + extraImpulse * 12.0);
+      const bounceY = Math.abs(heave) * 2.0;
+
+      // Pivot point at planted feet
+      const pivotX = cx + pullDir * 30 + strainX;
+      const pivotY = floorY;
+      const leanAngle = pullDir * (heave * 0.035 + extraImpulse * 0.07);
+
+      const relDrawX = (cx - handX) - (cx + pullDir * 30);
+      const relDrawY = (cy - handY) - floorY;
+
+      // 1. Glossy Floor Mirror Reflection
+      ctx.save();
+      ctx.translate(pivotX, pivotY);
+      ctx.scale(1, -0.65);
+      ctx.rotate(-leanAngle * 0.5);
+      ctx.globalAlpha = isBlack ? 0.20 : 0.25;
+      ctx.drawImage(img, relDrawX, relDrawY, w, h);
+      ctx.restore();
+
+      // 2. Main Stick Figure Image with dynamic lean & heave
+      ctx.save();
+      ctx.translate(pivotX, pivotY);
+      ctx.rotate(leanAngle);
+      ctx.globalAlpha = 1.0;
+      ctx.drawImage(img, relDrawX, relDrawY + bounceY, w, h);
+
+      // 3. Exertion Sweat Spray Radiating Behind Head
+      if (extraImpulse > 0.05 || Math.sin(phase) > 0.3) {
+        const headSprX = isBlack ? (612.0 - 430.0) * scale : 430.0 * scale;
+        const headSprY = 108.0 * scale;
+        const hx = relDrawX + headSprX;
+        const hy = relDrawY + headSprY + bounceY;
+        const sprayDir = -pullDir;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'round';
+        for (let s = 0; s < 3; s++) {
+          const sx = hx + sprayDir * (18 + s * 6);
+          const sy = hy + (s * 8 - 6);
+          const len = 10 + s * 3 + extraImpulse * 8;
+          const ex = sx + sprayDir * len;
+          const ey = sy - 4;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(ex, ey, 2.0, 0, Math.PI * 2);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fill();
+        }
+      }
+
+      ctx.restore();
+      ctx.restore();
+      return;
+    }
+
+    ctx.save();
     const outerStroke = isBlack ? '#FFFFFF' : '#000000';
     const innerFill = isBlack ? '#000000' : '#FFFFFF';
 
