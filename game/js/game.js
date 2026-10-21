@@ -212,23 +212,17 @@
   // Row 1: Team Black moving towards Team Black side (LEFT)
   // Row 2: Team White moving towards Team White side (RIGHT)
   // Prunes any user who has not commented in the last 5 minutes
-  function updateDualTickerDOM() {
+  function updateDualTickerDOM(activeBlack, activeWhite) {
     const trackBlack = document.getElementById('ticker-track-black');
     const trackWhite = document.getElementById('ticker-track-white');
     if (!trackBlack || !trackWhite) return;
 
     const now = Date.now();
-    const FIVE_MINUTES = 5 * 60 * 1000;
+    const blackList = activeBlack || currentBlackRoster.filter(u => u.activeUntil && u.activeUntil > now);
+    const whiteList = activeWhite || currentWhiteRoster.filter(u => u.activeUntil && u.activeUntil > now);
 
-    // Filter active commenters from the last 5 minutes
-    const activeBlack = currentBlackRoster.filter(u => (now - (u.lastCommentAt || 0)) <= FIVE_MINUTES);
-    const activeWhite = currentWhiteRoster.filter(u => (now - (u.lastCommentAt || 0)) <= FIVE_MINUTES);
-
-    const blackList = activeBlack.length > 0 ? activeBlack : currentBlackRoster.slice(0, 8);
-    const whiteList = activeWhite.length > 0 ? activeWhite : currentWhiteRoster.slice(0, 8);
-
-    const blackUserSig = blackList.map(u => u.user_name).join('|');
-    const whiteUserSig = whiteList.map(u => u.user_name).join('|');
+    const blackUserSig = blackList.map(u => `${u.user_name}:${u.score}`).join('|');
+    const whiteUserSig = whiteList.map(u => `${u.user_name}:${u.score}`).join('|');
 
     function buildPillHTML(u, team) {
       const isBlack = (team === 'BLACK');
@@ -244,17 +238,20 @@
     // Only recreate DOM if roster members changed (joined / pruned)
     if (blackUserSig !== lastBlackTickerUserListSig || !trackBlack.firstElementChild) {
       lastBlackTickerUserListSig = blackUserSig;
-      const single = blackList.map(u => buildPillHTML(u, 'BLACK')).join('');
+      const single = blackList.length > 0 
+        ? blackList.map(u => buildPillHTML(u, 'BLACK')).join('')
+        : `<div class="ticker-item black"><span class="user-handle">TYPE 1 IN CHAT TO PULL (10s)</span><span class="pts-tag">+10 PTS</span></div>`;
       trackBlack.innerHTML = single + single;
     }
 
     if (whiteUserSig !== lastWhiteTickerUserListSig || !trackWhite.firstElementChild) {
       lastWhiteTickerUserListSig = whiteUserSig;
-      const single = whiteList.map(u => buildPillHTML(u, 'WHITE')).join('');
+      const single = whiteList.length > 0
+        ? whiteList.map(u => buildPillHTML(u, 'WHITE')).join('')
+        : `<div class="ticker-item white"><span class="user-handle">TYPE 2 IN CHAT TO PULL (10s)</span><span class="pts-tag">+10 PTS</span></div>`;
       trackWhite.innerHTML = single + single;
     }
 
-    // In-place score and captain update (zero flicker, zero DOM destruction during animation)
     updateTickerPills(trackBlack, blackList);
     updateTickerPills(trackWhite, whiteList);
   }
@@ -346,36 +343,8 @@
     registerChatParticipant(user, team, pts);
   }
 
-  // 15-member rosters initialized matching the blueprint
-  const nowInit = Date.now();
-  const MOCK_BLACK_ROSTER = [
-    { user_name: 'ShadowKing', score: 1420, roundComments: 142, lastCommentAt: nowInit },
-    { user_name: 'DarkKnight', score: 980, roundComments: 98, lastCommentAt: nowInit },
-    { user_name: 'Viper09', score: 750, roundComments: 75, lastCommentAt: nowInit },
-    { user_name: 'GhostOps', score: 620, roundComments: 62, lastCommentAt: nowInit },
-    { user_name: 'Raven', score: 510, roundComments: 51, lastCommentAt: nowInit },
-    { user_name: 'OnyxClaw', score: 430, roundComments: 43, lastCommentAt: nowInit },
-    { user_name: 'Eclipse', score: 380, roundComments: 38, lastCommentAt: nowInit },
-    { user_name: 'VoidWalker', score: 310, roundComments: 31, lastCommentAt: nowInit },
-    { user_name: 'PhantomX', score: 260, roundComments: 26, lastCommentAt: nowInit },
-    { user_name: 'Obsidian', score: 210, roundComments: 21, lastCommentAt: nowInit },
-  ];
-
-  const MOCK_WHITE_ROSTER = [
-    { user_name: 'Solaris', score: 1540, roundComments: 154, lastCommentAt: nowInit },
-    { user_name: 'HyperNova', score: 1040, roundComments: 104, lastCommentAt: nowInit },
-    { user_name: 'FrostBite', score: 790, roundComments: 79, lastCommentAt: nowInit },
-    { user_name: 'BlazeCore', score: 680, roundComments: 68, lastCommentAt: nowInit },
-    { user_name: 'AuraMaster', score: 560, roundComments: 56, lastCommentAt: nowInit },
-    { user_name: 'Starlight', score: 490, roundComments: 49, lastCommentAt: nowInit },
-    { user_name: 'Zenith', score: 410, roundComments: 41, lastCommentAt: nowInit },
-    { user_name: 'Apollo', score: 350, roundComments: 35, lastCommentAt: nowInit },
-    { user_name: 'Polaris', score: 290, roundComments: 29, lastCommentAt: nowInit },
-    { user_name: 'Valkyrie', score: 240, roundComments: 24, lastCommentAt: nowInit },
-  ];
-
-  let currentBlackRoster = MOCK_BLACK_ROSTER.map(item => ({ ...item }));
-  let currentWhiteRoster = MOCK_WHITE_ROSTER.map(item => ({ ...item }));
+  let currentBlackRoster = [];
+  let currentWhiteRoster = [];
   const liveChatters = [];
 
   // Reset round scores for captain and participants at start of each round
@@ -383,14 +352,17 @@
     currentBlackRoster.forEach(p => {
       p.score = 0;
       p.roundComments = 0;
+      p.activeUntil = 0;
     });
     currentWhiteRoster.forEach(p => {
       p.score = 0;
       p.roundComments = 0;
+      p.activeUntil = 0;
     });
     liveChatters.forEach(c => {
       c.score = 0;
       c.roundComments = 0;
+      c.activeUntil = 0;
     });
 
     const capBlackScore = document.getElementById('captain-black-score');
@@ -398,16 +370,21 @@
     if (capBlackScore) capBlackScore.textContent = '0';
     if (capWhiteScore) capWhiteScore.textContent = '0';
 
-    updateLeaderboardDOM('lb-list-black', currentBlackRoster.slice(0, 5), 'BLACK');
-    updateLeaderboardDOM('lb-list-white', currentWhiteRoster.slice(0, 5), 'WHITE');
-    updateDualTickerDOM();
+    updateLeaderboardsAndTickers(true);
   }
 
-  // Register Live Chat Participant: track comment count & 5-minute activity
+  // Register Live Chat Participant: strictly 10-second active hold & +10 score per comment
   function registerChatParticipant(user, team, pts = 10) {
     if (!user) return;
     const now = Date.now();
     const roster = team === 'BLACK' ? currentBlackRoster : currentWhiteRoster;
+    const otherRoster = team === 'BLACK' ? currentWhiteRoster : currentBlackRoster;
+
+    // If player switched teams, remove them from opposite team
+    const otherIdx = otherRoster.findIndex(item => item.user_name === user);
+    if (otherIdx !== -1) {
+      otherRoster.splice(otherIdx, 1);
+    }
 
     let p = roster.find(item => item.user_name === user);
     if (!p) {
@@ -416,7 +393,8 @@
         team: team,
         score: pts,
         roundComments: 1,
-        lastCommentAt: now
+        lastCommentAt: now,
+        activeUntil: now + 10000 // Holds rope power for exactly 10 seconds
       };
       roster.push(p);
     } else {
@@ -424,28 +402,124 @@
       p.score = (p.score || 0) + pts;
       p.roundComments = (p.roundComments || 0) + 1;
       p.lastCommentAt = now;
+      p.activeUntil = now + 10000; // Reset 10-second timer on new comment!
     }
 
-    // Sort roster: player with most comments becomes captain (Rank #1)
+    // Sort roster: player with highest score becomes captain (Rank #1)
     roster.sort((a, b) => {
-      const diffComments = (b.roundComments || 0) - (a.roundComments || 0);
-      if (diffComments !== 0) return diffComments;
-      return (b.score || 0) - (a.score || 0);
+      const diffScore = (b.score || 0) - (a.score || 0);
+      if (diffScore !== 0) return diffScore;
+      return (b.roundComments || 0) - (a.roundComments || 0);
     });
 
-    // Update Captain display
-    const capScoreEl = document.getElementById(team === 'BLACK' ? 'captain-black-score' : 'captain-white-score');
-    if (capScoreEl) capScoreEl.textContent = `${roster[0].score || 0}`;
+    updateLeaderboardsAndTickers(true);
+  }
 
-    // Update Top 5 in-place without blinking
-    updateLeaderboardDOM(team === 'BLACK' ? 'lb-list-black' : 'lb-list-white', roster.slice(0, 5), team);
-    updateDualTickerDOM();
+  let lastLeaderboardUpdate = 0;
+  let lastActiveBlackSig = '';
+  let lastActiveWhiteSig = '';
+
+  function updateLeaderboardsAndTickers(force = false) {
+    const now = Date.now();
+    if (!force && now - lastLeaderboardUpdate < 100) return;
+    lastLeaderboardUpdate = now;
+
+    // Only participants actively within their 10-second window
+    const activeBlack = currentBlackRoster.filter(p => p.activeUntil && p.activeUntil > now);
+    const activeWhite = currentWhiteRoster.filter(p => p.activeUntil && p.activeUntil > now);
+
+    const activeBlackSig = activeBlack.map(p => `${p.user_name}:${p.score}`).join('|');
+    const activeWhiteSig = activeWhite.map(p => `${p.user_name}:${p.score}`).join('|');
+
+    // Update Captain display in Top HUD
+    const capBlackScoreEl = document.getElementById('captain-black-score');
+    const capWhiteScoreEl = document.getElementById('captain-white-score');
+    if (capBlackScoreEl) {
+      const topScore = activeBlack.length > 0 ? (activeBlack[0].score || 0) : 0;
+      if (capBlackScoreEl.textContent !== `${topScore}`) {
+        capBlackScoreEl.textContent = `${topScore}`;
+      }
+    }
+    if (capWhiteScoreEl) {
+      const topScore = activeWhite.length > 0 ? (activeWhite[0].score || 0) : 0;
+      if (capWhiteScoreEl.textContent !== `${topScore}`) {
+        capWhiteScoreEl.textContent = `${topScore}`;
+      }
+    }
+
+    if (activeBlackSig !== lastActiveBlackSig || force) {
+      lastActiveBlackSig = activeBlackSig;
+      updateLeaderboardDOM('lb-list-black', activeBlack.slice(0, 5), 'BLACK');
+    }
+    if (activeWhiteSig !== lastActiveWhiteSig || force) {
+      lastActiveWhiteSig = activeWhiteSig;
+      updateLeaderboardDOM('lb-list-white', activeWhite.slice(0, 5), 'WHITE');
+    }
+
+    updateDualTickerDOM(activeBlack, activeWhite);
+  }
+
+  // Synchronize server leaderboard data into local roster
+  function syncServerLeaderboard(serverList, team) {
+    if (!Array.isArray(serverList)) return;
+    const roster = (team === 'BLACK') ? currentBlackRoster : currentWhiteRoster;
+    const otherRoster = (team === 'BLACK') ? currentWhiteRoster : currentBlackRoster;
+    const now = Date.now();
+
+    serverList.forEach(item => {
+      if (!item || !item.user_name) return;
+
+      const otherIdx = otherRoster.findIndex(u => u.user_name === item.user_name);
+      if (otherIdx !== -1) {
+        otherRoster.splice(otherIdx, 1);
+      }
+
+      let p = roster.find(u => u.user_name === item.user_name);
+      const sScore = parseInt(item.score, 10) || 10;
+      const sVotes = parseInt(item.total_votes, 10) || 1;
+
+      if (!p) {
+        p = {
+          user_name: item.user_name,
+          team: team,
+          score: sScore,
+          roundComments: sVotes,
+          lastCommentAt: now,
+          activeUntil: now + 10000
+        };
+        roster.push(p);
+      } else {
+        p.score = Math.max(p.score || 0, sScore);
+        p.roundComments = Math.max(p.roundComments || 0, sVotes);
+        if (!p.activeUntil || p.activeUntil < now) {
+          p.activeUntil = now + 10000;
+        }
+      }
+    });
+
+    roster.sort((a, b) => {
+      const diffScore = (b.score || 0) - (a.score || 0);
+      if (diffScore !== 0) return diffScore;
+      return (b.roundComments || 0) - (a.roundComments || 0);
+    });
   }
 
   // In-place DOM update for Top 5 leaderboard: zero blinking
   function updateLeaderboardDOM(containerId, top5List, team) {
     const container = document.getElementById(containerId);
     if (!container) return;
+
+    if (!top5List || top5List.length === 0) {
+      container.innerHTML = `
+        <div class="top5-empty-hint" style="padding: 45px 12px; text-align: center; font-family: 'Chakra Petch', sans-serif; font-weight: 700; font-size: 15px; color: ${team === 'BLACK' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)'}; letter-spacing: 1px;">
+          TYPE ${team === 'BLACK' ? '1' : '2'} TO HOLD ROPE (10s)
+        </div>
+      `;
+      return;
+    }
+
+    const hint = container.querySelector('.top5-empty-hint');
+    if (hint) hint.remove();
 
     const crownSvg = `<svg style="width:17px;height:17px;fill:#FFFFFF;margin-left:5px;" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>`;
 
@@ -586,14 +660,24 @@
       }
     }
 
-    // Physics
-    const netForce = (physics.whiteImpulse - physics.blackImpulse) - (physics.x * physics.centeringSpring);
+    // Physics with continuous 10-second holding power
+    const now = Date.now();
+    const activeBlack = currentBlackRoster.filter(p => p.activeUntil && p.activeUntil > now);
+    const activeWhite = currentWhiteRoster.filter(p => p.activeUntil && p.activeUntil > now);
+
+    // Continuous holding force: each active commenter contributes 2.5 units of steady pull force
+    const holdForce = (activeWhite.length - activeBlack.length) * 2.5;
+
+    const netForce = holdForce + (physics.whiteImpulse - physics.blackImpulse) - (physics.x * physics.centeringSpring);
     physics.blackImpulse *= 0.84;
     physics.whiteImpulse *= 0.84;
 
     const ax = netForce / physics.mass;
     physics.vx = (physics.vx + ax) * physics.damping;
     physics.x += physics.vx * dt * 60;
+
+    // Refresh active leaderboards as 10-second timers expire
+    updateLeaderboardsAndTickers();
 
     if (!gameState.isRoundOver) {
       if (physics.x <= -physics.winThreshold) triggerRoundWin('BLACK');
@@ -627,8 +711,8 @@
     });
 
     // Animate stick figure pull cadence with realistic muscular heave
-    const effortBlack = 3.2 + Math.abs(physics.vx) * 0.08 + physics.blackImpulse * 0.05;
-    const effortWhite = 3.2 + Math.abs(physics.vx) * 0.08 + physics.whiteImpulse * 0.05;
+    const effortBlack = (activeBlack.length > 0 ? 3.8 : 1.2) + Math.abs(physics.vx) * 0.08 + physics.blackImpulse * 0.05;
+    const effortWhite = (activeWhite.length > 0 ? 3.8 : 1.2) + Math.abs(physics.vx) * 0.08 + physics.whiteImpulse * 0.05;
     pullers.black.forEach(p => { p.phase += dt * effortBlack; });
     pullers.white.forEach(p => { p.phase += dt * effortWhite; });
 
@@ -1476,14 +1560,7 @@
       roundCycleEl.textContent = `ROUND 0${gameState.roundNumber} / 0${gameState.totalRounds}`;
     }
 
-    const capBlackScore = document.getElementById('captain-black-score');
-    const capWhiteScore = document.getElementById('captain-white-score');
-    if (capBlackScore && currentBlackRoster.length > 0) {
-      capBlackScore.textContent = `${currentBlackRoster[0].score || 0}`;
-    }
-    if (capWhiteScore && currentWhiteRoster.length > 0) {
-      capWhiteScore.textContent = `${currentWhiteRoster[0].score || 0}`;
-    }
+    updateLeaderboardsAndTickers(true);
   }
 
   function updateHUDGauges() {
@@ -1525,17 +1602,16 @@
       if (data.success) {
         if (Array.isArray(data.incoming_pulls)) {
           for (const item of data.incoming_pulls) {
-            applyPull(item.team, item.user);
+            applyPull(item.team, item.user, 10);
           }
         }
         if (Array.isArray(data.leaderboards?.black)) {
-          currentBlackRoster = data.leaderboards.black;
-          updateLeaderboardDOM('lb-list-black', currentBlackRoster.slice(0, 5), 'BLACK');
+          syncServerLeaderboard(data.leaderboards.black, 'BLACK');
         }
         if (Array.isArray(data.leaderboards?.white)) {
-          currentWhiteRoster = data.leaderboards.white;
-          updateLeaderboardDOM('lb-list-white', currentWhiteRoster.slice(0, 5), 'WHITE');
+          syncServerLeaderboard(data.leaderboards.white, 'WHITE');
         }
+        updateLeaderboardsAndTickers();
       }
     } catch (e) {}
   }
@@ -1543,41 +1619,25 @@
   // ----------------------------------------------------
   // INITIALIZATION & SIMULATED AUTOPLAY
   // ----------------------------------------------------
-  const isPreviewMode = window.location.search.includes('preview=1') || window.location.search.includes('test=1') || true;
+  const isPreviewMode = (window.location.search.includes('preview=1') || window.location.search.includes('test=1')) && !window.location.search.includes('stream=1');
 
   updateTopicHUD();
-  updateLeaderboardDOM('lb-list-black', currentBlackRoster.slice(0, 5), 'BLACK');
-  updateLeaderboardDOM('lb-list-white', currentWhiteRoster.slice(0, 5), 'WHITE');
-  updateDualTickerDOM();
+  updateLeaderboardsAndTickers(true);
 
-  const capBlackScore = document.getElementById('captain-black-score');
-  const capWhiteScore = document.getElementById('captain-white-score');
-  if (capBlackScore) capBlackScore.textContent = `${currentBlackRoster[0].score}`;
-  if (capWhiteScore) capWhiteScore.textContent = `${currentWhiteRoster[0].score}`;
-
-  // Periodic pruning of participants inactive > 5 minutes
-  setInterval(() => {
-    const now = Date.now();
-    const FIVE_MIN = 5 * 60 * 1000;
-    currentBlackRoster = currentBlackRoster.filter(p => !p.lastCommentAt || (now - p.lastCommentAt <= FIVE_MIN));
-    currentWhiteRoster = currentWhiteRoster.filter(p => !p.lastCommentAt || (now - p.lastCommentAt <= FIVE_MIN));
-    updateLeaderboardDOM('lb-list-black', currentBlackRoster.slice(0, 5), 'BLACK');
-    updateLeaderboardDOM('lb-list-white', currentWhiteRoster.slice(0, 5), 'WHITE');
-    updateDualTickerDOM();
-  }, 10000);
-
-  // Active vote simulation for realistic broadcast motion
+  // Active vote simulation for realistic test preview (disabled during live stream)
   if (isPreviewMode) {
     setInterval(() => {
       if (gameState.isRoundOver) return;
 
       const isBlack = Math.random() < 0.5;
       const team = isBlack ? 'BLACK' : 'WHITE';
-      const roster = isBlack ? currentBlackRoster : currentWhiteRoster;
-      const userObj = roster[Math.floor(Math.random() * Math.min(5, roster.length))];
+      const simNamesBlack = ['PixelWarrior', 'ShadowBlade', 'ApexRider', 'Vortex99', 'TitanGrip'];
+      const simNamesWhite = ['SolarFlare', 'NovaStrike', 'HyperFrost', 'LightSpeed', 'ZenithGrip'];
+      const userList = isBlack ? simNamesBlack : simNamesWhite;
+      const userName = userList[Math.floor(Math.random() * userList.length)];
 
-      applyPull(team, userObj.user_name, 10);
-    }, 1200);
+      applyPull(team, userName, 10);
+    }, 1800);
   }
 
   // Sub-second chat polling (500ms) for instant responsiveness

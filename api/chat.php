@@ -226,12 +226,12 @@ $velTimeQuery = $isSqlite ? "datetime('now', '-2 seconds')" : "NOW() - INTERVAL 
 $stmt = $pdo->query("SELECT COUNT(*) FROM chat_logs WHERE created_at >= {$velTimeQuery}");
 $velocity = (float)round(($stmt->fetchColumn() / 2), 1);
 
-// Fetch Dual Leaderboards (only active within last 5 minutes, ordered by comments then score)
-$fiveMinAgo = $isSqlite ? "datetime('now', '-5 minutes')" : "NOW() - INTERVAL 5 MINUTE";
-$stmt = $pdo->query("SELECT user_name, score, total_votes FROM leaderboard WHERE team = 'BLACK' AND last_active >= {$fiveMinAgo} ORDER BY total_votes DESC, score DESC LIMIT 50");
+// Fetch Dual Leaderboards (strictly active within the last 10 seconds)
+$tenSecAgo = $isSqlite ? "datetime('now', '-10 seconds')" : "NOW() - INTERVAL 10 SECOND";
+$stmt = $pdo->query("SELECT user_name, score, total_votes FROM leaderboard WHERE team = 'BLACK' AND last_active >= {$tenSecAgo} ORDER BY total_votes DESC, score DESC LIMIT 50");
 $blackTop = $stmt->fetchAll();
 
-$stmt = $pdo->query("SELECT user_name, score, total_votes FROM leaderboard WHERE team = 'WHITE' AND last_active >= {$fiveMinAgo} ORDER BY total_votes DESC, score DESC LIMIT 50");
+$stmt = $pdo->query("SELECT user_name, score, total_votes FROM leaderboard WHERE team = 'WHITE' AND last_active >= {$tenSecAgo} ORDER BY total_votes DESC, score DESC LIMIT 50");
 $whiteTop = $stmt->fetchAll();
 
 // Crown Captains (#1 on each team)
