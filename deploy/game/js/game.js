@@ -11,6 +11,12 @@
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
 
+  // High-Resolution AI Arena Background Loader
+  const arenaBgImg = new Image();
+  let arenaBgLoaded = false;
+  arenaBgImg.onload = () => { arenaBgLoaded = true; };
+  arenaBgImg.src = './assets/images/arena_background.png';
+
   // ----------------------------------------------------
   // PROCEDURAL WEB AUDIO SYNTHESIZER
   // ----------------------------------------------------
@@ -509,31 +515,31 @@
 
     ctx.clearRect(0, 0, 1920, 1080);
 
-    // 1. Dark Stadium Background with Floodlights
-    drawStadiumBackground();
+    // 1. Arena Background (AI Generated Plate or Procedural Fallback)
+    if (arenaBgLoaded) {
+      ctx.drawImage(arenaBgImg, 0, 0, 1920, 1080);
+    } else {
+      drawStadiumBackground();
+      drawHangingCrownBanners();
+      drawReflectiveGridFloor();
+    }
 
-    // 2. Hanging Faction Crown Banners
-    drawHangingCrownBanners();
-
-    // 3. Reflective Glossy Grid Floor
-    drawReflectiveGridFloor();
-
-    // 4. Center Vertical Glowing Laser Beam
+    // 2. Center Vertical Glowing Laser Beam (demarcation layer)
     drawCenterLaserBeam();
 
-    // 5. Heavy Braided Rope with Center Circular Reticle
+    // 3. Heavy Braided Rope with Center Circular Reticle
     drawBraidedRope();
 
-    // 6. Black & White Stick-Figure Teams
+    // 4. Black & White Stick-Figure Teams
     drawStickmanTeams();
 
-    // 7. Particles & Sparks
+    // 5. Particles & Sparks
     drawParticles();
 
-    // 8. Floating Action Text
+    // 6. Floating Action Text
     drawFloatingCombatText();
 
-    // 9. Victory Banner Overlay
+    // 7. Victory Banner Overlay
     if (gameState.isRoundOver) {
       drawVictoryOverlay();
     }
