@@ -27,10 +27,11 @@ if (!STREAM_KEY) {
   process.exit(1);
 }
 
-const RTMP_DESTINATION = `rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}`;
+// Use YouTube RTMPS (Port 443 over TLS) - bypasses cloud outbound firewall restrictions on port 1935
+const RTMP_DESTINATION = getArg('rtmp-url', '') || `rtmps://a.rtmps.youtube.com/live2/${STREAM_KEY}`;
 
 console.log(`[Streamer] Starting autonomous broadcast...`);
-console.log(`[Streamer] Destination: rtmp://a.rtmp.youtube.com/live2/****`);
+console.log(`[Streamer] Destination: rtmps://a.rtmps.youtube.com/live2/**** (Port 443 Secure Ingestion)`);
 console.log(`[Streamer] Target URL: ${GAME_URL}`);
 console.log(`[Streamer] Resolution: ${WIDTH}x${HEIGHT} @ ${FPS}fps (Bitrate: ${BITRATE})`);
 
@@ -77,6 +78,13 @@ const ffmpegArgs = [
 
 console.log(`[Streamer] Launching FFmpeg encoder: ffmpeg ${ffmpegArgs.join(' ')}`);
 const ffmpeg = spawn('ffmpeg', ffmpegArgs);
+
+ffmpeg.stdin.on('error', (err) => {
+  // Prevent unhandled EPIPE exception if FFmpeg closes before input stream closes
+  if (err.code !== 'EPIPE') {
+    console.error('[FFmpeg stdin error]:', err.message);
+  }
+});
 
 ffmpeg.stdout.on('data', (d) => process.stdout.write(`[FFmpeg] ${d}`));
 ffmpeg.stderr.on('data', (d) => process.stderr.write(`[FFmpeg] ${d}`));
