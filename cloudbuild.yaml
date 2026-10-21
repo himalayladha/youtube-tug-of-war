@@ -30,6 +30,8 @@ steps:
       - '--no-cpu-throttling'
       - '--min-instances'
       - '1'
+      - '--max-instances'
+      - '1'
       - '--set-env-vars'
       - 'YOUTUBE_API_KEY=$_YOUTUBE_API_KEY'
 

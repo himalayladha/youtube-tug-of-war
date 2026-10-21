@@ -42,6 +42,10 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 # Enable Apache rewrite and headers modules
 RUN a2enmod rewrite headers
 
+# Ensure Apache recognizes HTTPS from Google Cloud Run load balancer
+RUN echo 'SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on' >> /etc/apache2/conf-available/cloudrun.conf \
+    && a2enconf cloudrun
+
 # Configure Apache to listen on Google Cloud Run $PORT (defaults to 8080)
 RUN sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
 

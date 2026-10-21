@@ -4,13 +4,44 @@
  */
 
 if (session_status() === PHP_SESSION_NONE) {
+    // Ensure session directory is writable across environments (Cloud Run, Docker, Linux, Windows)
+    $savePath = sys_get_temp_dir();
+    if (!empty($savePath) && is_dir($savePath) && is_writable($savePath)) {
+        @session_save_path($savePath);
+    }
+    @ini_set('session.cookie_httponly', '1');
+    @ini_set('session.cookie_samesite', 'Lax');
     session_start();
 }
 
 require_once __DIR__ . '/db.php';
 
+function isAdminLoggedIn(?PDO $pdo = null): bool {
+    if (!empty($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
+        return true;
+    }
+
+    // Check persistent auth cookie token (resilient across Cloud Run instances/restarts)
+    if (!empty($_COOKIE['admin_auth_token'])) {
+        try {
+            if ($pdo === null) {
+                $pdo = getDbConnection();
+            }
+            $activeToken = getSetting($pdo, 'active_admin_token', '');
+            if (!empty($activeToken) && hash_equals($activeToken, $_COOKIE['admin_auth_token'])) {
+                $_SESSION['admin_logged_in'] = true;
+                $_SESSION['admin_user'] = getSetting($pdo, 'admin_user', 'admin');
+                $_SESSION['login_time'] = time();
+                return true;
+            }
+        } catch (Exception $e) {}
+    }
+
+    return false;
+}
+
 function requireAdminAuth(): void {
-    if (empty($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    if (!isAdminLoggedIn()) {
         $loginUrl = '../admin/login.php';
         if (file_exists(__DIR__ . '/../admin/login.php') && basename($_SERVER['PHP_SELF']) === 'index.php' && strpos($_SERVER['PHP_SELF'], 'admin') !== false) {
             $loginUrl = 'login.php';
@@ -26,22 +57,35 @@ function verifyAdminLogin(PDO $pdo, string $username, string $password): bool {
     $storedUser = trim(getSetting($pdo, 'admin_user', 'admin'));
     $storedHash = trim(getSetting($pdo, 'admin_password_hash', ''));
 
+    $authenticated = false;
+
     // Master fallback: allows signing in with admin/admin (or admin123) to avoid lockout
     if (strcasecmp($cleanUser, 'admin') === 0 && ($cleanPass === 'admin' || $cleanPass === 'admin123')) {
         $newHash = password_hash($cleanPass, PASSWORD_DEFAULT);
         setSetting($pdo, 'admin_user', 'admin');
         setSetting($pdo, 'admin_password_hash', $newHash);
-        $_SESSION['admin_logged_in'] = true;
-        $_SESSION['admin_user'] = 'admin';
-        $_SESSION['login_time'] = time();
-        return true;
+        $authenticated = true;
+    } else if (!empty($storedHash) && strcasecmp($storedUser, $cleanUser) === 0 && password_verify($cleanPass, $storedHash)) {
+        $authenticated = true;
     }
 
-    // Standard credential verification against stored hash
-    if (!empty($storedHash) && strcasecmp($storedUser, $cleanUser) === 0 && password_verify($cleanPass, $storedHash)) {
+    if ($authenticated) {
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_user'] = $storedUser;
         $_SESSION['login_time'] = time();
+
+        // Issue persistent auth token cookie (30 days validity)
+        try {
+            $token = bin2hex(random_bytes(32));
+            setSetting($pdo, 'active_admin_token', $token);
+            setcookie('admin_auth_token', $token, [
+                'expires' => time() + (86400 * 30),
+                'path' => '/',
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+        } catch (Exception $e) {}
+
         return true;
     }
 
@@ -62,5 +106,6 @@ function logoutAdmin(): void {
             $params["httponly"]
         );
     }
+    setcookie('admin_auth_token', '', time() - 42000, '/');
     session_destroy();
 }
