@@ -1,7 +1,7 @@
 <?php
 /**
  * The Great Tug-of-War: Black vs White - Live Chat Poller & Force Engine
- * Compatible with MySQL / MariaDB and SQLite (Termux & TermuxPanel)
+ * Compatible with MySQL / MariaDB and SQLite (Cloud VM, VPS, Docker)
  */
 
 session_start();

@@ -62,7 +62,7 @@ if sys.stderr is None:
 
 
 class DatabaseHelper:
-    """Universal Database Interface supporting both MySQL (XAMPP/VPS) and SQLite (Termux/Android)"""
+    """Universal Database Interface supporting both MySQL and SQLite (Cloud VM / VPS / Local)"""
     def __init__(self, config=None):
         self.config = config or self.load_php_config()
         self.is_sqlite = False

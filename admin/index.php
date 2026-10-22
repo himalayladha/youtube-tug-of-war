@@ -559,7 +559,7 @@ $serverHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
             </div>
           </div>
           <p style="font-size: 13px; color: var(--text-muted);">
-            Broadcasts directly to YouTube RTMP 24/7 without OBS. Runs on Termux (Android) or Linux VPS.
+            Broadcasts directly to YouTube RTMP 24/7 without OBS. Runs on Dedicated Cloud VM or Linux Server.
           </p>
         </div>
 
@@ -1012,7 +1012,7 @@ $serverHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
         <div class="form-grid">
           <div>
             <span class="metric-label">DATABASE ENGINE</span>
-            <span style="font-size: 15px; font-weight: 700; color: #FFF;"><?= $isSqlite ? 'SQLite (Zero-Config / Termux / Android)' : 'MySQL / MariaDB' ?></span>
+            <span style="font-size: 15px; font-weight: 700; color: #FFF;"><?= $isSqlite ? 'SQLite (Zero-Config Embedded Engine)' : 'MySQL / MariaDB' ?></span>
           </div>
           <div>
             <span class="metric-label">PHP RUNTIME</span>

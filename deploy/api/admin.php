@@ -2,7 +2,7 @@
 /**
  * The Great Tug-of-War: Black vs White - Protected Admin Controller API
  * Strict session authentication required for all mutating endpoints.
- * Compatible with SQLite (Termux/Android) and MySQL/MariaDB (VPS/Docker/XAMPP).
+ * Compatible with SQLite and MySQL/MariaDB (Cloud VM / VPS / Docker / XAMPP).
  */
 
 session_start();
@@ -36,7 +36,7 @@ function maskSecret(string $secret): string {
     return str_repeat('•', max(4, $len - 4)) . substr($secret, -4);
 }
 
-// Find Python binary path reliably across Windows (XAMPP) and Linux (Termux/VPS)
+// Find Python binary path reliably across Windows (XAMPP) and Linux (Cloud VM / VPS)
 function getPythonBinary(): string {
     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
         $userProfile = getenv('USERPROFILE') ?: 'C:\\Users\\USER';

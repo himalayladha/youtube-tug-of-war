@@ -52,9 +52,17 @@ CLIENT_SECRETS_PATH = os.path.join(BASE_DIR, 'backend', 'client_secret.json')
 PID_FILE = os.path.join(BASE_DIR, 'streamer', 'python_poller.pid')
 LOG_FILE = os.path.join(BASE_DIR, 'logs', 'python_poller.log')
 
+# Under pythonw.exe on Windows, sys.stdout/stderr are None
+if sys.stdout is None:
+    os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+    sys.stdout = open(LOG_FILE, 'a', encoding='utf-8', buffering=1)
+if sys.stderr is None:
+    os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+    sys.stderr = open(LOG_FILE, 'a', encoding='utf-8', buffering=1)
+
 
 class DatabaseHelper:
-    """Universal Database Interface supporting both MySQL (XAMPP/VPS) and SQLite (Termux/Android)"""
+    """Universal Database Interface supporting both MySQL and SQLite (Cloud VM / VPS / Local)"""
     def __init__(self, config=None):
         self.config = config or self.load_php_config()
         self.is_sqlite = False

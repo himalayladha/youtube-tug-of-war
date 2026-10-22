@@ -1,7 +1,7 @@
 <?php
 /**
  * The Great Tug-of-War: Black vs White - First-Time Setup Wizard
- * Supports MySQL / MariaDB and pure SQLite (Termux & TermuxPanel)
+ * Supports MySQL / MariaDB and pure SQLite (Cloud VM, VPS, Docker)
  */
 
 session_start();
@@ -352,7 +352,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
     <?php else: ?>
       <div class="wizard-header">
         <h1 class="wizard-title">🚀 First-Time Setup Wizard</h1>
-        <p class="wizard-desc">Deploy The Great Tug-of-War live stream on Linux VPS, Termux (Android), or Local Server.</p>
+        <p class="wizard-desc">Deploy The Great Tug-of-War live stream on Dedicated Cloud VM, Linux VPS, or Server.</p>
       </div>
 
       <?php if ($error): ?>
@@ -370,7 +370,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
           
           <div class="driver-selector">
             <div id="tab-sqlite" class="driver-tab active" onclick="selectDriver('sqlite')">
-              📱 SQLite (Zero-Config / Termux / Android)
+              ⚡ SQLite (Zero-Config Embedded)
             </div>
             <div id="tab-mysql" class="driver-tab" onclick="selectDriver('mysql')">
               🐬 MySQL / MariaDB (VPS / XAMPP)
@@ -379,7 +379,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finish_setup'])) {
 
           <!-- SQLite Notice -->
           <div id="sqlite-notice" style="padding: 12px 14px; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; color: #065F46; font-size: 13px; font-weight: 600; margin-bottom: 10px;">
-            ✓ SQLite database will be stored in <code>data/database.sqlite</code> with zero server dependencies. Perfect for TermuxPanel!
+            ✓ SQLite database will be stored in <code>data/database.sqlite</code> with zero external server dependencies.
           </div>
 
           <!-- MySQL Fields (Hidden by default when SQLite is selected) -->

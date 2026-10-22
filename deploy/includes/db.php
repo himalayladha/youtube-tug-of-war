@@ -1,7 +1,7 @@
 <?php
 /**
  * Database Helper Functions for YouTube Live Runner & Tug-of-War
- * Supports MySQL / MariaDB and pure SQLite (Termux / TermuxPanel)
+ * Supports MySQL / MariaDB and pure SQLite (Cloud VM, VPS, Docker)
  */
 
 function getDbConnection(?array $config = null): PDO {
@@ -26,7 +26,7 @@ function getDbConnection(?array $config = null): PDO {
 
     $dbDriver = strtolower($config['db_driver'] ?? ($config['db_type'] ?? 'mysql'));
 
-    // SQLite Mode (Ideal for Android Termux & TermuxPanel with 0 configuration)
+    // SQLite Mode (Zero-configuration embedded engine)
     if ($dbDriver === 'sqlite' || (!empty($config['db_path']) && empty($config['db_host']))) {
         $dbPath = $config['db_path'] ?? (__DIR__ . '/../data/database.sqlite');
         $dir = dirname($dbPath);

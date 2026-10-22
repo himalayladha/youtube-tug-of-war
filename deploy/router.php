@@ -1,7 +1,7 @@
 <?php
 /**
  * Router script for PHP Built-in Web Server (php -S)
- * Designed for Termux, TermuxPanel, and lightweight local testing
+ * Designed for local testing and lightweight development
  */
 
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));

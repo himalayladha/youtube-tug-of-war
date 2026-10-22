@@ -1,5 +1,5 @@
 -- The Great Tug-of-War: Black vs White - SQLite Database Schema
--- Optimized for Termux, Android, SQLite3, and TermuxPanel
+-- Optimized for SQLite3 on Dedicated Cloud Server / VPS
 
 CREATE TABLE IF NOT EXISTS settings (
   setting_key TEXT PRIMARY KEY,
