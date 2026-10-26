@@ -28,6 +28,7 @@ fi
 # Parse optional CLI flags
 YT_API_KEY=""
 YT_STREAM_KEY=""
+YT_VIDEO_ID=""
 
 for arg in "$@"; do
   case $arg in
@@ -39,12 +40,17 @@ for arg in "$@"; do
       YT_STREAM_KEY="${arg#*=}"
       shift
       ;;
+    --video-id=*)
+      YT_VIDEO_ID="${arg#*=}"
+      shift
+      ;;
   esac
 done
 
 # Fallback to environment variables if set
 YT_API_KEY="${YT_API_KEY:-$YOUTUBE_API_KEY}"
 YT_STREAM_KEY="${YT_STREAM_KEY:-$YOUTUBE_STREAM_KEY}"
+YT_VIDEO_ID="${YT_VIDEO_ID:-$YOUTUBE_VIDEO_ID}"
 
 PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 echo -e "${GREEN}[*] Project directory: ${PROJECT_DIR}${NC}"
@@ -86,6 +92,14 @@ apt-get install -y \
   libasound2 \
   libpango-1.0-0 \
   libcairo2
+
+# Install Google Chrome Stable for hardware-accelerated headless rendering
+if ! command -v google-chrome &> /dev/null && ! command -v chromium &> /dev/null; then
+  echo "Installing Google Chrome Stable..."
+  wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg 2>/dev/null || true
+  echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+  apt-get update -y && apt-get install -y google-chrome-stable || true
+fi
 
 # 5. Install Node dependencies in streamer directory & browser binary
 echo -e "\n${YELLOW}[4/5] Installing Puppeteer streamer packages & Chrome browser...${NC}"
@@ -146,24 +160,27 @@ EOF
     \$pdo = getDbConnection();
     runSchemaMigration(\$pdo, '$TARGET_DIR/db/schema_sqlite.sql');
     setSetting(\$pdo, 'admin_user', 'admin');
-    setSetting(\$pdo, 'admin_password_hash', password_hash('admin123', PASSWORD_BCRYPT));
+    setSetting(\$pdo, 'admin_password_hash', password_hash('A4TE7Z4gVYXqBuZ', PASSWORD_BCRYPT));
     setSetting(\$pdo, 'yt_api_key', '$YT_API_KEY');
     setSetting(\$pdo, 'yt_stream_key', '$YT_STREAM_KEY');
+    setSetting(\$pdo, 'yt_video_id', '$YT_VIDEO_ID');
     setSetting(\$pdo, 'stream_resolution', '1920x1080');
     setSetting(\$pdo, 'stream_fps', '30');
-    setSetting(\$pdo, 'stream_bitrate', '4500k');
+    setSetting(\$pdo, 'stream_bitrate', '6800k');
     setSetting(\$pdo, 'game_mode', 'auto');
     setSetting(\$pdo, 'db_installed', '1');
   "
 fi
 
 # Update keys if explicitly passed via flags or environment
-if [ -n "$YT_API_KEY" ] || [ -n "$YT_STREAM_KEY" ]; then
+if [ -n "$YT_API_KEY" ] || [ -n "$YT_STREAM_KEY" ] || [ -n "$YT_VIDEO_ID" ]; then
   php -r "
     require '$TARGET_DIR/includes/db.php';
     \$pdo = getDbConnection();
     if (!empty('$YT_API_KEY')) setSetting(\$pdo, 'yt_api_key', '$YT_API_KEY');
     if (!empty('$YT_STREAM_KEY')) setSetting(\$pdo, 'yt_stream_key', '$YT_STREAM_KEY');
+    if (!empty('$YT_VIDEO_ID')) setSetting(\$pdo, 'yt_video_id', '$YT_VIDEO_ID');
+    setSetting(\$pdo, 'admin_password_hash', password_hash('A4TE7Z4gVYXqBuZ', PASSWORD_BCRYPT));
   "
 fi
 
@@ -172,6 +189,17 @@ chmod -R 775 "$TARGET_DIR/data"
 chmod -R 775 "$TARGET_DIR/streamer"
 chmod 664 "$TARGET_DIR/config.php"
 systemctl restart apache2
+
+# Auto-start PM2 24/7 stream daemon if stream key is provided
+if [ -n "$YT_STREAM_KEY" ]; then
+  echo -e "\n${YELLOW}Starting 24/7 PM2 Autonomous Stream...${NC}"
+  pm2 delete yt-stream 2>/dev/null || true
+  pm2 start "$TARGET_DIR/streamer/stream_daemon.js" --name "yt-stream" -- \
+    --stream-key="$YT_STREAM_KEY" \
+    --url="http://localhost/game/index.html?stream=1" \
+    --resolution=1920x1080 --fps=30 --bitrate=6800k
+  pm2 save
+fi
 
 # Detect External IP
 SERVER_IP=$(curl -s -4 ifconfig.me || hostname -I | awk '{print $1}')
